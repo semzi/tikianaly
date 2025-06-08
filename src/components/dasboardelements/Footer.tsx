@@ -1,7 +1,5 @@
-import React from "react";
-import type { FooterLink } from "../../data/footerlink";
 // import  footerLinks  from '/data/footerLink'
-const footerLinks: FooterLink[] = [
+const footerLinks = [
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Privacy Policy", href: "/privacy-policy" },
