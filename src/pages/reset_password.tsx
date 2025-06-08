@@ -1,5 +1,4 @@
 import FormInput from "../components/formelements/FormInput";
-import Checkbox from "../components/formelements/FormCheckbox";
 import FormButton from "../components/formelements/FormButton";
 import Logo from "../components/logo";
 

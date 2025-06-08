@@ -1,4 +1,3 @@
-import React from 'react'
 import { PageHeader } from '../components/dasboardelements/PageHeader'
 import { FooterComp } from '../components/dasboardelements/Footer'
 
