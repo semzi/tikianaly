@@ -1,35 +1,39 @@
+// components/Button.jsx
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import PropTypes from 'prop-types';
 
-interface FormButtonProps {
-  type?: "button" | "submit" | "reset";
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  size?: "default" | "sm" | "lg" | "icon";
-  className?: string;
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-}
+const Button = ({
+  label = '',
+  type = 'button',
+  variant = 'primary',
+  icon =``,
+  iconAlt = '',
+  className = '',
+  children = '',
+  ...props
+}) => {
 
-export function FormButton({
-  type = "button",
-  variant = "default",
-  size = "default",
-  className,
-  children,
-  onClick,
-  disabled = false
-}: FormButtonProps) {
   return (
-    <Button
-      type={type}
-      variant={variant}
-      size={size}
-      className={className}
-      onClick={onClick}
-      disabled={disabled}
+    <button
+    type={type}
+      className={`${className}`}
+      {...props}
     >
+      {icon && <img src={icon} alt={iconAlt} className="h-5 w-5" />}
+      {label && <span>{label}</span>}
       {children}
-    </Button>
+    </button>
   );
-} 
+};
+
+Button.propTypes = {
+  label: PropTypes.string,
+  type: PropTypes.string,
+  variant: PropTypes.string,
+  icon: PropTypes.string,
+  iconAlt: PropTypes.string,
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+export default Button;

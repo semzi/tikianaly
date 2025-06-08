@@ -1,45 +1,115 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
 
+
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* 
+  Theme Variables Section
+  -----------------------
+  Define custom CSS variables for colors and other design tokens.
+  These can be used throughout your CSS for consistent theming.
+*/
 @theme {
-
   /* UI Colors */
-  --color-ui-success: #00D68F;
-  --color-ui-negative: #FF3D71;
-  --color-ui-pending: #FFC94D;
+  --color-ui-success: #00d68f;
+  --color-ui-negative: #ff3d71;
+  --color-ui-pending: #ffc94d;
 
-  /* Brand Primary + Secondary */
-  --color-brand-primary: #0075FF;
-  --color-brand-secondary: #FF4405;
-  --color-brand-p1: #3391FF;
-  --color-brand-p2: #66A9FF;
-  --color-brand-p3: #99C1FF;
-  --color-brand-p4: #CCE0FF;
-  --color-brand-s1: #FF6D3D;
-  --color-brand-s2: #FF9373;
-  --color-brand-s3: #FFBBAA;
-  --color-brand-s4: #FFE0D9;
+  /* Brand Primary + Secondary Colors */
+  --color-brand-primary: #0056d2;
+  --color-brand-secondary: #ff4405;
+  --color-brand-p1: #3391ff;
+  --color-brand-p2: #66a9ff;
+  --color-brand-p3: #99c1ff;
+  --color-brand-p4: #cce0ff;
+  --color-brand-s1: #ff6d3d;
+  --color-brand-s2: #ff9373;
+  --color-brand-s3: #ffbbaa;
+  --color-brand-s4: #ffe0d9;
 
-  /* Neutrals */
-  --color-neutral-n1: #1C1C1E;
-  --color-neutral-n2: #2C2C2E;
-  --color-neutral-n3: #3A3A3C;
-  --color-neutral-n4: #48484A;
+  /* Neutral Colors */
+  --color-neutral-n1: #1c1c1e;
+  --color-neutral-n2: #2c2c2e;
+  --color-neutral-n3: #3a3a3c;
+  --color-neutral-n4: #48484a;
   --color-neutral-n5: #636366;
-  --color-neutral-m6: #AEAEB2;
-  --color-white: #FFFFFF;
+  --color-neutral-m6: #aeaeb2;
+  --color-white: #ffffff;
 
-  --color-smoke-100: #F5F5F7;
-  --color-smoke-200: #E5E5EA;
-  --color-smoke-300: #D1D1D6;
-  --color-snow-100: #F2F2F7;
-  --color-snow-200: #E0E0E0;
+  /* Smoke and Snow Colors */
+  --color-smoke-100: #f5f5f7;
+  --color-smoke-200: #e5e5ea;
+  --color-smoke-300: #d1d1d6;
+  --color-snow-100: #f2f2f7;
+  --color-snow-200: #e0e0e0;
 
-  /* Fonts */
-  --font-heading: "Poppins", sans-serif;
-  --font-body: "Inter", sans-serif;
+  /* Fonts (empty, can be used for font variables if needed) */
+}
 
+/* 
+  Font Size Utility Classes
+  -------------------------
+  Custom classes for specific font sizes.
+*/
+.sz-1 {
+  font-size: 48px;
+}
+.sz-2 {
+  font-size: 40px;
+}
+.sz-3 {
+  font-size: 32px;
+}
+.sz-4 {
+  font-size: 20px;
+}
+.sz-5 {
+  font-size: 18px;
+}
+.sz-6 {
+  font-size: 16px;
+}
+.sz-7 {
+  font-size: 14px;
+}
+.sz-8 {
+  font-size: 12px;
+}
+
+/* 
+  Tailwind Component Layer
+  ------------------------
+  Custom button style using Tailwind's @apply directive.
+*/
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary font-medium justify-center flex items-center gap-2 text-white w-full h-[50px] rounded-[8px] mt-4 hover:bg-blue-600 transition-colors duration-200;
   }
+  .btn-outline {
+    @apply bg-white justify-center flex items-center gap-2 border font-medium border-snow-200 text-neutral-n5 w-full h-[50px] rounded-[8px] mt-4 hover:bg-gray-100 transition-colors duration-200;
+  }
+  .checkbox {
+    @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-brand-primary checked:border-transparent focus:outline-none   focus:border-brand-primary;
+  }
+  .checkbox-disabled {
+    @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-snow-200 checked:border-transparent focus:outline-none shadow focus:border-snow-200;
+  }
+}
+
+input[type="checkbox"].checked\:bg-check:checked {
+  background-image: url("data:image/svg+xml,%3csvg fill='none' stroke='white' stroke-width='3' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M5 13l4 4L19 7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+input[type="checkbox"].disabled\:bg-check:checked {
+  background-image: url("data:image/svg+xml,%3csvg fill='none' stroke='%236b7280' stroke-width='3' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M5 13l4 4L19 7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
