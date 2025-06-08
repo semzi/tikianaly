@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const FormInput = ({
   label = 'Label',
@@ -6,6 +6,7 @@ const FormInput = ({
   placeholder = '',
   icon = '',
   className = '',
+  secondIcon =``,
   containerClass = '',
   inputClass = '',
   ...props
@@ -33,6 +34,7 @@ const FormInput = ({
           className={`w-full text-[13px] sm:text-[14px] md:text-[15px] outline-none border-none ${inputClass}`}
           {...props}
         />
+        {secondIcon && <img src={secondIcon} className="justify-end" />}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @tailwind base;
 @tailwind utilities;
+@tailwind components;
 
 
 body {
@@ -17,12 +18,12 @@ body {
 @theme {
   /* UI Colors */
   --color-ui-success: #00d68f;
-  --color-ui-negative: #ff3d71;
-  --color-ui-pending: #ffc94d;
+  --color-ui-negative: #cc2e2e;
+  --color-ui-pending: #ffc82c;
 
   /* Brand Primary + Secondary Colors */
   --color-brand-primary: #0056d2;
-  --color-brand-secondary: #ff4405;
+  --color-brand-secondary: #FF4500;
   --color-brand-p1: #3391ff;
   --color-brand-p2: #66a9ff;
   --color-brand-p3: #99c1ff;
@@ -98,6 +99,12 @@ body {
   }
   .checkbox-disabled {
     @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-snow-200 checked:border-transparent focus:outline-none shadow focus:border-snow-200;
+  }
+  .secondary-hover{
+    @apply absolute left-0 -bottom-full h-1 w-full group-hover:bg-brand-secondary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left;
+  }
+  .page-padding-x{
+    @apply px-6 md:px-8 lg:px-16
   }
 }
 

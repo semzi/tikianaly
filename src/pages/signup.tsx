@@ -27,42 +27,65 @@ function Signup() {
             placeholder="John Doe"
             icon="/assets/icons/user.png"
           />
+          <p className=" mb-2">Phone Number</p>
           <div
             className={`flex items-center gap-3 h-[44px] sm:h-[50px] md:h-[56px] 
         w-full max-w-full sm:max-w-md md:max-w-lg 
         border border-snow-200 px-3 sm:px-4 mb-4 rounded-[8px]`}
           >
-              <input
-                type="tel"
-                placeholder="+123456789"
-                className={`w-full text-[13px] sm:text-[14px] md:text-[15px] outline-none border-none`}
-              />
-            <div>
-              <p className=" mb-2">Phone Number</p>
-              <div className="p-1">
-                <p>+234</p>
-              </div>
-
-              <div className="py-1 w-[1px] bg-gray-200"></div>
-
+            <div className="p-1 sz-7">
+              <p>+234</p>
             </div>
+            <div className="py-3 w-[2px] bg-gray-200"></div>
+            <input
+              type="tel"
+              placeholder="Enter your phone number"
+              className={`w-full text-[13px] sm:text-[14px] md:text-[15px] outline-none border-none`}
+            />
           </div>
           {/* Email input field */}
           <FormInput
-            label="Email"
+            label="Email Address"
             type="email"
             placeholder="example@gmail.com"
             icon="/assets/icons/mail-line-1.png"
           />
           <FormInput
-            label="Repeat Password"
+            label="Password"
             type="password"
             placeholder="•••••••••"
             icon="/assets/icons/lock-line-1.png"
+            secondIcon="/assets/icons/eye-line.png"
           />
+          {/* // VAlidate Password field */}
+          <div>
+            <div className="flex gap-2 mb-3 items-stretch">
+              <div className="bg-ui-negative w-full rounded-2xl  h-[12px]"></div>
+              <div className="bg-ui-pending rounded-2xl w-full h-[12px]"></div>
+              <div className="bg-ui-success rounded-2xl w-full h-[12px]"></div>
+            </div>
+            <div className="flex mt-2 gap-2 items-center">
+              <div className="bg-ui-success w-[12px] rounded h-[12px]"></div>
+              <p className="sz-7 text-neutral-n5">
+              Minimum criteria of x met
+              </p>
+            </div>
+            <div className="flex mt-2 gap-2 items-center">
+              <div className="bg-ui-success w-[12px] rounded h-[12px]"></div>
+              <p className="sz-7 text-neutral-n5">
+              Next criteria met
+              </p>
+            </div>
+            <div className="flex mt-2 gap-2 items-center">
+              <div className="bg-ui-negative w-[12px] rounded h-[12px]"></div>
+              <p className="sz-7 text-neutral-n5">
+              Criteria not met
+              </p>
+            </div>
+          </div>
 
           {/* Remember Me and Forgot Password */}
-          <div className="flex sz-8 justify-between w-full mt-2 mb-4">
+          <div className="flex sz-8  justify-between w-full mt-4 mb-4">
             <div className="gap-1 flex items-center">
               <Checkbox className="checkbox" />
               <p>

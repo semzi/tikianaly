@@ -15,7 +15,7 @@ const Button = ({
 
   return (
     <button
-    type={type}
+    typeof={type}
       className={`${className}`}
       {...props}
     >
@@ -33,6 +33,7 @@ Button.propTypes = {
   icon: PropTypes.string,
   iconAlt: PropTypes.string,
   className: PropTypes.string,
+  secondIcon: PropTypes.string,
   children: PropTypes.node,
 };
 
