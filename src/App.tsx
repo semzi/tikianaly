@@ -1,5 +1,5 @@
-
 import "./index.css";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Reset from "./pages/reset_password";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
@@ -8,12 +8,15 @@ import Forgot from "./pages/forgot_password";
 
 function App() {
   return (
-    <>
-      {/* <h1 className=" text-2xl font-bold">
-        Tiki<span className="text-blue-500">Analy</span>
-      </h1> */}
-      <Dashboard />
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/forgot-password" element={<Forgot />} />
+        <Route path="/reset-password" element={<Reset />} />
+      </Routes>
+    </Router>
   );
 }
 
