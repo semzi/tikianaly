@@ -4,7 +4,7 @@ export const PageHeader = () => {
   const [searchValue, setSearchValue] = useState("");
 
   return (
-    <div className="bg-brand-primary text-white page-padding-x py-4 flex justify-between items-center">
+    <div className="bg-brand-primary overflow-x-hidden text-white page-padding-x py-4 flex justify-between items-center">
       {/* Left Section */}
       <div className="flex items-center justify-between gap-4 md:gap-10">
         <h1 className="text-xl md:text-2xl font-bold">TikiAnaly</h1>
