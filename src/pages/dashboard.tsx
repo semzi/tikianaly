@@ -66,7 +66,7 @@ export const dashboard = () => {
                   <span>{league.name}</span>
                 </li>
               ))}
-            </ul>gi</div>
+            </ul></div>
         {/* Right Sidebar */}
         <div className="w-1/5 bg-ui-negative hidden lg:block md:w-1/5">3</div>
       </div>
