@@ -48,7 +48,7 @@ src/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/tikianaly.git
+   git clone https://github.com/semzi/tikianaly.git
    cd tikianaly
    ```
 

@@ -7,6 +7,7 @@
 
 body {
   font-family: "Poppins", sans-serif;
+  background-color: snow-200;
 }
 
 /* 
@@ -89,10 +90,16 @@ body {
 */
 @layer components {
   .btn-primary {
-    @apply bg-brand-primary font-medium justify-center flex items-center gap-2 text-white w-full h-[50px] rounded-[8px] mt-4 hover:bg-blue-600 transition-colors duration-200;
+    @apply bg-brand-primary font-medium justify-center flex items-center gap-2 text-white whitespace-nowrap cursor-pointer w-full h-[50px] rounded-[8px] mt-4 hover:bg-blue-600 transition-colors duration-200;
+  }
+  .btn-primary-sm {
+    @apply bg-brand-primary font-medium text-[10px] sm:text-[18px] outline-none justify-center flex whitespace-nowrap items-center gap-2 text-white cursor-pointer px-4 py-2 md:px-6 md:py-3 rounded md:rounded-[6px] mt-4 hover:bg-blue-600 transition-colors duration-200;
+  }
+  .btn-outline-sm {
+    @apply bg-transparent whitespace-nowrap font-medium text-[10px] sm:text-[18px] border-1 border-snow-200 text-neutral-500 justify-center flex items-center gap-2 cursor-pointer px-4 py-2 md:px-6 md:py-3 rounded md:rounded-[6px] mt-4 hover:bg-brand-secondary outline-none  hover:text-white transition-colors duration-200;
   }
   .btn-outline {
-    @apply bg-white justify-center flex items-center gap-2 border font-medium border-snow-200 text-neutral-n5 w-full h-[50px] rounded-[8px] mt-4 hover:bg-gray-100 transition-colors duration-200;
+    @apply bg-white whitespace-nowrap justify-center flex items-center gap-2 border font-medium border-snow-200 text-neutral-n5 w-full h-[50px] rounded-[8px] mt-4 hover:bg-gray-100 transition-colors duration-200;
   }
   .checkbox {
     @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-brand-primary checked:border-transparent focus:outline-none   focus:border-brand-primary;
