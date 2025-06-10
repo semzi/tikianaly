@@ -7,13 +7,17 @@ import allLeagues from "../data/allLeagues";
 export const dashboard = () => {
   return (
     <div>
+      {/* Page Header */}
       <PageHeader />
+
+      {/* Category Navigation */}
       <Category />
+
       <div className="flex page-padding-x gap-3 py-5 justify-around">
         {/* Left Sidebar */}
         <div className="w-1/5 hidden md:block">
           <div className="flex flex-col gap-y-10">
-            {/* Popular Leagues */}
+            {/* Popular Leagues Section */}
             <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
               <p className="font-[500] text-[#23272A]">Popular Leagues</p>
               {popularLeagues.map((league, idx) => (
@@ -27,7 +31,7 @@ export const dashboard = () => {
               ))}
             </ul>
 
-            {/* All Leagues */}
+            {/* All Leagues Section */}
             <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
               <div className="flex items-center my-auto">
                 <p className="font-[500] text-[#23272A]">All Leagues</p>
@@ -54,10 +58,13 @@ export const dashboard = () => {
             </ul>
           </div>
         </div>
-        {/* Main Content */}
+
+        {/* Main Content Area */}
         <div className="w-full flex flex-col gap-y-5 lg:w-3/5">
-          <div className="bg-white border-1 h-fit  border-snow-200 rounded p-5">
+          {/* Date and Filter Controls */}
+          <div className="bg-white border-1 h-fit border-snow-200 rounded p-5">
             <div className="flex justify-center flex-col">
+              {/* Date Navigation */}
               <div className="flex items-center mb-3 justify-between">
                 <img src="\assets\icons\left.png" alt="" />
                 <div className="flex gap-3 text-neutral-n5 items-center">
@@ -66,14 +73,14 @@ export const dashboard = () => {
                 </div>
                 <img src="\assets\icons\right.png" alt="" />
               </div>
-              <div
-                className="flex gap-3 overflow-x-auto overflow-y-hidden"
-                >
-                <div className="hide-scrollbar flex gap-3 w-full"
-                style={{
-                  scrollbarWidth: "none", // Firefox
-                  msOverflowStyle: "none", // IE 10+
-                }}
+              {/* Filter Buttons */}
+              <div className="flex gap-3 overflow-x-auto overflow-y-hidden">
+                <div
+                  className="overflow-x-hidden flex gap-3 w-full"
+                  style={{
+                    scrollbarWidth: "none", // Firefox
+                    msOverflowStyle: "none", // IE 10+
+                  }}
                 >
                   <button className="filter-btn">Live Games</button>
                   <button className="filter-btn">By Date</button>
@@ -83,13 +90,27 @@ export const dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white border-1 h-fit  border-snow-200 rounded p-5">
-            hi
+          {/* Main Content Games Loop */}
+          <div className="flex flex-col gap-5">
+          <div className="bg-white border-1 h-fit flex-col border-snow-200 rounded ">
+            <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
+            <img src="\assets\icons\Football\League\Rectangle 6-3.png" className="w-fit" alt="" />
+            <p className="font-[500] text-[#23272A] text-[14px] md:text-base">Champion League</p>
+            </div>
+            <div className="flex gap-3 border-b-1 p-5 border-snow-200">
+            <img src="\assets\icons\Football\League\Rectangle 6-3.png" className="w-fit" alt="" />
+            <p className="font-[500] text-[#23272A] text-[14px] md:text-base">Champion League</p>
+            </div>
+            
+          </div>
           </div>
         </div>
+
         {/* Right Sidebar */}
         <div className="w-1/5 bg-ui-negative hidden lg:block md:w-1/5">3</div>
       </div>
+
+      {/* Footer */}
       <FooterComp />
     </div>
   );
