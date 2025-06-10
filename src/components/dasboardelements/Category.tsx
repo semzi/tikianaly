@@ -3,13 +3,12 @@ import categories from "../../data/categoryList";
 
 export const Category = () => {
   return (
-    <div>
-      <div
-        className="flex hide-scrollbar w-full gap-3 overflow-x-auto overflow-y-hidden page-padding-x pb-3"
-        style={{
+    <div style={{
           scrollbarWidth: "none", // Firefox
           msOverflowStyle: "none", // IE 10+
-        }}
+        }}>
+      <div
+        className="flex hide-scrollbar w-full gap-3 overflow-x-auto overflow-y-hidden page-padding-x pb-3"
       >
         {categories.map((cat) => (
           <Buttonelement
