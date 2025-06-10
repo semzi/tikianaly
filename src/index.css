@@ -83,6 +83,10 @@ body {
   font-size: 12px;
 }
 
+
+.hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                  }
 /* 
   Tailwind Component Layer
   ------------------------
@@ -117,7 +121,7 @@ body {
     @apply rounded-[4px];
   }
   .filter-btn{
-    @apply bg-transparent px-3 hover:border-transparent transition-colors duration-300 hover:bg-brand-secondary text-neutral-n5 font-[400] hover:text-white py-1.5 border-1 rounded text-sm border-snow-200
+    @apply bg-transparent whitespace-nowrap px-3 hover:border-transparent transition-colors duration-300 hover:bg-brand-secondary text-neutral-n5 font-[400] hover:text-white py-1.5 border-1 rounded text-sm border-snow-200
   }
 }
 

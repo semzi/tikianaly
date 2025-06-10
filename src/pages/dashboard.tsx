@@ -66,22 +66,24 @@ export const dashboard = () => {
                 </div>
                 <img src="\assets\icons\right.png" alt="" />
               </div>
-              <div className="flex gap-3">
-                <button className="btn-outline-sm md:filter-btn">
-                  Live Games
-                </button>
-                <button className="btn-outline-sm md:filter-btn">
-                  By Date
-                </button>
-                <button className="btn-outline-sm md:filter-btn">
-                  Other Filters
-                </button>
+              <div
+                className="flex gap-3 overflow-x-auto overflow-y-hidden"
+                style={{
+                  scrollbarWidth: "none", // Firefox
+                  msOverflowStyle: "none", // IE 10+
+                }}
+              >
+                <div className="hide-scrollbar flex gap-3 w-full">
+                  <button className="filter-btn">Live Games</button>
+                  <button className="filter-btn">By Date</button>
+                  <button className="filter-btn">Other Filters</button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="bg-white border-1 h-fit  border-snow-200 rounded p-5">
-              hi
+            hi
           </div>
         </div>
         {/* Right Sidebar */}
