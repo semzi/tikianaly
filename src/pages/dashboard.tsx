@@ -19,7 +19,7 @@ export const dashboard = () => {
 
   useEffect(() => {
     // Set loading to false after 2.5 seconds
-    const timer = setTimeout(() => setLoading(false), 1);
+    const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -37,7 +37,7 @@ export const dashboard = () => {
         <Category />
       )}
 
-      <div className="flex page-padding-x gap-3 py-5 justify-around">
+      <div className="flex page-padding-x gap-5 py-5 justify-around">
         {/* Left Sidebar */}
         <div className="w-1/5 hidden lg:block">
           <div className="flex flex-col gap-y-10">
@@ -142,8 +142,9 @@ export const dashboard = () => {
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-6">
+            {/* Desktop Section */}
             {loading ? (
-              <div className="bg-white border-1 h-fit flex-col border-snow-200 rounded">
+              <div className="bg-white hidden md:block border-1 h-fit flex-col border-snow-200 rounded">
                 {/* Skeleton for league title */}
                 <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
                   <Skeleton className="w-10 h-10" />
@@ -171,159 +172,205 @@ export const dashboard = () => {
               </div>
             ) : (
               gamesData.map((league, leagueIdx) => (
-                <>
-                  <div
-                    key={league.league.name + leagueIdx}
-                    className="bg-white hidden md:block border-1 h-fit flex-col border-snow-200 rounded"
-                  >
-                    {/* League Title */}
-                    <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
-                      <img src={league.league.icon} className="w-fit" alt="" />
-                      <p className="font-[500] text-[#23272A] text-[14px] md:text-base">
-                        {league.league.name}
-                      </p>
-                    </div>
-                    {/* Games */}
-                    {league.games.map((game, gameIdx) => (
-                      <div
-                        key={gameIdx}
-                        className={`flex justify-around items-center gap-10 border-b-1 px-5 py-3 border-snow-200 ${
-                          gameIdx === league.games.length - 1
-                            ? "last:border-b-0 border-b-0"
-                            : ""
-                        }`}
-                      >
-                        {/* If live, show time and scores; if upcoming, show time at center */}
-                        {game.status === "live" ? (
-                          <>
-                            <p className="text-brand-secondary flex-1/9 font-bold">
-                              {game.time}
-                            </p>
-                            <div className="flex flex-3/9 justify-end items-center gap-3">
-                              <p>{game.home.name}</p>
-                              <img
-                                src={game.home.icon}
-                                alt=""
-                                className="w-fit mr-1"
-                              />
-                              <p className="neutral-n1 font-bold py-0.5 px-2 bg-snow-200">
-                                {game.home.score}
-                              </p>
-                            </div>
-                            <div className="flex flex-4/9 justify-start items-center gap-3">
-                              <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
-                                {game.away.score}
-                              </p>
-                              <img
-                                src={game.away.icon}
-                                alt=""
-                                className="w-fit"
-                              />
-                              <p>{game.away.name}</p>
-                            </div>
-                          </>
-                        ) : (
-                          // Upcoming game: show time at center, no scores
-                          <>
-                            <p className="text-brand-secondary flex-1/9 font-bold"></p>
-                            <div className="flex flex-3/9 justify-end items-center gap-3">
-                              <p>{game.home.name}</p>
-                              <img
-                                src={game.home.icon}
-                                alt=""
-                                className="w-fit"
-                              />
-                            </div>
-                            <p className="neutral-n1 items-center whitespace-nowrap text-center py-0.5 px-2 bg-snow-200">
-                              {game.time}
-                            </p>
-                            <div className="flex flex-4/9 justify-start items-center gap-3">
-                              <img
-                                src={game.away.icon}
-                                alt=""
-                                className="w-fit"
-                              />
-                              <p>{game.away.name}</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                <div
+                  key={league.league.name + leagueIdx}
+                  className="bg-white hidden md:block border-1 h-fit flex-col border-snow-200 rounded"
+                >
+                  {/* League Title */}
+                  <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
+                    <img src={league.league.icon} className="w-fit" alt="" />
+                    <p className="font-[500] text-[#23272A] text-[14px] md:text-base">
+                      {league.league.name}
+                    </p>
                   </div>
-                  <div
-                    key={league.league.name + leagueIdx}
-                    className="bg-white border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
-                  >
-                    {/* League Title */}
-                    <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
-                      <img src={league.league.icon} className="w-fit" alt="" />
-                      <p className="font-[500] text-[#23272A] text-[14px] md:text-base">
-                        {league.league.name}
-                      </p>
+                  {/* Games */}
+                  {league.games.map((game, gameIdx) => (
+                    <div
+                      key={gameIdx}
+                      className={`flex justify-around items-center gap-10 border-b-1 px-5 py-3 border-snow-200 ${
+                        gameIdx === league.games.length - 1
+                          ? "last:border-b-0 border-b-0"
+                          : ""
+                      }`}
+                    >
+                      {/* If live, show time and scores; if upcoming, show time at center */}
+                      {game.status === "live" ? (
+                        <>
+                          <p className="text-brand-secondary flex-1/9 font-bold">
+                            {game.time}
+                          </p>
+                          <div className="flex flex-3/9 justify-end items-center gap-3">
+                            <p>{game.home.name}</p>
+                            <img
+                              src={game.home.icon}
+                              alt=""
+                              className="w-fit mr-1"
+                            />
+                            <p className="neutral-n1 font-bold py-0.5 px-2 bg-snow-200">
+                              {game.home.score}
+                            </p>
+                          </div>
+                          <div className="flex flex-4/9 justify-start items-center gap-3">
+                            <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
+                              {game.away.score}
+                            </p>
+                            <img
+                              src={game.away.icon}
+                              alt=""
+                              className="w-fit"
+                            />
+                            <p>{game.away.name}</p>
+                          </div>
+                        </>
+                      ) : (
+                        // Upcoming game: show time at center, no scores
+                        <>
+                          <p className="text-brand-secondary flex-1/9 font-bold"></p>
+                          <div className="flex flex-3/9 justify-end items-center gap-3">
+                            <p>{game.home.name}</p>
+                            <img
+                              src={game.home.icon}
+                              alt=""
+                              className="w-fit"
+                            />
+                          </div>
+                          <p className="neutral-n1 items-center whitespace-nowrap text-center py-0.5 px-2 bg-snow-200">
+                            {game.time}
+                          </p>
+                          <div className="flex flex-4/9 justify-start items-center gap-3">
+                            <img
+                              src={game.away.icon}
+                              alt=""
+                              className="w-fit"
+                            />
+                            <p>{game.away.name}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {/* Games */}
-                    {league.games.map((game, gameIdx) => (
-                      <div
-                        key={gameIdx}
-                        className="flex items-center justify-between border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
-                      >
-                        {/* Time */}
-                          {game.status === "live" ? 
-                          <p className="text-xs text-brand-secondary text-center w-12 font-semibold">
-                            {game.time}
-                          </p> : 
-                           <p className="text-xs text-neutral-n4 text-center w-12 font-semibold">
-                            {game.time}
-                          </p> }
-                        {/* Teams */}
-                        <div className="flex flex-col flex-1 mx-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={game.home.icon}
-                                alt={game.home.name}
-                                className="w-9 h-9"
-                              />
-                              <span className="font-[500] text-neutral-n4">
-                                {game.home.name}
-                              </span>
-                            </div>
-                            {game.status === "live" ? (
-                              <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
-                                {game.home.score}
-                              </p>
-                            ) : (
-                              <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
-                                -
-                              </p>
-                            )}
+                  ))}
+                </div>
+              ))
+            )}
+
+            {/* Mobile Section */}
+            {loading ? (
+              // --- Mobile Games Skeleton ---
+              <div className="bg-white border-1 block md:hidden h-fit flex-col border-snow-200 rounded">
+                {/* League Title Skeleton */}
+                <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 items-center">
+                  <Skeleton className="w-8 h-8" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                {/* Games Skeleton */}
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
+                  >
+                    {/* Time Skeleton */}
+                    <Skeleton className="w-12 h-4" />
+                    {/* Teams Skeleton */}
+                    <div className="flex flex-col flex-1 mx-2 gap-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="w-9 h-9" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-5 w-8" />
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="w-9 h-9" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-5 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              gamesData.map((league, leagueIdx) => (
+                <div
+                  key={league.league.name + leagueIdx}
+                  className="bg-white border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
+                >
+                  {/* League Title */}
+                  <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
+                    <img
+                      src={league.league.icon}
+                      className="w-fit"
+                      alt=""
+                    />
+                    <p className="font-[500] text-[#23272A] text-[14px] md:text-base">
+                      {league.league.name}
+                    </p>
+                  </div>
+                  {/* Games */}
+                  {league.games.map((game, gameIdx) => (
+                    <div
+                      key={gameIdx}
+                      className="flex items-center justify-between border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
+                    >
+                      {/* Time */}
+                      {game.status === "live" ? (
+                        <p className="text-xs text-brand-secondary text-center w-12 font-semibold">
+                          {game.time}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-neutral-n4 text-center w-12 font-semibold">
+                          {game.time}
+                        </p>
+                      )}
+                      {/* Teams */}
+                      <div className="flex flex-col flex-1 mx-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={game.home.icon}
+                              alt={game.home.name}
+                              className="w-9 h-9"
+                            />
+                            <span className="font-[500] text-neutral-n4">
+                              {game.home.name}
+                            </span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={game.away.icon}
-                                alt={game.away.name}
-                                className="w-9 h-9"
-                              />
-                              <span className="font-[500] text-neutral-n4">
-                                {game.away.name}
-                              </span>
-                            </div>
-                            {game.status === "live" ? (
-                              <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
-                                {game.home.score}
-                              </p>
-                            ) : (
-                              <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
-                                -
-                              </p>
-                            )}
+                          {game.status === "live" ? (
+                            <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
+                              {game.home.score}
+                            </p>
+                          ) : (
+                            <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
+                              -
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={game.away.icon}
+                              alt={game.away.name}
+                              className="w-9 h-9"
+                            />
+                            <span className="font-[500] text-neutral-n4">
+                              {game.away.name}
+                            </span>
                           </div>
+                          {game.status === "live" ? (
+                            <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
+                              {game.away.score}
+                            </p>
+                          ) : (
+                            <p className="neutral-n1 font-bold py-0.5 mr-1 px-2 bg-snow-200">
+                              -
+                            </p>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </>
+                    </div>
+                  ))}
+                </div>
               ))
             )}
           </div>

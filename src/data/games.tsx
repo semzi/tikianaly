@@ -2,7 +2,7 @@ const gamesData = [
   {
     league: {
       name: "Ligue 1",
-      icon: "/assets/icons/Football/League/Rectangle 6-6.png",
+      icon: "/assets/icons/Football/League/Rectangle 6-1.png",
     },
     games: [
       {
@@ -34,7 +34,7 @@ const gamesData = [
   {
     league: {
       name: "Eredivisie",
-      icon: "/assets/icons/Football/League/Rectangle 6-7.png",
+      icon: "/assets/icons/Football/League/Rectangle 6-2.png",
     },
     games: [
       {
@@ -72,7 +72,7 @@ const gamesData = [
   {
     league: {
       name: "Portuguese Liga",
-      icon: "/assets/icons/Football/League/Rectangle 6-8.png",
+      icon: "/assets/icons/Football/League/Rectangle 6-3.png",
     },
     games: [
       {
@@ -116,7 +116,7 @@ const gamesData = [
   {
     league: {
       name: "Turkish Super Lig",
-      icon: "/assets/icons/Football/League/Rectangle 6-9.png",
+      icon: "/assets/icons/Football/League/Rectangle 6.png",
     },
     games: [
       {
