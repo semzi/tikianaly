@@ -68,12 +68,13 @@ export const dashboard = () => {
               </div>
               <div
                 className="flex gap-3 overflow-x-auto overflow-y-hidden"
+                >
+                <div className="hide-scrollbar flex gap-3 w-full"
                 style={{
                   scrollbarWidth: "none", // Firefox
                   msOverflowStyle: "none", // IE 10+
                 }}
-              >
-                <div className="hide-scrollbar flex gap-3 w-full">
+                >
                   <button className="filter-btn">Live Games</button>
                   <button className="filter-btn">By Date</button>
                   <button className="filter-btn">Other Filters</button>
