@@ -55,18 +55,35 @@ export const dashboard = () => {
           </div>
         </div>
         {/* Main Content */}
-        <div className="bg-ui-pending w-full lg:w-3/5"> <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
-              <p className="font-[500] text-[#23272A]">Popular Leagues</p>
-              {popularLeagues.map((league, idx) => (
-                <li
-                  key={league.name + idx}
-                  className="flex mt-5 items-center gap-2 text-[#586069] text-sm mb-4"
-                >
-                  <img src={league.icon} alt={league.name} />
-                  <span>{league.name}</span>
-                </li>
-              ))}
-            </ul></div>
+        <div className="w-full flex flex-col gap-y-5 lg:w-3/5">
+          <div className="bg-white border-1 h-fit  border-snow-200 rounded p-5">
+            <div className="flex justify-center flex-col">
+              <div className="flex items-center mb-3 justify-between">
+                <img src="\assets\icons\left.png" alt="" />
+                <div className="flex gap-3 text-neutral-n5 items-center">
+                  <p>Today</p>
+                  <img src="\assets\icons\calender.png" alt="" />
+                </div>
+                <img src="\assets\icons\right.png" alt="" />
+              </div>
+              <div className="flex gap-3">
+                <button className="btn-outline-sm md:filter-btn">
+                  Live Games
+                </button>
+                <button className="btn-outline-sm md:filter-btn">
+                  By Date
+                </button>
+                <button className="btn-outline-sm md:filter-btn">
+                  Other Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border-1 h-fit  border-snow-200 rounded p-5">
+              hi
+          </div>
+        </div>
         {/* Right Sidebar */}
         <div className="w-1/5 bg-ui-negative hidden lg:block md:w-1/5">3</div>
       </div>

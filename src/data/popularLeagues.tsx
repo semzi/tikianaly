@@ -4,19 +4,19 @@ const popularLeagues = [
     icon: "/assets/icons/Football/League/Rectangle 6-1.png",
   },
   {
-    name: "Premier League",
-    icon: "/assets/icons/Football/League/Rectangle 6-1.png",
+    name: "Champions League",
+    icon: "/assets/icons/Football/League/Rectangle 6-2.png",
   },
   {
-    name: "Premier League",
-    icon: "/assets/icons/Football/League/Rectangle 6-1.png",
+    name: "Quater League",
+    icon: "/assets/icons/Football/League/Rectangle 6-3.png",
   },
   {
-    name: "Premier League",
-    icon: "/assets/icons/Football/League/Rectangle 6-1.png",
+    name: "UEFA",
+    icon: "/assets/icons/Football/League/Rectangle 6.png",
   },
   {
-    name: "Premier League",
+    name: "Carbao",
     icon: "/assets/icons/Football/League/Rectangle 6-1.png",
   },
 ];

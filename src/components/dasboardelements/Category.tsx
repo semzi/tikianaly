@@ -11,6 +11,7 @@ export const Category = () => {
             label={cat.label}
             variant={cat.variant}
             href={cat.href}
+            className="font md:font-[600]"
           />
         ))}
       </div>
