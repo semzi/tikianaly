@@ -24,7 +24,7 @@ export const dashboard = () => {
   }, []);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="">
       {/* Page Header (always visible, no skeleton) */}
       <PageHeader />
 
@@ -40,6 +40,7 @@ export const dashboard = () => {
       <div className="flex page-padding-x gap-5 py-5 justify-around">
         {/* Left Sidebar */}
         <div className="w-1/5 hidden lg:block">
+        <div className="sticky top-5 h-screen flex flex-col gap-y-10 ">
           <div className="flex flex-col gap-y-10">
             {/* Popular Leagues Section */}
             <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
@@ -95,6 +96,7 @@ export const dashboard = () => {
                     </li>
                   ))}
             </ul>
+          </div>
           </div>
         </div>
 
@@ -451,6 +453,7 @@ export const dashboard = () => {
             </ul>
 
             {/* Download  Section */}
+            <div className="h-screen">
             <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
                 <p className="font-[500]  mb-3 text-[#23272A]">
                   Download our Mobile App
@@ -461,8 +464,8 @@ export const dashboard = () => {
                 <img src="\assets\icons\Frame 1261157587.png" className="cursor-pointer" alt="" />
               </div>
             </ul>
-
-            <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
+              <div className="h-[180ch]">
+            <ul className="bg-white border-1 sticky top-5  h-fit border-snow-200 rounded p-5">
                 <p className="font-[500]  mb-3 text-[#23272A]">
                   Chat with our AI Buddy
                 </p>
@@ -471,6 +474,8 @@ export const dashboard = () => {
                 <img src="/assets/icons/Secondary.png" className="cursor-pointer" alt="" />
               </div>
             </ul>
+            </div>
+            </div>
           </div>
         </div>
       </div>

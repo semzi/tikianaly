@@ -151,6 +151,120 @@ const gamesData = [
       },
     ],
   },
+  {
+    league: {
+      name: "Turkish Super Lig",
+      icon: "/assets/icons/Football/League/Rectangle 6.png",
+    },
+    games: [
+      {
+        status: "live",
+        time: "15'",
+        home: { name: "Galatasaray", icon: "/assets/icons/Football/Team/Manchester City.png", score: 0 },
+        away: { name: "Fenerbahce", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "live",
+        time: "29'",
+        home: { name: "Besiktas", icon: "/assets/icons/Football/Team/Manchester City.png", score: 1 },
+        away: { name: "Trabzonspor", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "upcoming",
+        time: "06:30 PM",
+        home: { name: "Basaksehir", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Sivasspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "08:00 PM",
+        home: { name: "Antalyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Alanyaspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "09:30 PM",
+        home: { name: "Konyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Kayserispor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+    ],
+  },
+  {
+    league: {
+      name: "Turkish Super Lig",
+      icon: "/assets/icons/Football/League/Rectangle 6.png",
+    },
+    games: [
+      {
+        status: "live",
+        time: "15'",
+        home: { name: "Galatasaray", icon: "/assets/icons/Football/Team/Manchester City.png", score: 0 },
+        away: { name: "Fenerbahce", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "live",
+        time: "29'",
+        home: { name: "Besiktas", icon: "/assets/icons/Football/Team/Manchester City.png", score: 1 },
+        away: { name: "Trabzonspor", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "upcoming",
+        time: "06:30 PM",
+        home: { name: "Basaksehir", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Sivasspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "08:00 PM",
+        home: { name: "Antalyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Alanyaspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "09:30 PM",
+        home: { name: "Konyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Kayserispor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+    ],
+  },
+  {
+    league: {
+      name: "Turkish Super Lig",
+      icon: "/assets/icons/Football/League/Rectangle 6.png",
+    },
+    games: [
+      {
+        status: "live",
+        time: "15'",
+        home: { name: "Galatasaray", icon: "/assets/icons/Football/Team/Manchester City.png", score: 0 },
+        away: { name: "Fenerbahce", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "live",
+        time: "29'",
+        home: { name: "Besiktas", icon: "/assets/icons/Football/Team/Manchester City.png", score: 1 },
+        away: { name: "Trabzonspor", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+      },
+      {
+        status: "upcoming",
+        time: "06:30 PM",
+        home: { name: "Basaksehir", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Sivasspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "08:00 PM",
+        home: { name: "Antalyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Alanyaspor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+      {
+        status: "upcoming",
+        time: "09:30 PM",
+        home: { name: "Konyaspor", icon: "/assets/icons/Football/Team/Manchester City.png" },
+        away: { name: "Kayserispor", icon: "/assets/icons/Football/Team/Arsenal.png" },
+      },
+    ],
+  },
 ];
 
 export default gamesData;
