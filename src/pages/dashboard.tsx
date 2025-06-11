@@ -19,7 +19,7 @@ export const dashboard = () => {
 
   useEffect(() => {
     // Set loading to false after 2.5 seconds
-    const timer = setTimeout(() => setLoading(false), 2000);
+    const timer = setTimeout(() => setLoading(false), 2);
     return () => clearTimeout(timer);
   }, []);
 
@@ -196,7 +196,7 @@ export const dashboard = () => {
                       {/* If live, show time and scores; if upcoming, show time at center */}
                       {game.status === "live" ? (
                         <>
-                          <p className="text-brand-secondary flex-1/9 font-bold">
+                          <p className="text-brand-secondary animate-pulse flex-1/9 font-bold">
                             {game.time}
                           </p>
                           <div className="flex flex-3/9 justify-end items-center gap-3">
@@ -298,11 +298,7 @@ export const dashboard = () => {
                 >
                   {/* League Title */}
                   <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
-                    <img
-                      src={league.league.icon}
-                      className="w-fit"
-                      alt=""
-                    />
+                    <img src={league.league.icon} className="w-fit" alt="" />
                     <p className="font-[500] text-[#23272A] text-[14px] md:text-base">
                       {league.league.name}
                     </p>
@@ -315,7 +311,7 @@ export const dashboard = () => {
                     >
                       {/* Time */}
                       {game.status === "live" ? (
-                        <p className="text-xs text-brand-secondary text-center w-12 font-semibold">
+                        <p className="text-xs text-brand-secondary animate-pulse text-center w-12 font-semibold">
                           {game.time}
                         </p>
                       ) : (
@@ -377,16 +373,105 @@ export const dashboard = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="w-1/5 bg-ui-negative hidden lg:block md:w-1/5">
-          {loading ? (
-            <div className="flex flex-col gap-5 p-5">
-              <Skeleton className="h-10 w-3/4 mb-2" />
-              <Skeleton className="h-10 w-2/3 mb-2" />
-              <Skeleton className="h-10 w-1/2" />
-            </div>
-          ) : (
-            <>3</>
-          )}
+        <div className="w-1/5 hidden lg:block">
+          <div className="flex flex-col gap-y-10">
+            {/* News Section */}
+            <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
+              {loading ? (
+                <>
+                  <Skeleton className="h-5 w-32 mb-4" />
+                  <div className="flex flex-col gap-y-3 mb-5">
+                    <Skeleton className="mt-4 w-full h-32 rounded" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                  <div className="flex-col flex gap-5">
+                    {/* single news column skeleton */}
+                    <div className="flex border-y-1 border-snow-200 py-5 items-center gap-3">
+                      <Skeleton className="w-24 h-20 rounded" />
+                      <div className="flex flex-col gap-2 flex-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                    </div>
+                    {/* single news column skeleton */}
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-24 h-20 rounded" />
+                      <div className="flex flex-col gap-2 flex-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="font-[500] text-[#23272A]">Latest News</p>
+                  <div className="flex text-neutral-n4 flex-col gap-y-3 mb-5">
+                    <div className='image mt-4 w-full bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-32 rounded'></div>
+                    <p className="sz-6 font-[500]">
+                      Kylian Mbappe Scores third goal in UCL win
+                    </p>
+                    <div className="flex gap-2 sz-8 ">
+                      <span>6 hours ago</span>
+                      <span>|</span>
+                      <span>6 mins read</span>
+                    </div>
+                  </div>
+                  <div className="flex-col flex gap-5">
+                    {/* single news column */}
+                    <div className="flex border-y-1 border-snow-200 py-5 items-center gap-3 text-neutral-n4">
+                      <div className='image w-50 bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-20 rounded'></div>
+                      <div className="">
+                        <p className="sz-8 font-[500]">
+                          Kylian Mbappe Scores third goal in UCL win
+                        </p>
+                        <span className="sz-8">6 hours ago</span>
+                      </div>
+                    </div>
+                    {/* end of news col */}
+                    {/* single news column */}
+                    <div className="flex  items-center gap-3 text-neutral-n4">
+                      <div className='image w-50 bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-20 rounded'></div>
+                      <div>
+                        <p className="sz-8 font-[500]">
+                          Kylian Mbappe Scores third goal in UCL win
+                        </p>
+                        <span className="sz-8">6 hours ago</span>
+                      </div>
+                    </div>
+                    {/* end of news col */}
+                  </div>
+                </>
+              )}
+            </ul>
+
+            {/* Download  Section */}
+            <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
+                <p className="font-[500]  mb-3 text-[#23272A]">
+                  Download our Mobile App
+                </p>
+              <div className="flex flex-col gap-3">
+                <img src="\assets\icons\Group 1261157024.png" alt="" />
+                <img src="\assets\icons\Frame 1261157588.png" className="cursor-pointer" alt="" />
+                <img src="\assets\icons\Frame 1261157587.png" className="cursor-pointer" alt="" />
+              </div>
+            </ul>
+
+            <ul className="bg-white border-1 h-fit border-snow-200 rounded p-5">
+                <p className="font-[500]  mb-3 text-[#23272A]">
+                  Chat with our AI Buddy
+                </p>
+              <div className="flex flex-col gap-3">
+                <img src="public\assets\icons\Chat bot-bro 1.png" alt="" />
+                <img src="/assets/icons/Secondary.png" className="cursor-pointer" alt="" />
+              </div>
+            </ul>
+          </div>
         </div>
       </div>
 

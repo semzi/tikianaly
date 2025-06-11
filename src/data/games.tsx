@@ -8,8 +8,8 @@ const gamesData = [
       {
         status: "live",
         time: "34'",
-        home: { name: "PSG", icon: "/assets/icons/Football/Team/Manchester City.png", score: 2 },
-        away: { name: "Lyon", icon: "/assets/icons/Football/Team/Arsenal.png", score: 1 },
+        home: { name: "Barcelona", icon: "/assets/icons/Football/Team/Manchester City.png", score: 8 },
+        away: { name: "Real Madrid CF", icon: "/assets/icons/Football/Team/Arsenal.png", score: 3 },
       },
       {
         status: "live",
