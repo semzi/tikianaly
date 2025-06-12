@@ -17,7 +17,7 @@ export const Buttonelement = ({
   const button = (
     <button
       className={twMerge(
-        `${variant === "primary" ? "btn-primary-sm" : "btn-outline-sm"} ${
+        `${variant === "primary" ? "btn-primary-sm" : "btn-outline-sm"}  dark:border-[#1F2937] ${
           className || ""
         }`
       )}

@@ -3,6 +3,7 @@
 @tailwind base;
 @tailwind utilities;
 @tailwind components;
+@custom-variant dark (&:where(.dark, .dark *));
 
 
 body {
@@ -131,7 +132,13 @@ body {
     @apply rounded-[4px];
   }
   .filter-btn{
-    @apply bg-transparent whitespace-nowrap px-3 hover:border-transparent transition-colors duration-300 hover:bg-brand-secondary text-neutral-n5 font-[400] hover:text-white py-1.5 border-1 rounded text-sm border-snow-200
+    @apply bg-transparent whitespace-nowrap px-3 hover:border-transparent transition-colors duration-300 hover:bg-brand-secondary text-neutral-n5 dark:text-snow-200 font-[400] hover:text-white py-1.5 border-1 rounded text-sm border-snow-200
+  }
+  .block-style{
+    @apply bg-white border-1 dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-5;
+  }
+  .score{
+    @apply font-bold py-0.5 px-2 dark:text-white bg-snow-200 dark:bg-neutral-500;
   }
 }
 
