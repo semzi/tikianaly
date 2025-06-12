@@ -90,7 +90,7 @@ export const dashboard = () => {
                       <span className="flex-1">{league.name}</span>
                       <img
                         src="/assets/icons/expand-up-down-line 1.png"
-                        className="cursor-pointer ml-auto align-basel"
+                        className="cursor-pointer ml-auto align-basel "
                         alt={league.name}
                       />
                     </li>
