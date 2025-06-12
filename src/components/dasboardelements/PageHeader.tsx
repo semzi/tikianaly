@@ -1,6 +1,7 @@
 import { Moon, Sun } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "../../ThemeContext";
+import { Link } from "react-router-dom";
 export const PageHeader = () => {
   const [searchShow, setSearchShow] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -122,9 +123,11 @@ export const PageHeader = () => {
             )}
           </div>
         </div>
+        <Link to="/signup">
         <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 flex justify-center items-center">
           <img src="/assets/icons/Vector-1.png" alt="" className=" " />
         </div>
+        </Link>
       </div>
     </div>
   );
