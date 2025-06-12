@@ -1,5 +1,5 @@
-import { Lightbulb, Moon, Sun } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Moon, Sun } from "lucide-react";
+import { useState } from "react";
 import { useTheme } from "../../ThemeContext";
 export const PageHeader = () => {
   const [searchShow, setSearchShow] = useState(false);
