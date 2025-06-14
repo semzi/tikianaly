@@ -1,7 +1,11 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "../../ThemeContext";
 import { Link } from "react-router-dom";
+import {
+  Cog6ToothIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 export const PageHeader = () => {
   const [searchShow, setSearchShow] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -50,17 +54,11 @@ export const PageHeader = () => {
             />
           </div>
         )}
-        <img
-          src="/assets/icons/search-line 2 (2).png"
-          alt=""
-          className="w-5 h-5"
+        <MagnifyingGlassIcon
+          className="h-5"
           onClick={() => setSearchShow(searchShow ? false : true)}
         />
-        <img
-          src="/assets/icons/setting-white.png"
-          alt=""
-          className="hidden md:flex w-5 h-5"
-        />
+        <Cog6ToothIcon className="h-5" />
         <div className=" gap-2 h-max px-2 py-1 rounded justify-center bg-neutral-300/50 flex">
           {/* Desktop theme toggle */}
           <div className="hidden md:flex gap-2">
@@ -124,9 +122,9 @@ export const PageHeader = () => {
           </div>
         </div>
         <Link to="/signup">
-        <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 flex justify-center items-center">
-          <img src="/assets/icons/Vector-1.png" alt="" className=" " />
-        </div>
+          <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 flex justify-center items-center">
+            <UserIcon  className="h-5 text-brand-primary" />
+          </div>
         </Link>
       </div>
     </div>

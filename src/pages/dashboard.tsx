@@ -5,6 +5,7 @@ import { Category } from "../components/dasboardelements/Category";
 import popularLeagues from "../data/popularLeagues";
 import allLeagues from "../data/allLeagues";
 import gamesData from "../data/games";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarIcon } from "@heroicons/react/24/outline";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -117,12 +118,12 @@ export const dashboard = () => {
               <div className="flex dark:text-snow-200 justify-center flex-col">
                 {/* Date Navigation */}
                 <div className="flex items-center mb-3 justify-between">
-                  <img src="\assets\icons\left.png" alt="" />
+                  <ArrowLeftIcon className="text-neutral-n4 h-5" />
                   <div className="flex gap-3  items-center">
                     <p>Today</p>
-                    <img src="\assets\icons\calender.png" alt="" />
+                    <CalendarIcon className="text-neutral-n4 h-5" />
                   </div>
-                  <img src="\assets\icons\right.png" alt="" />
+                  <ArrowRightIcon className="text-neutral-n4 h-5" />
                 </div>
                 {/* Filter Buttons */}
                 <div className="flex gap-3 overflow-x-auto overflow-y-hidden">
@@ -472,8 +473,8 @@ export const dashboard = () => {
                   Chat with our AI Buddy
                 </p>
               <div className="flex flex-col gap-3">
-                <img src="public\assets\icons\Chat bot-bro 1.png" alt="" />
-                <img src="/assets/icons/Secondary.png" className="cursor-pointer" alt="" />
+                <img src="\assets\icons\Chat bot-bro 1.png" alt="" />
+                <img src="\assets\icons\Secondary.png" className="cursor-pointer" alt="" />
               </div>
             </ul>
             </div>
