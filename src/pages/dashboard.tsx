@@ -417,7 +417,7 @@ export const dashboard = () => {
                 <>
                   <p className="font-[500] dark:text-snow-200 text-[#23272A]">Latest News</p>
                   <div className="flex text-neutral-n4 flex-col gap-y-3 mb-5">
-                    <div className='image mt-4 w-full bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-32 rounded'></div>
+                    <div className='image mt-4 w-full bg-[url("/assets/icons/mbape.png")] bg-cover bg-top h-32 rounded'></div>
                     <p className="sz-6 dark:text-white font-[500]">
                       Kylian Mbappe Scores third goal in UCL win
                     </p>

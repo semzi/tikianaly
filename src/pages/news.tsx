@@ -13,10 +13,10 @@ export const news = () => {
         <div className="block-style">
           <p className="sz-4 mb-3 dark:text-white font-[500]">Trending News</p>
           <div className="flex justify-around  gap-5">
-            <div className='relative w-4/6 bg-[url("/assets/icons/mbape.png")] bg-cover bg-center rounded-[8px]'>
+            <div className='relative w-4/6 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
               <div className="flex flex-col absolute bottom-5 px-5 gap-y-2">
                 <div className="flex items-center text-white gap-2 sz-7 ">
-                  <img src="\assets\icons\Football\Team\Arsenal.png" alt="" className="w-6 h-6" />
+                  <img src="/assets/icons/Football/Team/Arsenal.png" alt="" className="w-6 h-6" />
                   <span>Ali Moses</span>
                   <span>|</span>
                   <span>6 mins read</span>
