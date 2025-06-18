@@ -20,12 +20,22 @@ export const PageHeader = () => {
         {/* Desktop Nav */}
         <div className="hidden md:flex cursor-pointer font-semibold items-center gap-6 text">
           {["News", "Favourite", "About Us"].map((item) => (
-            <p key={item} className="relative group">
+            <Link
+              key={item}
+              to={
+                item === "News"
+                  ? "/news"
+                  : item === "Favourite"
+                  ? "/favourite"
+                  : "/about"
+              }
+              className="relative group"
+            >
               <span className="group-hover:text-brand-secondary transition-colors duration-300">
                 {item}
               </span>
               <span className="secondary-hover"></span>
-            </p>
+            </Link>
           ))}
         </div>
       </div>
