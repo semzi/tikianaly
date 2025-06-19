@@ -110,11 +110,11 @@ export const PageHeader = () => {
                 className="p-1 rounded bg-white"
                 onClick={() => setTheme("")}
               >
-                <Sun className="w-5 h-5 text-neutral-800" />
+                <Sun className="w-4 h-4 text-neutral-800" />
               </button>
             ) : (
               <button className="p-1 rounded" onClick={() => setTheme("")}>
-                <Sun className="w-5 h-5 text-white" />
+                <Sun className="w-4 h-4 text-white" />
               </button>
             )}
             {theme === "dark" ? (
@@ -122,11 +122,11 @@ export const PageHeader = () => {
                 className="p-1 rounded bg-neutral-800/50"
                 onClick={() => setTheme("dark")}
               >
-                <Moon className="w-5 h-5" />
+                <Moon className="w-4 h-4" />
               </button>
             ) : (
               <button className="p-1 rounded " onClick={() => setTheme("dark")}>
-                <Moon className="w-5 h-5 " />
+                <Moon className="w-4 h-4 " />
               </button>
             )}
           </div>
