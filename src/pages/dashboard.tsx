@@ -299,7 +299,7 @@ export const dashboard = () => {
               gamesData.map((league, leagueIdx) => (
                 <div
                   key={league.league.name + leagueIdx}
-                  className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
+                  className="bg-white text-xs dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
                 >
                   {/* League Title */}
                   <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200">
@@ -316,11 +316,11 @@ export const dashboard = () => {
                     >
                       {/* Time */}
                       {game.status === "live" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-12 font-semibold">
+                        <p className="text-xs text-brand-secondary animate-pulse text-center w-10 font-semibold">
                           {game.time}
                         </p>
                       ) : (
-                        <p className="text-xs dark:text-snow-200 text-neutral-n4 text-center w-12 font-semibold">
+                        <p className="text-xs dark:text-snow-200 text-neutral-n4 text-center w-10 font-semibold">
                           {game.time}
                         </p>
                       )}
@@ -333,7 +333,7 @@ export const dashboard = () => {
                               alt={game.home.name}
                               className="w-9 h-9"
                             />
-                            <span className="font-[500]  dark:text-white text-neutral-n4">
+                            <span className="font-[500] h  dark:text-white text-neutral-n4">
                               {game.home.name}
                             </span>
                           </div>
