@@ -2,7 +2,6 @@ import { HomeIcon } from "@heroicons/react/20/solid"
 import { UserCircleIcon } from "@heroicons/react/24/outline"
 import { BookOpenIcon } from "@heroicons/react/24/outline"
 import { TrophyIcon } from "@heroicons/react/24/outline"
-import { LayoutDashboardIcon } from "lucide-react"
 
 const Navigation = () => {
   return (
