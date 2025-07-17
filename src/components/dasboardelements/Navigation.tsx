@@ -1,32 +1,63 @@
-import { HomeIcon } from "@heroicons/react/20/solid"
-import { HeartIcon } from "@heroicons/react/24/outline"
-import { UserCircleIcon } from "@heroicons/react/24/outline"
-import { BookOpenIcon } from "@heroicons/react/24/outline"
-import { TrophyIcon } from "@heroicons/react/24/outline"
+import { HomeIcon as HomeIconSolid } from "@heroicons/react/20/solid"
+import { HomeIcon as HomeIconOutline } from "@heroicons/react/24/outline"
+import { HeartIcon as HeartIconOutline } from "@heroicons/react/24/outline"
+import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid"
+import { UserCircleIcon as UserCircleIconOutline } from "@heroicons/react/24/outline"
+import { UserCircleIcon as UserCircleIconSolid } from "@heroicons/react/24/solid"
+import { BookOpenIcon as BookOpenIconOutline } from "@heroicons/react/24/outline"
+import { BookOpenIcon as BookOpenIconSolid } from "@heroicons/react/24/solid"
+import { TrophyIcon as TrophyIconOutline } from "@heroicons/react/24/outline"
+import { TrophyIcon as TrophyIconSolid } from "@heroicons/react/24/solid"
+import { NavLink } from "react-router-dom"
 
 const Navigation = () => {
   return (
-    <div className="flex justify-around backdrop-blur-lg px-2 fixed bottom-0 pt-3 pb-5 bg-white/30 w-full b">
-            <div className="flex text-brand-primary items-center flex-col">
-                <HomeIcon className="h-7 w-7" />
-                <p className="text-xs">Home</p>
-            </div>
-            <div className="flex items-center flex-col">
-                <TrophyIcon className="h-7 w-7" />
-                <p className="text-xs">Leagues</p>
-            </div>
-            <div className="flex items-center flex-col">
-                <BookOpenIcon className="h-7 w-7" />
-                <p className="text-xs">News</p>
-            </div>
-            <div className="flex items-center flex-col">
-                <HeartIcon className="h-7 w-7" />
-                <p className="text-xs">Favourite</p>
-            </div>
-            <div className="flex items-center flex-col">
-                <UserCircleIcon className="h-7 w-7" />
-                <p className="text-xs">Profile</p>
-            </div>
+    <div className="flex md:hidden z-1000 justify-around backdrop-blur-sm px-2 fixed bottom-0 pt-3 pb-5 bg-white/50 w-full b">
+            <NavLink to="/" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
+                    {isActive ? <HomeIconSolid className="h-7 w-7" /> : <HomeIconOutline className="h-7 w-7" />}
+                    <p className="text-xs">Home</p>
+                  </>
+                )}
+            </NavLink>
+            <NavLink to="/leagues" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
+                    {isActive ? <TrophyIconSolid className="h-7 w-7" /> : <TrophyIconOutline className="h-7 w-7" />}
+                    <p className="text-xs">Leagues</p>
+                  </>
+                )}
+            </NavLink>
+            <NavLink to="/news" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
+                    {isActive ? <BookOpenIconSolid className="h-7 w-7" /> : <BookOpenIconOutline className="h-7 w-7" />}
+                    <p className="text-xs">News</p>
+                  </>
+                )}
+            </NavLink>
+            <NavLink to="/favourite" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
+                    {isActive ? <HeartIconSolid className="h-7 w-7" /> : <HeartIconOutline className="h-7 w-7" />}
+                    <p className="text-xs">Favourite</p>
+                  </>
+                )}
+            </NavLink>
+            <NavLink to="/profile" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
+                    {isActive ? <UserCircleIconSolid className="h-7 w-7" /> : <UserCircleIconOutline className="h-7 w-7" />}
+                    <p className="text-xs">Profile</p>
+                  </>
+                )}
+            </NavLink>
     </div>
   )
 }

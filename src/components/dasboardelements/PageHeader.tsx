@@ -132,7 +132,7 @@ export const PageHeader = () => {
           </div>
         </div>
         <Link to="/signup">
-          <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 flex justify-center items-center">
+          <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 hidden lg:flex justify-center items-center">
             <UserIcon  className="h-5 text-brand-primary" />
           </div>
         </Link>

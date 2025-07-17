@@ -2,12 +2,14 @@ import { PageHeader } from "../components/dasboardelements/PageHeader";
 import { FooterComp } from "../components/dasboardelements/Footer";
 import { Category } from "../components/dasboardelements/Category";
 import { BookmarkIcon, HeartIcon, ShareIcon } from "@heroicons/react/24/solid";
+import Navigation from "../components/dasboardelements/Navigation";
 
 
 export const news = () => {
   return (
     <div className="dark:bg-[#0D1117]">
       <PageHeader />
+      <Navigation />
       <Category />
       <div className="page-padding-x  mt-4">
         <div className="block-style">
