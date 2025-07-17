@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "../components/dasboardelements/PageHeader";
 import { FooterComp } from "../components/dasboardelements/Footer";
 import { Category } from "../components/dasboardelements/Category";
+import Navigation from "../components/dasboardelements/Navigation";
 import popularLeagues from "../data/popularLeagues";
 import allLeagues from "../data/allLeagues";
 import gamesData from "../data/games";
@@ -28,7 +29,7 @@ export const dashboard = () => {
     <div className="">
       {/* Page Header (always visible, no skeleton) */}
       <PageHeader />
-
+      <Navigation />
       {/* Category Navigation */}
       {loading ? (
         <div className="w-full page-padding-x pb-3">
