@@ -12,8 +12,8 @@ import { NavLink } from "react-router-dom"
 
 const Navigation = () => {
   return (
-    <div className="flex md:hidden z-1000 justify-around backdrop-blur-sm px-2 fixed bottom-0 pt-3 pb-5 bg-white/50 w-full b">
-            <NavLink to="/" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+    <div className="flex md:hidden z-1000 justify-around backdrop-blur-sm px-2 fixed bottom-0 pt-3 pb-5 dark:bg-black/40 bg-white/50 w-full b">
+            <NavLink to="/" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
@@ -22,7 +22,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/leagues" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            <NavLink to="/leagues" className={({ isActive }) => `flex dark:text-smoke-200 items-center  flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
@@ -31,7 +31,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/news" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            <NavLink to="/news" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
@@ -40,7 +40,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/favourite" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            <NavLink to="/favourite" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
@@ -49,7 +49,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/profile" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            <NavLink to="/profile" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
