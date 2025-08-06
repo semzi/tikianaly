@@ -1,5 +1,5 @@
 import "./index.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Reset from "./pages/reset_password";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
@@ -11,7 +11,7 @@ import { ThemeProvider } from "./ThemeContext";
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -20,7 +20,7 @@ function App() {
           <Route path="/forgot-password" element={<Forgot />} />
           <Route path="/reset-password" element={<Reset />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   );
 }
