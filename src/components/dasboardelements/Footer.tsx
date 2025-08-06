@@ -20,21 +20,33 @@ export const FooterComp = () => {
     <div className="flex-col gap-y-15 lg:flex-row flex justify-between ">
         <div className="flex flex-col gap-7
          max-w-150">
-          <h1 className="text-xl md:text-2xl font-bold">TikiAnaly</h1>
-          <p className="">
-            TikiAnaly is a dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt ut labor.
+          <img src="\logos\whitelogo.png" className="w-60" alt="TikiAnaly Logo" />
+          <p>
+            TikiAnaly is reimagining how grassroots and elite sports communities
+            connect, analyze, and celebrate every play.
           </p>
-          <div className="flex gap-7">
-            <img src="\assets\icons\facebook.png" className=" h-8" alt="" />
-            <img src="\assets\icons\x.png" className=" h-8" alt="" />
-            <img src="\assets\icons\tiktok.png" className=" h-8" alt="" />
-            <img src="\assets\icons\instagram.png" className=" h-8" alt="" />
-          </div>
-          <div className="flex gap-3">
-            <img src="\assets\icons\play_store.png" className="h-10" alt="" />
-            <img src="\assets\icons\apple_store.png" className="h-10" alt="" />
-          </div>
+            <div className="flex gap-7">
+            <a href="https://www.facebook.com/share/1CU4SPDQon/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\facebook.png" className="cursor-pointer h-8" alt="Facebook" />
+            </a>
+            <a href="https://x.com/TikiAnaly" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\x.png" className="cursor-pointer h-8" alt="X (Twitter)" />
+            </a>
+            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\tiktok.png" className="cursor-pointer h-8" alt="TikTok" />
+            </a>
+            <a href="https://www.instagram.com/tikianaly2025" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\instagram.png" className="cursor-pointer h-8" alt="Instagram" />
+            </a>
+            </div>
+            <div className="flex gap-3">
+            <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\play_store.png" className="h-10" alt="Google Play Store" />
+            </a>
+            <a href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer">
+              <img src="\assets\icons\apple_store.png" className="h-10" alt="Apple App Store" />
+            </a>
+            </div>
         </div>
         <div className="links sz-4">
           <div className="grid grid-cols-2 gap-x-30 sm:grid-cols-2 gap-4">

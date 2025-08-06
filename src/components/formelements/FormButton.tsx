@@ -15,7 +15,7 @@ const Button = ({
   return (
     <button
     typeof={type}
-      className={`${className}`}
+      className={`${className} cursor-pointer`}
       {...props}
     >
       {icon && <img src={icon} alt={iconAlt} className="h-5 w-5" />}

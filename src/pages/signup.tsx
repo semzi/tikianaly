@@ -17,7 +17,7 @@ function Signup() {
         <Logo />
 
         {/* Credentials section - Left side of the split layout */}
-        <div className="credentials pt-25 justify-center mx-auto items-center my-auto px-4 lg:px-[128px] w-full md:w-1/2 lg:mr-[50vw]">
+        <div className="credentials pt-25 justify-center mx-auto items-center my-auto mb-5 px-4 lg:px-[128px] w-full md:w-1/2 lg:mr-[50vw]">
           <h1 className="font-bold text-[32px] mb-4">Create Account</h1>
 
           {/* Password input fields */}

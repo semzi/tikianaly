@@ -2,6 +2,7 @@ import FormInput from "../components/formelements/FormInput";
 import Checkbox from "../components/formelements/FormCheckbox";
 import FormButton from "../components/formelements/FormButton";
 import Logo from "../components/logo";
+import { Link } from "react-router-dom";
 
 /**
  * Login Component
@@ -79,9 +80,11 @@ function Login() {
           </div>
           <p className="flex sz-7 text-center justify-center mt-8">
             Don't have an account?{" "}
-            <a href="" className=" ml-1 underline text-brand-primary">
+            <Link to="/signup" className=" ml-1 underline text-brand-primary" >
+              <>
               Sign Up
-            </a>
+              </>
+            </Link>
           </p>
         </div>
 

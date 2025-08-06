@@ -12,10 +12,10 @@ export const PageHeader = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="bg-brand-primary overflow-x-hidden text-white page-padding-x py-4 flex justify-between items-center">
+    <div className="bg-brand-primary overflow-x-hidden text-white page-padding-x py-2 md:py-3 flex justify-between items-center">
       {/* Left Section */}
       <div className="flex items-center justify-between gap-4 md:gap-10">
-        <h1 className="text-xl md:text-2xl font-bold">TikiAnaly</h1>
+        <img src="\logos\whitelogo.png" className="w-35 md:w-40" alt="TikiAnaly Logo" />
 
         {/* Desktop Nav */}
         <div className="hidden md:flex cursor-pointer font-semibold items-center gap-6 text">
@@ -69,69 +69,29 @@ export const PageHeader = () => {
           onClick={() => setSearchShow(searchShow ? false : true)}
         />
         <Cog6ToothIcon className="h-5" />
-        <div className=" gap-2 h-max px-2 py-1 rounded justify-center bg-neutral-300/50 flex">
-          {/* Desktop theme toggle */}
-          <div className="hidden md:flex gap-2">
-            {theme === "" ? (
-              <button
-                className="bg-white px-3 py-0 rounded"
-                onClick={() => setTheme("")}
-              >
-                <Sun className="text-neutral-800 w-5 h-5" />
-              </button>
-            ) : (
-              <button
-                className="bg-transparent px-3 py-0 hover:bg-white rounded"
-                onClick={() => setTheme("")}
-              >
-                <Sun className="hover:text-neutral-800 w-5 h-5" />
-              </button>
-            )}
-            {theme === "dark" ? (
-              <button
-                className="bg-neutral-800/50 px-3 py-2 rounded duration-300 transition-colors"
-                onClick={() => setTheme("dark")}
-              >
-                <Moon />
-              </button>
-            ) : (
-              <button
-                className="bg-transparent px-3 py-2 hover:bg-neutral-800/50 rounded duration-300 transition-colors"
-                onClick={() => setTheme("dark")}
-              >
-                <Moon />
-              </button>
-            )}
-          </div>
-          {/* Mobile theme toggle */}
-          <div className="flex md:hidden gap-1">
-            {theme === "" ? (
-              <button
-                className="p-1 rounded bg-white"
-                onClick={() => setTheme("")}
-              >
-                <Sun className="w-4 h-4 text-neutral-800" />
-              </button>
-            ) : (
-              <button className="p-1 rounded" onClick={() => setTheme("")}>
-                <Sun className="w-4 h-4 text-white" />
-              </button>
-            )}
-            {theme === "dark" ? (
-              <button
-                className="p-1 rounded bg-neutral-800/50"
-                onClick={() => setTheme("dark")}
-              >
-                <Moon className="w-4 h-4" />
-              </button>
-            ) : (
-              <button className="p-1 rounded " onClick={() => setTheme("dark")}>
-                <Moon className="w-4 h-4 " />
-              </button>
-            )}
-          </div>
-        </div>
-        <Link to="/signup">
+        <button
+          className="flex items-center justify-center bg-transparent transition-colors"
+          onClick={() => setTheme(theme === "dark" ? "" : "dark")}
+          aria-label="Toggle theme"
+        >
+          <span className="relative w-5 h-5 block">
+            <Sun
+              className={`absolute inset-0 w-5 h-5 text-white transition-all duration-300 ${
+          theme === "dark"
+            ? "opacity-100 rotate-0 scale-100"
+            : "opacity-0 -rotate-90 scale-75"
+              }`}
+            />
+            <Moon
+              className={`absolute inset-0 w-5 h-5 text-white transition-all duration-300 ${
+          theme !== "dark"
+            ? "opacity-100 rotate-0 scale-100"
+            : "opacity-0 rotate-90 scale-75"
+              }`}
+            />
+          </span>
+        </button>
+        <Link to="/login">
           <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 hidden lg:flex justify-center items-center">
             <UserIcon  className="h-5 text-brand-primary" />
           </div>

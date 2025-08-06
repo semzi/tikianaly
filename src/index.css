@@ -29,7 +29,7 @@ body {
   --color-brand-p1: #3391ff;
   --color-brand-p2: #66a9ff;
   --color-brand-p3: #99c1ff;
-  --color-brand-p4: #cce0ff;
+  --color-brand-p4: #D6E7FF;
   --color-brand-s1: #ff6d3d;
   --color-brand-s2: #ff9373;
   --color-brand-s3: #ffbbaa;
@@ -40,7 +40,7 @@ body {
   --color-neutral-n2: #2c2c2e;
   --color-neutral-n3: #3a3a3c;
   --color-neutral-n4: #48484a;
-  --color-neutral-n5: #636366;
+  --color-neutral-n5: #909090;
   --color-neutral-m6: #aeaeb2;
   --color-white: #ffffff;
 
@@ -50,6 +50,17 @@ body {
   --color-smoke-300: #d1d1d6;
   --color-snow-100: #f2f2f7;
   --color-snow-200: #e0e0e0;
+
+  /* Font Weights */
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
 
   /* Fonts (empty, can be used for font variables if needed) */
 }
