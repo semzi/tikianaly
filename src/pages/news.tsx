@@ -57,7 +57,7 @@ export const news = () => {
                   <span>6 mins read</span>
                 </div>
                 <p className="text-white sz-4 font-bold">
-                  Kylian Mbappe Scores third goal in UCL win
+                 Real Madrid edge Barcelona in El Clasico...
                 </p>
                 <div className="flex gap-3">
                   <span className="text-white sz-7">6 hours ago</span>
