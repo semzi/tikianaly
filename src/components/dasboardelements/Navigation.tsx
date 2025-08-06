@@ -17,7 +17,7 @@ const Navigation = () => {
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-                    {isActive ? <HomeIconSolid className="h-7 w-7" /> : <HomeIconOutline className="text-neutral-n4 h-7 w-7" />}
+                    {isActive ? <HomeIconSolid className="h-7 w-7" /> : <HomeIconOutline className="text-neutral-n4 dark:text-smoke-200 h-7 w-7" />}
                     <p className="text-xs">Home</p>
                   </>
                 )}
@@ -26,7 +26,7 @@ const Navigation = () => {
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-                    {isActive ? <TrophyIconSolid className="h-7 w-7" /> : <TrophyIconOutline className="text-neutral-n4 h-7 w-7" />}
+                    {isActive ? <TrophyIconSolid className="h-7 w-7" /> : <TrophyIconOutline className="text-neutral-n4 dark:text-smoke-200 h-7 w-7" />}
                     <p className="text-xs">Leagues</p>
                   </>
                 )}
@@ -35,7 +35,7 @@ const Navigation = () => {
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-                    {isActive ? <BookOpenIconSolid className="h-7 w-7" /> : <BookOpenIconOutline className="text-neutral-n4 h-7 w-7" />}
+                    {isActive ? <BookOpenIconSolid className="h-7 w-7" /> : <BookOpenIconOutline className="text-neutral-n4 dark:text-smoke-200 h-7 w-7" />}
                     <p className="text-xs">News</p>
                   </>
                 )}
@@ -44,7 +44,7 @@ const Navigation = () => {
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-                    {isActive ? <HeartIconSolid className="h-7 w-7" /> : <HeartIconOutline className="text-neutral-n4 h-7 w-7" />}
+                    {isActive ? <HeartIconSolid className="h-7 w-7" /> : <HeartIconOutline className="text-neutral-n4 dark:text-smoke-200 h-7 w-7" />}
                     <p className="text-xs">Favourite</p>
                   </>
                 )}
@@ -53,7 +53,7 @@ const Navigation = () => {
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-                    {isActive ? <UserCircleIconSolid className="h-7 w-7" /> : <UserCircleIconOutline className="text-neutral-n4 h-7 w-7" />}
+                    {isActive ? <UserCircleIconSolid className="h-7 w-7" /> : <UserCircleIconOutline className="text-neutral-n4 dark:text-smoke-200 h-7 w-7" />}
                     <p className="text-xs">Profile</p>
                   </>
                 )}
