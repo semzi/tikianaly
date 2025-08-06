@@ -70,7 +70,7 @@ export const PageHeader = () => {
         />
         <Cog6ToothIcon className="h-5" />
         <button
-          className="flex items-center justify-center bg-transparent transition-colors"
+          className="bg-transparent transition-colors"
           onClick={() => setTheme(theme === "dark" ? "" : "dark")}
           aria-label="Toggle theme"
         >

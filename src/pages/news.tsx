@@ -93,7 +93,7 @@ export const news = () => {
           </div>
         </div>
 
-        <div className="block-style">
+        <div className="block-style hidden lg:block">
           <div className="flex mb-3 dark:text-white justify-between">
             <p className="sz-4 font-medium">Football News</p>
             <div className="flex text-neutral-n4 dark:text-white">
@@ -101,36 +101,6 @@ export const news = () => {
               <span className=" ml-2">Filter</span>
             </div>
           </div>
-          {newsData.map((news, idx) => (
-                <div
-                  key={idx}
-                  className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
-                >
-                  {/* News image as a background */}
-                  <div
-                    className="image w-2/6 bg-cover bg-center h-20 rounded"
-                    style={{ backgroundImage: `url('${news.image}')` }}
-                  ></div>
-                  {/* News title and time */}
-                  <div className="w-4/6">
-                    <p className="sz-7 dark:text-snow-200 font-[500]">
-                      {news.title}
-                    </p>
-                    <span className="sz-8 dark:text-snow-200">{news.time}</span>
-                    <div className="flex overflow-x-auto  overflow-y-auto whitespace-nowrap text-neutral-n5 sz-8 gap-2">
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Premier League
-                      </p>
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Real Madrid
-                      </p>
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Liverpool
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
           <div className="flex justify-between mb-5 border-b border-snow-100 dark:border-[#1F2937] pb-5">
             <div className="flex items-center  gap-3 text-neutral-n4">
               {/* News image as a background */}
@@ -252,7 +222,50 @@ export const news = () => {
           </div>
         </div>
 
-        <div className="block-style">
+
+        {/* mobile  */}
+              <div className="block-style">
+          <div className="flex mb-3 dark:text-white justify-between">
+            <p className="sz-4 font-medium">Football News</p>
+            <div className="flex text-neutral-n4 dark:text-white">
+              <AdjustmentsHorizontalIcon className="w-5 h-5 cursor-pointer" />
+              <span className=" ml-2">Filter</span>
+            </div>
+          </div>
+          {newsData.map((news, idx) => (
+                <div
+                  key={idx}
+                  className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
+                >
+                  {/* News image as a background */}
+                  <div
+                    className="image w-2/6 bg-cover bg-center h-20 rounded"
+                    style={{ backgroundImage: `url('${news.image}')` }}
+                  ></div>
+                  {/* News title and time */}
+                  <div className="w-4/6">
+                    <p className="sz-7 dark:text-snow-200 font-[500]">
+                      {news.title}
+                    </p>
+                    <span className="sz-8 dark:text-snow-200">{news.time}</span>
+                    <div className="flex overflow-x-auto hide-scrollbar overflow-y-auto whitespace-nowrap text-neutral-n5 sz-8 gap-2">
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Premier League
+                      </p>
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Real Madrid
+                      </p>
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Liverpool
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))} 
+        </div>
+        {/* enf of mobile  */}
+
+        <div className="block-style hidden lg:block">
           <div className="flex mb-3 justify-between">
             <p className="sz-4 dark:text-white font-medium">Basketball News</p>
             <div className="flex">
