@@ -9,21 +9,37 @@ var newsData = [
     image: "/assets/icons/mbape.png",
     title: "Kylian Mbappe Scores third goal in UCL win",
     time: "6 hours ago",
+    tags: ["#UCL", "#PSG", "#Mbappe"],
   },
   {
     image: "/assets/icons/mbape.png",
-    title: "Kylian Mbappe Scores third goal in UCL win",
-    time: "6 hours ago",
+    title: "Real Madrid edge Barcelona in thrilling El Clásico",
+    time: "8 hours ago",
+    tags: ["#LaLiga", "#RealMadrid", "#Barcelona"],
   },
   {
     image: "/assets/icons/mbape.png",
-    title: "Kylian Mbappe Scores third goal in UCL win",
-    time: "6 hours ago",
+    title: "Liverpool crushes Chelsea in dominant Premier League win",
+    time: "10 hours ago",
+    tags: ["#PremierLeague", "#Liverpool", "#Chelsea"],
   },
   {
     image: "/assets/icons/mbape.png",
-    title: "Kylian Mbappe Scores third goal in UCL win",
-    time: "6 hours ago",
+    title: "LeBron James reaches 40,000 career points milestone",
+    time: "12 hours ago",
+    tags: ["#NBA", "#Lakers", "#LeBronJames"],
+  },
+  {
+    image: "/assets/icons/mbape.png",
+    title: "Golden State Warriors rally to beat Celtics in overtime",
+    time: "14 hours ago",
+    tags: ["#NBA", "#Warriors", "#Celtics"],
+  },
+  {
+    image: "/assets/icons/mbape.png",
+    title: "Manchester City secure late win over Arsenal in title race",
+    time: "16 hours ago",
+    tags: ["#PremierLeague", "#ManCity", "#Arsenal"],
   },
 ];
 export const news = () => {
@@ -36,7 +52,7 @@ export const news = () => {
         <div className="block-style">
           <p className="sz-4 mb-3 dark:text-white font-[500]">Trending News</p>
           <div className="flex justify-around  gap-5">
-            <div className='relative w-full lg:w-4/6 h-80 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
+            <div className='relative w-full lg:w-4/6 h-90 md:w-110 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
               {/* Gradient overlay */}
               <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none"
@@ -56,8 +72,8 @@ export const news = () => {
                   <span>|</span>
                   <span>6 mins read</span>
                 </div>
-                <p className="text-white sz-4 font-bold">
-                 Real Madrid edge Barcelona in El Clasico...
+                <p className="text-white  sz-4 font-bold">
+                  Liverpool crushes Chelsea in dominant Premier League win
                 </p>
                 <div className="flex gap-3">
                   <span className="text-white sz-7">6 hours ago</span>
@@ -222,9 +238,8 @@ export const news = () => {
           </div>
         </div>
 
-
         {/* mobile  */}
-              <div className="block-style">
+        <div className="block-style">
           <div className="flex mb-3 dark:text-white justify-between">
             <p className="sz-4 font-medium">Football News</p>
             <div className="flex text-neutral-n4 dark:text-white">
@@ -233,35 +248,35 @@ export const news = () => {
             </div>
           </div>
           {newsData.map((news, idx) => (
-                <div
-                  key={idx}
-                  className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
-                >
-                  {/* News image as a background */}
-                  <div
-                    className="image w-2/6 bg-cover bg-center h-20 rounded"
-                    style={{ backgroundImage: `url('${news.image}')` }}
-                  ></div>
-                  {/* News title and time */}
-                  <div className="w-4/6">
-                    <p className="sz-7 dark:text-snow-200 font-[500]">
-                      {news.title}
-                    </p>
-                    <span className="sz-8 dark:text-snow-200">{news.time}</span>
-                    <div className="flex overflow-x-auto hide-scrollbar overflow-y-auto whitespace-nowrap text-neutral-n5 sz-8 gap-2">
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Premier League
-                      </p>
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Real Madrid
-                      </p>
-                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
-                        #Liverpool
-                      </p>
-                    </div>
-                  </div>
+            <div
+              key={idx}
+              className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
+            >
+              {/* News image as a background */}
+              <div
+                className="image w-2/6 bg-cover bg-center h-20 rounded"
+                style={{ backgroundImage: `url('${news.image}')` }}
+              ></div>
+              {/* News title and time */}
+              <div className="w-4/6">
+                <p className="sz-7 dark:text-snow-200 font-[500]">
+                  {news.title}
+                </p>
+                <span className="sz-8 dark:text-snow-200">{news.time}</span>
+                <div className="flex overflow-x-auto hide-scrollbar overflow-y-auto whitespace-nowrap text-neutral-n5 sz-8 gap-2">
+                  <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                    #Premier League
+                  </p>
+                  <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                    #Real Madrid
+                  </p>
+                  <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                    #Liverpool
+                  </p>
                 </div>
-              ))} 
+              </div>
+            </div>
+          ))}
         </div>
         {/* enf of mobile  */}
 
