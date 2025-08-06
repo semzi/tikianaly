@@ -12,7 +12,7 @@ export const PageHeader = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="bg-brand-primary overflow-x-hidden text-white page-padding-x py-2 md:py-3 flex justify-between items-center">
+    <div className="bg-brand-primary overflow-x-hidden text-white m-page-padding-x py-2 md:py-3 flex justify-between items-center">
       {/* Left Section */}
       <div className="flex items-center justify-between gap-4 md:gap-10">
         <img src="\logos\whitelogo.png" className="w-35 md:w-40" alt="TikiAnaly Logo" />

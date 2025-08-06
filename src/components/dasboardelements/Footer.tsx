@@ -16,7 +16,7 @@ const footerLinks = [
 
 export const FooterComp = () => {
   return (
-      <div className="page-padding-x py-15 bg-brand-primary  text-white">
+      <div className="m-page-padding-x py-15 bg-brand-primary  text-white">
     <div className="flex-col gap-y-15 lg:flex-row flex justify-between ">
         <div className="flex flex-col gap-7
          max-w-150">
