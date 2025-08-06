@@ -36,7 +36,7 @@ export const news = () => {
         <div className="block-style">
           <p className="sz-4 mb-3 dark:text-white font-[500]">Trending News</p>
           <div className="flex justify-around  gap-5">
-            <div className='relative w-4/6 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
+            <div className='relative w-full lg:w-4/6 h-80 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
               {/* Gradient overlay */}
               <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none"
@@ -68,7 +68,7 @@ export const news = () => {
               </div>
             </div>
             {/* Sidebar with list of trending news items */}
-            <div className="flex flex-col py-4 w-2/6 gap-y-5">
+            <div className="md:flex flex-col hidden py-4 w-2/6 gap-y-5">
               {/* Map through newsData array to render each news item */}
               {newsData.map((news, idx) => (
                 <div
@@ -101,6 +101,36 @@ export const news = () => {
               <span className=" ml-2">Filter</span>
             </div>
           </div>
+          {newsData.map((news, idx) => (
+                <div
+                  key={idx}
+                  className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
+                >
+                  {/* News image as a background */}
+                  <div
+                    className="image w-2/6 bg-cover bg-center h-20 rounded"
+                    style={{ backgroundImage: `url('${news.image}')` }}
+                  ></div>
+                  {/* News title and time */}
+                  <div className="w-4/6">
+                    <p className="sz-7 dark:text-snow-200 font-[500]">
+                      {news.title}
+                    </p>
+                    <span className="sz-8 dark:text-snow-200">{news.time}</span>
+                    <div className="flex overflow-x-auto  overflow-y-auto whitespace-nowrap text-neutral-n5 sz-8 gap-2">
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Premier League
+                      </p>
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Real Madrid
+                      </p>
+                      <p className="bg-brand-p4 dark:bg-brand-s4 dark:text-neutral-n3 cursor-pointer rounded px-2 py-1 h-fit">
+                        #Liverpool
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
           <div className="flex justify-between mb-5 border-b border-snow-100 dark:border-[#1F2937] pb-5">
             <div className="flex items-center  gap-3 text-neutral-n4">
               {/* News image as a background */}
