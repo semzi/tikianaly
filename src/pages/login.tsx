@@ -1,7 +1,6 @@
 import FormInput from "../components/formelements/FormInput";
 import Checkbox from "../components/formelements/FormCheckbox";
 import FormButton from "../components/formelements/FormButton";
-import Logo from "../components/logo";
 import { Link } from "react-router-dom";
 
 /**
@@ -15,7 +14,13 @@ function Login() {
       {/* Main container with split layout */}
       <div className="overflow-x-hidden relative font-poppins py-[8px] px-[8px] flex h-screen w-screen justify-between">
         {/* Logo/Brand name in top-left corner */}
-        <Logo />
+        {/* <a href="/" className="absolute">
+            <img
+              src="\logos\logocolor.png"
+              className=" pl-5 pt-4 w-40"
+              alt="TikiAnaly Logo"
+            />
+          </a> */}
 
         {/* Credentials section - Left side of the split layout */}
         <div className="credentials justify-center mx-auto items-center my-auto px-4 lg:px-[128px] w-full md:w-1/2">

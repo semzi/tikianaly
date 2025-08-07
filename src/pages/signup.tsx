@@ -1,7 +1,7 @@
 import FormInput from "../components/formelements/FormInput";
 import Checkbox from "../components/formelements/FormCheckbox";
 import FormButton from "../components/formelements/FormButton";
-import Logo from "../components/logo";
+import { Link } from "react-router-dom";
 
 /**
  * Signup Component
@@ -12,9 +12,15 @@ function Signup() {
   return (
     <>
       {/* Main container with split layout */}
-      <div className="overflow-x-hidden relative font-poppins  py-2 px-2 flex h-screen w-screen">
+      <div className="overflow-x-hidden hide-scrollbar relative font-poppins  py-2 px-2 flex h-screen w-screen">
         {/* Logo/Brand name in top-left corner */}
-        <Logo />
+        {/* <a href="/" className="absolute">
+            <img
+              src="\logos\logocolor.png"
+              className=" pl-5 pt-4 w-40"
+              alt="TikiAnaly Logo"
+            />
+          </a> */}
 
         {/* Credentials section - Left side of the split layout */}
         <div className="credentials pt-25 justify-center mx-auto items-center my-auto mb-5 px-4 lg:px-[128px] w-full md:w-1/2 lg:mr-[50vw]">
@@ -132,9 +138,11 @@ function Signup() {
           {/* Sign in link */}
           <p className="flex sz-7 text-center justify-center mt-8">
             Already have an account?
-            <a href="#" className="ml-1 underline text-brand-primary">
-              Sign In
-            </a>
+            <Link to="/login" className=" ml-1 underline text-brand-primary" >
+              <>
+              Sign Up
+              </>
+            </Link>
           </p>
         </div>
 

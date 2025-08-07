@@ -15,8 +15,13 @@ export const PageHeader = () => {
     <div className="bg-brand-primary overflow-x-hidden text-white m-page-padding-x py-2 md:py-3 flex justify-between items-center">
       {/* Left Section */}
       <div className="flex items-center justify-between gap-4 md:gap-10">
-        <img src="\logos\whitelogo.png" className="w-35 md:w-40" alt="TikiAnaly Logo" />
-
+        <a href="/">
+          <img
+            src="\logos\whitelogo.png"
+            className="w-35 md:w-40"
+            alt="TikiAnaly Logo"
+          />
+        </a>
         {/* Desktop Nav */}
         <div className="hidden md:flex cursor-pointer font-semibold items-center gap-6 text">
           {["News", "Favourite", "About Us"].map((item) => (
@@ -77,23 +82,23 @@ export const PageHeader = () => {
           <span className="relative w-5 h-5 block">
             <Sun
               className={`absolute inset-0 w-5 h-5 text-white transition-all duration-300 ${
-          theme === "dark"
-            ? "opacity-100 rotate-0 scale-100"
-            : "opacity-0 -rotate-90 scale-75"
+                theme === "dark"
+                  ? "opacity-100 rotate-0 scale-100"
+                  : "opacity-0 -rotate-90 scale-75"
               }`}
             />
             <Moon
               className={`absolute inset-0 w-5 h-5 text-white transition-all duration-300 ${
-          theme !== "dark"
-            ? "opacity-100 rotate-0 scale-100"
-            : "opacity-0 rotate-90 scale-75"
+                theme !== "dark"
+                  ? "opacity-100 rotate-0 scale-100"
+                  : "opacity-0 rotate-90 scale-75"
               }`}
             />
           </span>
         </button>
         <Link to="/login">
           <div className="rounded-full bg-white w-9 h-9 shrink-0 p-2 hidden lg:flex justify-center items-center">
-            <UserIcon  className="h-5 text-brand-primary" />
+            <UserIcon className="h-5 text-brand-primary" />
           </div>
         </Link>
       </div>

@@ -52,7 +52,7 @@ export const news = () => {
         <div className="block-style">
           <p className="sz-4 mb-3 dark:text-white font-[500]">Trending News</p>
           <div className="flex justify-around  gap-5">
-            <div className='relative w-full lg:w-4/6 h-90 md:w-110 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
+            <div className='relative w-full lg:w-4/6 h-90 md:h-110 bg-[url("/assets/icons/kilan.jpg")] bg-cover bg-top rounded-[8px]'>
               {/* Gradient overlay */}
               <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none"
@@ -86,7 +86,7 @@ export const news = () => {
             {/* Sidebar with list of trending news items */}
             <div className="md:flex flex-col hidden py-4 w-2/6 gap-y-5">
               {/* Map through newsData array to render each news item */}
-              {newsData.map((news, idx) => (
+              {newsData.slice(1, 5).map((news, idx) => (
                 <div
                   key={idx}
                   className="flex items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
@@ -239,7 +239,7 @@ export const news = () => {
         </div>
 
         {/* mobile  */}
-        <div className="block-style">
+        <div className="block-style lg:hidden">
           <div className="flex mb-3 dark:text-white justify-between">
             <p className="sz-4 font-medium">Football News</p>
             <div className="flex text-neutral-n4 dark:text-white">
@@ -250,7 +250,7 @@ export const news = () => {
           {newsData.map((news, idx) => (
             <div
               key={idx}
-              className="flex lg:hidden items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
+              className="flex  items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4"
             >
               {/* News image as a background */}
               <div
