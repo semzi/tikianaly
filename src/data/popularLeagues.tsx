@@ -6,6 +6,7 @@ const popularLeagues = [
   {
     name: "Champions League",
     icon: "/assets/icons/Football/League/Rectangle 6-2.png",
+    fav: true,
   },
   {
     name: "Quater League",
@@ -18,6 +19,7 @@ const popularLeagues = [
   {
     name: "Carbao",
     icon: "/assets/icons/Football/League/Rectangle 6-1.png",
+    fav: true,
   },
 ];
 

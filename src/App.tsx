@@ -6,6 +6,7 @@ import Signup from "./pages/signup";
 import Dashboard from "./pages/dashboard";
 import News from "./pages/news";
 import Forgot from "./pages/forgot_password";
+import League from "./pages/league";
 import { ThemeProvider } from "./ThemeContext";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/league" element={<League />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/news" element={<News />} />
           <Route path="/forgot-password" element={<Forgot />} />

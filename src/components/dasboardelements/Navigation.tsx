@@ -22,7 +22,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/leagues" className={({ isActive }) => `flex dark:text-smoke-200 items-center  flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            <NavLink to="/league" className={({ isActive }) => `flex dark:text-smoke-200 items-center  flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
