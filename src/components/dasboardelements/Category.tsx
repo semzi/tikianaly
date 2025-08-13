@@ -8,7 +8,7 @@ export const Category = () => {
           msOverflowStyle: "none", // IE 10+
         }}>
       <div
-        className="flex hide-scrollbar dark:bg-[#0D1117]  w-full gap-3 overflow-x-auto overflow-y-hidden page-padding-x pb-1"
+        className="flex hide-scrollbar dark:bg-[#0D1117]  w-full gap-2 overflow-x-auto overflow-y-hidden page-padding-x pb-1"
       >
         {categories.map((cat) => (
           <Buttonelement
@@ -16,7 +16,7 @@ export const Category = () => {
             label={cat.label}
             variant={cat.variant}
             href={cat.href}
-            className="font md:font-[600]"
+            className="font sz-8 md:font-[600]"
           />
         ))}
       </div>
