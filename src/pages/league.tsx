@@ -3,7 +3,7 @@ import { FooterComp } from "../components/dasboardelements/Footer";
 import Navigation from "../components/dasboardelements/Navigation";
 import popularLeagues from "../data/popularLeagues";
 import allLeagues from "../data/allLeagues";
-import Category from "../components/dasboardelements/Category";
+// import Category from "../components/dasboardelements/Category";
 import {
   ChevronUpDownIcon,
   HeartIcon,
