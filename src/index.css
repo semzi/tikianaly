@@ -157,6 +157,9 @@ body {
      .game-block{
       @apply bg-white border-1 dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-3;
   }
+  .theme-text{
+    @apply dark:text-white text-[#23272A]
+  }
   .score{
     @apply font-bold py-0.5 px-2 dark:text-white bg-snow-200 dark:bg-neutral-500;
   }

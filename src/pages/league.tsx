@@ -16,7 +16,7 @@ export const league = () => {
     <div className="dark:bg-[#0D1117] min-h-100">
       <PageHeader />
       <Navigation />
-      <Category />
+      {/* <Category /> */}
       <div className="flex border-b cursor-pointer sticky top-0 z-10 backdrop-blur-2xl dark:text-snow-100 theme-border ">
         <div className="flex-1/2 border-b-3 py-3 border-brand-secondary text-center">
           Suggestions
@@ -55,11 +55,11 @@ export const league = () => {
           {allLeagues.map((league, idx) => (
             <li
               key={league.name + idx}
-              className="flex mt-5 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-4"
+              className="flex mt-5 dark:text-snow-200 items-center gap-3 text-[#586069] text-sm mb-4"
             >
-              <img src={league.icon} alt={league.name} />
+              <img src={league.icon} alt={league.name} className="w-6" />
               <span className="flex-1">{league.name}</span>
-              <ChevronUpDownIcon className="cursor-pointer ml-auto align-basel w-6" />
+              <ChevronUpDownIcon className="cursor-pointer ml-auto align-basel w-5" />
             </li>
           ))}
         </ul>
