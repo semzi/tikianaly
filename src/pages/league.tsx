@@ -15,8 +15,8 @@ export const league = () => {
       <PageHeader />
       <Navigation />
       <Category />
-      <div className="flex border-b cursor-pointer sticky border-snow-200 ">
-        <div className="flex-1/2 border-b-3 py-3 border-brand-primary text-center">Suggestions</div>
+      <div className="flex border-b cursor-pointer sticky top-0 z-10 backdrop-blur-2xl dark:text-snow-100 theme-border ">
+        <div className="flex-1/2 border-b-3 py-3 border-brand-secondary text-center">Suggestions</div>
         <div className="flex-1/2 py-3 text-center">All Leagues</div>
       </div>
       <div className="flex pt-5 flex-col gap-y-10 page-padding-x">
