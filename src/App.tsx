@@ -8,11 +8,13 @@ import News from "./pages/news";
 import Forgot from "./pages/forgot_password";
 import League from "./pages/league";
 import { ThemeProvider } from "./ThemeContext";
+import ScrollToTop from "./ScrollToTop";
 
 function App() {
   return (
     <ThemeProvider>
       <HashRouter>
+      <ScrollToTop />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
