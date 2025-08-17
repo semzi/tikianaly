@@ -9,7 +9,6 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as Hearted } from "@heroicons/react/24/solid";
-import StaggerFadeIn from "../animations/StaggerFadeIn";
 import { AnimatePresence, motion } from "framer-motion";
 import StaggerChildren from "../animations/staggerChilderen";
 
