@@ -2,7 +2,6 @@ import { PageHeader } from "../components/dasboardelements/PageHeader";
 import { FooterComp } from "../components/dasboardelements/Footer";
 import { Category } from "../components/dasboardelements/Category";
 import { BookmarkIcon, HeartIcon, ShareIcon } from "@heroicons/react/24/solid";
-import Navigation from "../components/dasboardelements/Navigation";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 var newsData = [
   {
@@ -46,7 +45,6 @@ export const news = () => {
   return (
     <div className="dark:bg-[#0D1117]">
       <PageHeader />
-      <Navigation />
       <Category />
       <div className="page-padding-x gap-10 flex flex-col mt-4">
         <div className="block-style">
