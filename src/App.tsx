@@ -21,41 +21,17 @@ const pageVariants = {
   exit: { opacity: 0, scale: 1.05 },
 };
 
-
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
-        <Route
-          path="/login"
-          element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-            >
-              <Login />
-            </motion.div>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-            >
-              <Signup />
-            </motion.div>
-          }
-        />
+        {/* No Navigation */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        {/* With Navigation */}
         <Route
           path="/league"
           element={
@@ -126,22 +102,36 @@ function AnimatedRoutes() {
             </motion.div>
           }
         />
-      <Route
-        path="/favourites"
-        element={
-          <motion.div
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={{ duration: 0.4, ease: "easeInOut" }}
-          >
-            <Favourite />
-          </motion.div>
-        }
+        <Route
+          path="/favourites"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <Favourite />
+            </motion.div>
+          }
         />
-        </Routes>
+      </Routes>
     </AnimatePresence>
+  );
+}
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const hideNavOn = ["/login", "/signup"];
+
+  const shouldHideNav = hideNavOn.includes(location.pathname);
+
+  return (
+    <>
+      {!shouldHideNav && <Navigation />}
+      {children}
+    </>
   );
 }
 
@@ -150,8 +140,9 @@ function App() {
     <ThemeProvider>
       <HashRouter>
         <ScrollToTop />
-        <AnimatedRoutes />
-        <Navigation />
+        <Layout>
+          <AnimatedRoutes />
+        </Layout>
       </HashRouter>
     </ThemeProvider>
   );
