@@ -9,6 +9,7 @@ import Dashboard from "./pages/dashboard";
 import News from "./pages/news";
 import Forgot from "./pages/forgot_password";
 import League from "./pages/league";
+import Favourite from "./pages/favourites";
 import { ThemeProvider } from "./ThemeContext";
 import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/dasboardelements/Navigation";
@@ -125,7 +126,21 @@ function AnimatedRoutes() {
             </motion.div>
           }
         />
-      </Routes>
+      <Route
+        path="/favourites"
+        element={
+          <motion.div
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          >
+            <Favourite />
+          </motion.div>
+        }
+        />
+        </Routes>
     </AnimatePresence>
   );
 }

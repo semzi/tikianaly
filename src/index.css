@@ -50,6 +50,7 @@ body {
   --color-smoke-300: #d1d1d6;
   --color-snow-100: #f2f2f7;
   --color-snow-200: #e0e0e0;
+  --color-body: #fdfdfd;
 
   /* Font Weights */
   --font-weight-thin: 100;

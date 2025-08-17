@@ -3,13 +3,20 @@ import { PageHeader } from "../components/dasboardelements/PageHeader";
 import { FooterComp } from "../components/dasboardelements/Footer";
 import popularLeagues from "../data/popularLeagues";
 import allLeagues from "../data/allLeagues";
-import { ChevronUpDownIcon, HeartIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import {
+  ChevronUpDownIcon,
+  HeartIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import { HeartIcon as Hearted } from "@heroicons/react/24/solid";
 import StaggerFadeIn from "../animations/StaggerFadeIn";
 import { AnimatePresence, motion } from "framer-motion";
+import StaggerChildren from "../animations/staggerChilderen";
 
 export const League = () => {
-  const [activeTab, setActiveTab] = useState<"suggestions" | "all">("suggestions");
+  const [activeTab, setActiveTab] = useState<"suggestions" | "all">(
+    "suggestions"
+  );
 
   return (
     <div className="dark:bg-[#0D1117] min-h-screen">
@@ -19,7 +26,9 @@ export const League = () => {
       <div className="flex border-b cursor-pointer sticky top-0 z-10 backdrop-blur-2xl dark:text-snow-100 theme-border">
         <div
           className={`flex-1 py-3 text-center ${
-            activeTab === "suggestions" ? "border-b-4 border-brand-secondary" : ""
+            activeTab === "suggestions"
+              ? "border-b-4 border-brand-secondary"
+              : ""
           }`}
           onClick={() => setActiveTab("suggestions")}
         >
@@ -48,20 +57,30 @@ export const League = () => {
               className=" w-full pt-5"
             >
               {/* Suggestions content */}
-              <div className="grid grid-cols-3 gap-4 text-center items-stretch">
+              <StaggerChildren
+                className="grid grid-cols-3 gap-4 text-center items-stretch"
+                stagger={0.15}
+              >
                 {popularLeagues.map((league, idx) => (
-                  <StaggerFadeIn key={league.name + idx} delay={0.2} stagger={0.1}>
-                    <div className="game-block flex flex-col text-center gap-3 theme-text text-sm">
-                      <img src={league.icon} alt={league.name} className="mx-auto w-8" />
-                      <span className="text-center">{league.name}</span>
-                    </div>
-                  </StaggerFadeIn>
+                  <div
+                    key={league.name + idx}
+                    className="game-block flex flex-col text-center gap-3 theme-text text-sm"
+                  >
+                    <img
+                      src={league.icon}
+                      alt={league.name}
+                      className="mx-auto w-8"
+                    />
+                    <span className="text-center">{league.name}</span>
+                  </div>
                 ))}
-              </div>
+              </StaggerChildren>
 
               <ul className="block-style my-8">
                 <div className="flex items-center">
-                  <p className="font-[500] dark:text-white text-[#23272A]">All Countries</p>
+                  <p className="font-[500] dark:text-white text-[#23272A]">
+                    All Countries
+                  </p>
                   <MagnifyingGlassIcon className="cursor-pointer ml-auto w-6" />
                 </div>
                 {allLeagues.map((league, idx) => (
@@ -89,7 +108,9 @@ export const League = () => {
             >
               {/* All Leagues content */}
               <ul className="block-style mt-6">
-                <p className="font-[500] text-[#23272A] dark:text-white">All Leagues</p>
+                <p className="font-[500] text-[#23272A] dark:text-white">
+                  All Leagues
+                </p>
                 {popularLeagues.map((league, idx) => (
                   <li
                     key={league.name + idx}

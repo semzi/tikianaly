@@ -31,7 +31,7 @@ export const PageHeader = () => {
                 item === "News"
                   ? "/news"
                   : item === "Favourite"
-                  ? "/favourite"
+                  ? "/favourites"
                   : "/about"
               }
               className="relative group"
