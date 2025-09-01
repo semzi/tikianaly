@@ -196,7 +196,7 @@ export const gameInfo = () => {
         </div>
       </div>
 
-      <div className="flex z-10 h-12 w-full items-center justify-items-center mx-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
+      <div className="flex z-10 h-12 w-full items-center justify-items-center mx-auto overflow-x-hidden bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
         <div className="flex-1 hide-scrollbar px-2 md:gap-5 flex justify-center">
           {tabs.map((tab) => (
             <button
