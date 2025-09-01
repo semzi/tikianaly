@@ -196,13 +196,13 @@ export const gameInfo = () => {
         </div>
       </div>
 
-      <div className="flex z-10 h-12 w-full md:items-center mx-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
-        <div className="flex-1 px-2 md:gap-5 flex md:justify-center overflow-x-auto hide-">
+      <div className="flex z-10 h-12 w-full overflow-y-hidden md:gap-5 md:items-center md:justify-center overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
+        
           {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm whitespace-nowrap transition-colors ${
+          className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm  transition-colors ${
             activeTab === tab.id
           ? "text-orange-500 font-medium"
           : "text-gray-600 hover:text-gray-800"
@@ -212,7 +212,7 @@ export const gameInfo = () => {
           {tab.label}
         </button>
           ))}
-        </div>
+        
       </div>
 
       <div className="page-padding-x">
