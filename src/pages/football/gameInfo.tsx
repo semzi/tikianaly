@@ -639,7 +639,7 @@ export const gameInfo = () => {
             </div>
 
             <div
-              className="relative h-auto bg-cover bg-center w-full"
+              className="relative overflow-hidden h-auto bg-cover bg-center w-full"
               style={{
                 aspectRatio: "920/624", // Adjust to your field.jpeg's aspect ratio
                 backgroundImage: "url('./field.png')",
