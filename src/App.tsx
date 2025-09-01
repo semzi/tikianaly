@@ -8,11 +8,12 @@ import Signup from "./pages/signup";
 import Dashboard from "./pages/dashboard";
 import News from "./pages/news";
 import Forgot from "./pages/forgot_password";
-import League from "./pages/league";
+import {League} from "./pages/league";
 import Favourite from "./pages/favourites";
 import { ThemeProvider } from "./ThemeContext";
 import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/dasboardelements/Navigation";
+import GameInfo from "./pages/football/gameInfo";
 
 // Animation variants (can tweak)
 const pageVariants = {
@@ -71,6 +72,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <News />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/overview"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <GameInfo />
             </motion.div>
           }
         />

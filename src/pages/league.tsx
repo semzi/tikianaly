@@ -12,6 +12,65 @@ import { HeartIcon as Hearted } from "@heroicons/react/24/solid";
 import { AnimatePresence, motion } from "framer-motion";
 import StaggerChildren from "../animations/staggerChilderen";
 
+
+interface Team {
+  name: string;
+  logo?: string;
+}
+
+interface League {
+  name: string;
+  icon: string;
+  teams: Team[];
+}
+
+interface LeagueListProps {
+  allLeagues: League[];
+}
+
+const LeagueList: React.FC<LeagueListProps> = ({ allLeagues }) => {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const toggleExpand = (idx: number) => {
+    setExpandedIdx(expandedIdx === idx ? null : idx);
+  };
+
+  return (
+    <>
+      {allLeagues.map((league, idx) => (
+        <div key={league.name + idx} className="flex flex-col">
+          {/* League Row */}
+          <li className="flex mt-4 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-2">
+            <img src={league.icon} alt={league.name} />
+            <span className="flex-1">{league.name}</span>
+            <ChevronUpDownIcon
+              className={`ml-auto w-6 transition-transform ${
+                expandedIdx === idx ? "rotate-180" : ""
+              }`}
+              onClick={() => toggleExpand(idx)}
+            />
+          </li>
+
+          {/* Teams - only show when expanded */}
+          {expandedIdx === idx && (
+            <div className="divide-y divide-snow-200/50">
+              {league.teams.map((team, tIdx) => (
+                <div
+                  key={team.name + tIdx}
+                  className="flex py-2 text-neutral-m6 pl-5"
+                >
+                  <p className="sz-8">{team.name}</p>
+                  <HeartIcon className="cursor-pointer ml-auto w-3" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+};
+
 export const League = () => {
   const [activeTab, setActiveTab] = useState<"suggestions" | "all">(
     "suggestions"
@@ -82,16 +141,7 @@ export const League = () => {
                   </p>
                   <MagnifyingGlassIcon className="cursor-pointer ml-auto w-6" />
                 </div>
-                {allLeagues.map((league, idx) => (
-                  <li
-                    key={league.name + idx}
-                    className="flex mt-5 items-center gap-3 dark:text-snow-200 text-[#586069] text-sm mb-4"
-                  >
-                    <img src={league.icon} alt={league.name} className="w-6" />
-                    <span className="flex-1">{league.name}</span>
-                    <ChevronUpDownIcon className="cursor-pointer w-5 ml-auto" />
-                  </li>
-                ))}
+                <LeagueList allLeagues={allLeagues} />
               </ul>
             </motion.div>
           )}

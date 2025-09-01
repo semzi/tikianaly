@@ -105,6 +105,9 @@ body {
 .sz-8 {
   font-size: 12px;
 }
+.sz-mini {
+  font-size: 10px;
+}
 
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -164,6 +167,12 @@ body {
   .score{
     @apply font-bold py-0.5 px-2 dark:text-white bg-snow-200 dark:bg-neutral-500;
   }
+  .theme-icon{
+    @apply  dark:invert dark:sepia;
+  }
+  .theme-fade{
+    @apply  dark:bg-[linear-gradient(to_top,rgb(22,27,34)_30%,rgba(255,255,255,0)_100%)] bg-[linear-gradient(to_top,rgb(242,242,247)_30%,rgba(255,255,255,0)_100%)];
+  }
 }
 
 input[type="checkbox"].checked\:bg-check:checked {
@@ -185,3 +194,106 @@ input[type="checkbox"].disabled\:bg-check:checked {
     display: none; /* Safari and Chrome */
   }
 }
+
+/* Add this to your global CSS */
+.edge-lighting {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.edge-lighting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 4px;
+  padding: 0;
+  border: 1px solid transparent;
+  opacity: 0.7;
+  background: linear-gradient(270deg, #3391ff, #ff6d3d, #3391ff);
+  background-size: 400% 400%;
+  animation: edgeGlow 4s linear infinite, edgePulse 2s ease-in-out infinite;
+  box-shadow:
+    0 0 16px 6px rgba(255, 109, 61, 0.5),
+    0 0 32px 12px rgba(255, 109, 61, 0.2);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  display: block;
+}
+
+@keyframes edgeGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes edgePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 16px 6px rgba(255, 109, 61, 0.5),
+      0 0 32px 12px rgba(255, 109, 61, 0.2);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow:
+      0 0 32px 16px rgba(255, 109, 61, 0.8),
+      0 0 48px 24px rgba(255, 109, 61, 0.4);
+    opacity: 1;
+  }
+}
+
+@keyframes float-around-edges {
+  0% {
+    left: 0%; top: 0%;
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    left: 100%; top: 0%;
+    transform: translate(-100%, 0) scale(1.05);
+  }
+  50% {
+    left: 100%; top: 100%;
+    transform: translate(-100%, -100%) scale(1);
+  }
+  75% {
+    left: 0%; top: 100%;
+    transform: translate(0, -100%) scale(0.95);
+  }
+  100% {
+    left: 0%; top: 0%;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.red-icon{
+  filter:
+  invert(34%) sepia(93%) saturate(7492%) hue-rotate(340deg) brightness(91%) contrast(101%);
+}
+.green-icon{
+  filter:
+    invert(67%) sepia(97%) saturate(1106%) hue-rotate(116deg) brightness(97%) contrast(101%);
+}
+
+
+  @keyframes goal-scroll {
+                      0% {
+                        transform: translateX(-30%);
+                      }
+                      100% {
+                        transform: translateX(30%);
+                      }
+                    }
+                    .animate-goal-scroll {
+                      animation-name: goal-scroll;
+                      animation-duration: 5s;
+                      animation-timing-function: linear;
+                      animation-iteration-count: infinite;
+                    }
