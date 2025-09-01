@@ -243,8 +243,9 @@ export const dashboard = () => {
                   </div>
                   {/* Games */}
                   {league.games.map((game, gameIdx) => (
-                    <div
-                      key={gameIdx}
+                    <Link
+                        to={`/overview`}
+                        key={gameIdx}
                       className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
                     >
                       {/* Time */}
@@ -294,7 +295,7 @@ export const dashboard = () => {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ))
