@@ -1,0 +1,334 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@tailwind base;
+@tailwind utilities;
+@tailwind components;
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #fdfdfd;
+}
+
+/* 
+  Theme Variables Section
+  -----------------------
+  Define custom CSS variables for colors and other design tokens.
+  These can be used throughout your CSS for consistent theming.
+*/
+@theme {
+  /* UI Colors */
+  --color-ui-success: #00d68f;
+  --color-ui-negative: #cc2e2e;
+  --color-ui-pending: #ffc82c;
+
+  /* Brand Primary + Secondary Colors */
+  --color-brand-primary: #0056d2;
+  --color-brand-secondary: #FF4500;
+  --color-brand-p1: #3391ff;
+  --color-brand-p2: #66a9ff;
+  --color-brand-p3: #99c1ff;
+  --color-brand-p4: #D6E7FF;
+  --color-brand-s1: #ff6d3d;
+  --color-brand-s2: #ff9373;
+  --color-brand-s3: #ffbbaa;
+  --color-brand-s4: #ffe0d9;
+
+  /* Neutral Colors */
+  --color-neutral-n1: #1c1c1e;
+  --color-neutral-n2: #2c2c2e;
+  --color-neutral-n3: #3a3a3c;
+  --color-neutral-n4: #48484a;
+  --color-neutral-n5: #909090;
+  --color-neutral-m6: #aeaeb2;
+  --color-white: #ffffff;
+
+  /* Smoke and Snow Colors */
+  --color-smoke-100: #f5f5f7;
+  --color-smoke-200: #e5e5ea;
+  --color-smoke-300: #d1d1d6;
+  --color-snow-100: #f2f2f7;
+  --color-snow-200: #e0e0e0;
+  --color-body: #fdfdfd;
+
+  /* Font Weights */
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Fonts (empty, can be used for font variables if needed) */
+}
+
+@layer utilities {
+  .animate-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* 
+  Font Size Utility Classes
+  -------------------------
+  Custom classes for specific font sizes.
+*/
+.sz-1 {
+  font-size: 48px;
+}
+.sz-2 {
+  font-size: 40px;
+}
+.sz-3 {
+  font-size: 32px;
+}
+
+.sz-4 {
+  font-size: 20px;
+}
+.sz-5 {
+  font-size: 18px;
+}
+.sz-6 {
+  font-size: 16px;
+}
+.sz-7 {
+  font-size: 14px;
+}
+.sz-8 {
+  font-size: 12px;
+}
+.sz-mini {
+  font-size: 10px;
+}
+
+
+.hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                  }
+/* 
+  Tailwind Component Layer
+  ------------------------
+  Custom button style using Tailwind's @apply directive.
+*/
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary font-medium justify-center flex items-center gap-2 text-white whitespace-nowrap cursor-pointer w-full h-[50px] rounded-[8px] mt-4 hover:bg-blue-600 transition-colors duration-200;
+  }
+  .btn-primary-sm {
+    @apply bg-brand-primary font-medium text-[14px] outline-none justify-center flex whitespace-nowrap items-center gap-2 text-white cursor-pointer px-4 py-2 md:px-4 md:py-2 rounded md:rounded-[6px] mt-4 hover:bg-blue-600 transition-colors duration-200;
+  }
+  .btn-outline-sm {
+    @apply bg-transparent whitespace-nowrap font-medium text-[14px] border-1 border-snow-200 text-neutral-500 justify-center flex items-center gap-2 cursor-pointer px-4 py-2 md:px-4 md:py-2 rounded md:rounded-[6px] mt-4 hover:bg-brand-secondary hover:border-transparent outline-none  hover:text-white transition-colors duration-200;
+  }
+  .btn-outline {
+    @apply bg-white text-neutral-m6 whitespace-nowrap justify-center flex items-center gap-2 border font-medium border-snow-200 w-full h-[50px] rounded-[8px] mt-4 hover:bg-gray-100 transition-colors duration-200;
+  }
+  .checkbox {
+    @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-brand-primary checked:border-transparent focus:outline-none   focus:border-brand-primary;
+  }
+  .checkbox-disabled {
+    @apply appearance-none w-5 h-5 rounded border-2 border-snow-200 mr-1.5  checked:bg-snow-200 checked:border-transparent focus:outline-none shadow focus:border-snow-200;
+  }
+  .secondary-hover{
+    @apply absolute left-0 -bottom-full h-1 w-full group-hover:bg-brand-secondary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left;
+  }
+  .page-padding-x{
+    @apply px-3 md:px-8 lg:px-16
+  }
+  .m-page-padding-x{
+    @apply px-6 md:px-8 lg:px-16
+  }
+  .rounded{
+    @apply rounded-[4px];
+  }
+  .filter-btn{
+    @apply bg-transparent whitespace-nowrap px-3 hover:border-transparent transition-colors duration-300 hover:bg-brand-secondary text-neutral-n5 dark:text-snow-200 font-[400] hover:text-white py-1.5 border-1 rounded text-sm border-snow-200
+  }
+  .theme-border{
+    @apply dark:border-[#1F2937] border-snow-200;
+  }
+    .block-style{
+      @apply bg-white border-1 dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-5;
+  }
+     .game-block{
+      @apply bg-white border-1 dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-3;
+  }
+  .theme-text{
+    @apply dark:text-white text-[#23272A]
+  }
+  .score{
+    @apply font-bold py-0.5 px-2 dark:text-white bg-snow-200 dark:bg-neutral-500;
+  }
+  .theme-icon{
+    @apply  dark:invert dark:sepia;
+  }
+  .theme-fade{
+     @apply  dark:bg-[linear-gradient(to_top,rgb(22,27,34)_30%,rgba(255,255,255,0)_100%)] bg-[linear-gradient(to_top,rgb(242,242,247)_30%,rgba(255,255,255,0)_100%)];
+  }
+}
+
+input[type="checkbox"].checked\:bg-check:checked {
+  background-image: url("data:image/svg+xml,%3csvg fill='none' stroke='white' stroke-width='3' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M5 13l4 4L19 7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+input[type="checkbox"].disabled\:bg-check:checked {
+  background-image: url("data:image/svg+xml,%3csvg fill='none' stroke='%236b7280' stroke-width='3' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M5 13l4 4L19 7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer and Edge */
+  &::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+}
+
+/* Add this to your global CSS */
+.edge-lighting {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.edge-lighting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 4px;
+  padding: 0;
+  border: 1px solid transparent;
+  opacity: 0.7;
+  background: linear-gradient(270deg, #3391ff, #ff6d3d, #3391ff);
+  background-size: 400% 400%;
+  animation: edgeGlow 4s linear infinite, edgePulse 2s ease-in-out infinite;
+  box-shadow:
+    0 0 16px 6px rgba(255, 109, 61, 0.5),
+    0 0 32px 12px rgba(255, 109, 61, 0.2);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  display: block;
+}
+
+@keyframes edgeGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes edgePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 16px 6px rgba(255, 109, 61, 0.5),
+      0 0 32px 12px rgba(255, 109, 61, 0.2);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow:
+      0 0 32px 16px rgba(255, 109, 61, 0.8),
+      0 0 48px 24px rgba(255, 109, 61, 0.4);
+    opacity: 1;
+  }
+}
+
+@keyframes float-around-edges {
+  0% {
+    left: 0%; top: 0%;
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    left: 100%; top: 0%;
+    transform: translate(-100%, 0) scale(1.05);
+  }
+  50% {
+    left: 100%; top: 100%;
+    transform: translate(-100%, -100%) scale(1);
+  }
+  75% {
+    left: 0%; top: 100%;
+    transform: translate(0, -100%) scale(0.95);
+  }
+  100% {
+    left: 0%; top: 0%;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.red-icon{
+  filter:
+  invert(34%) sepia(93%) saturate(7492%) hue-rotate(340deg) brightness(91%) contrast(101%);
+}
+.green-icon{
+  filter:
+    invert(67%) sepia(97%) saturate(1106%) hue-rotate(116deg) brightness(97%) contrast(101%);
+}
+
+
+  @keyframes goal-scroll {
+                      0% {
+                        transform: translateX(-30%);
+                      }
+                      100% {
+                        transform: translateX(30%);
+                      }
+                    }
+                    .animate-goal-scroll {
+                      animation-name: goal-scroll;
+                      animation-duration: 5s;
+                      animation-timing-function: linear;
+                      animation-iteration-count: infinite;
+                    }
+
+/* Custom thin scrollbar for independent scrolling sections */
+/* Webkit browsers (Chrome, Safari, Edge) */
+section::-webkit-scrollbar,
+div[class*="overflow-y-auto"]::-webkit-scrollbar {
+  width: 8px;
+}
+
+section::-webkit-scrollbar-track,
+div[class*="overflow-y-auto"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+section::-webkit-scrollbar-thumb,
+div[class*="overflow-y-auto"]::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 4px;
+}
+
+section::-webkit-scrollbar-thumb:hover,
+div[class*="overflow-y-auto"]::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Dark mode scrollbar */
+.dark section::-webkit-scrollbar-thumb,
+.dark div[class*="overflow-y-auto"]::-webkit-scrollbar-thumb {
+  background-color: #4a5568;
+}
+
+.dark section::-webkit-scrollbar-thumb:hover,
+.dark div[class*="overflow-y-auto"]::-webkit-scrollbar-thumb:hover {
+  background-color: #718096;
+}

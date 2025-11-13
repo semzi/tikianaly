@@ -1,20 +1,27 @@
-import "./index.css";
-import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
+import "./styles/index.css";
+import {
+  HashRouter,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
-import Reset from "./pages/reset_password";
-import Login from "./pages/login";
-import Signup from "./pages/signup";
-import Dashboard from "./pages/dashboard";
-import News from "./pages/news";
-import Forgot from "./pages/forgot_password";
-import {League} from "./pages/league";
-import Favourite from "./pages/favourites";
-import { ThemeProvider } from "./ThemeContext";
+import Reset from "./features/auth/pages/reset_password";
+import Dashboard from "./features/dashboard/pages/dashboard";
+import News from "./features/dashboard/pages/news";
+import Forgot from "./features/auth/pages/forgot_password";
+import { League } from "./features/dashboard/pages/league";
+import Favourite from "./features/dashboard/pages/favourites";
+import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./ScrollToTop";
-import Navigation from "./components/dasboardelements/Navigation";
-import GameInfo from "./pages/football/gameInfo";
-
+import Navigation from "./components/layout/Navigation";
+import GameInfo from "./features/football/pages/gameInfo";
+import { setNavigator } from "./lib/router/navigate";
+import { useEffect } from "react";
+import PlayerProfile from "./features/football/pages/playerProfile";
+import Onboard from "./features/onboarding/pages/onboard";
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -25,12 +32,18 @@ const pageVariants = {
 function AnimatedRoutes() {
   const location = useLocation();
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setNavigator(navigate); // store global navigate
+  }, [navigate]);
+
   return (
     <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
         {/* No Navigation */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Onboard />} />
+        <Route path="/signup" element={<Onboard />} />
 
         {/* With Navigation */}
         <Route
@@ -44,6 +57,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <League />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/onboard"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <Onboard />
             </motion.div>
           }
         />
@@ -72,6 +99,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <News />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <PlayerProfile />
             </motion.div>
           }
         />
