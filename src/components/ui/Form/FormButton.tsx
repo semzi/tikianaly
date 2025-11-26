@@ -1,5 +1,18 @@
 // components/Button.jsx
 import PropTypes from 'prop-types';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
+
+type ButtonType = 'button' | 'submit' | 'reset';
+
+interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+  label?: string;
+  type?: ButtonType;
+  variant?: string;
+  icon?: string;
+  iconAlt?: string;
+  className?: string;
+  children?: ReactNode;
+}
 
 const Button = ({
   label = '',
@@ -10,11 +23,11 @@ const Button = ({
   className = '',
   children = '',
   ...props
-}) => {
+}: ButtonProps) => {
 
   return (
     <button
-    type={type}
+      type={type}
       className={`${className} cursor-pointer`}
       {...props}
     >
