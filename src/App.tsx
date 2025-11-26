@@ -14,6 +14,7 @@ import News from "./features/dashboard/pages/news";
 import Forgot from "./features/auth/pages/forgot_password";
 import { League } from "./features/dashboard/pages/league";
 import Favourite from "./features/dashboard/pages/favourites";
+import AccountPage from "./features/account/pages/account";
 import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/layout/Navigation";
@@ -99,6 +100,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <News />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/account"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <AccountPage />
             </motion.div>
           }
         />

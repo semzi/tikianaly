@@ -4,6 +4,8 @@ import Login from "@/features/auth/pages/login";
 import Signup from "@/features/auth/pages/signup";
 import { navigate } from "@/lib/router/navigate";
 import { ArrowLeftIcon } from "lucide-react";
+import { FavouriteSelectionOnboard } from "../components/FavouriteSelectionOnboard";
+import popularLeagues from "@/data/favouriteSelect";
 
 /**
  * Auth Component
@@ -13,8 +15,13 @@ import { ArrowLeftIcon } from "lucide-react";
 function Onboard() {
   const location = useLocation();
   const isSignup = location.pathname === "/signup";
+  const isOnboard = location.pathname === "/onboard";
   
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(
+    new Set(popularLeagues.filter(item => item.fav).map(item => item.name))
+  );
   const onboardingImages = [
     "/onboarding/onboarding1.svg",
     "/onboarding/onboarding2.svg", 
@@ -65,6 +72,26 @@ function Onboard() {
 
     return () => clearInterval(interval);
   }, [onboardingImages.length]);
+
+  // Loading state for favorites
+  useEffect(() => {
+    if (isOnboard) {
+      const timer = setTimeout(() => setLoading(false), 2);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnboard]);
+
+  const toggleItemSelection = (itemName: string) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
   
   return (
     <>
@@ -90,24 +117,34 @@ function Onboard() {
           <ArrowLeftIcon className="text-black h-5" />
           <p className="text-black hidden md:block">Back</p>
         </button>
-          {isSignup ? <Signup /> : <Login />}
-          <p className="flex sz-7 text-center justify-center mt-8">
-            {isSignup ? (
-              <>
+          {isOnboard ? (
+            <FavouriteSelectionOnboard
+              loading={loading}
+              items={popularLeagues}
+              selectedItems={selectedItems}
+              toggleItemSelection={toggleItemSelection}
+            />
+          ) : isSignup ? (
+            <>
+              <Signup />
+              <p className="flex sz-7 text-center justify-center mt-8">
                 Already have an account?{" "}
                 <Link to="/login" className=" ml-1 underline text-brand-primary" >
                   Sign In
                 </Link>
-              </>
-            ) : (
-              <>
+              </p>
+            </>
+          ) : (
+            <>
+              <Login />
+              <p className="flex sz-7 text-center justify-center mt-8">
                 Don't have an account?{" "}
                 <Link to="/signup" className=" ml-1 underline text-brand-primary" >
                   Sign Up
                 </Link>
-              </>
-            )}
-          </p>
+              </p>
+            </>
+          )}
         </div>
 
         {/* Onboarding slides section - Right side of the split layout */}

@@ -14,7 +14,7 @@ const Button = ({
 
   return (
     <button
-    typeof={type}
+    type={type}
       className={`${className} cursor-pointer`}
       {...props}
     >

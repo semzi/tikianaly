@@ -3,11 +3,13 @@ import PropTypes from "prop-types";
 const Checkbox = ({
   mode = "",
   className = "checkbox",
+  ...props
 }) => {
   return (
     <input
       type="checkbox"
       className={`${className} ${mode} checked:bg-check`}
+      {...props}
     />
   );
 };

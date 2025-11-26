@@ -43,7 +43,7 @@ export const dashboard = () => {
         </section>
 
         {/* Main Content Area */}
-        <div className="w-full pb-30 flex flex-col gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
           {/* Date and Filter Controls */}
           <div className="block-style ">
             <div className="flex dark:text-snow-200 justify-center flex-col">
@@ -80,7 +80,7 @@ export const dashboard = () => {
           </div>
 
           {/* Main Content Games Loop */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-y-3 md:gap-y-6">
             {/* Desktop Section */}
             <div className="hidden md:block">
               {loading ? (
@@ -94,7 +94,7 @@ export const dashboard = () => {
                   {Array.from({ length: 3 }).map((_, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-around items-center gap-10 border-b-1 px-5 py-3 border-snow-200 last:border-b-0"
+                      className="flex justify-around items-center gap-4 border-b-1 px-5 py-3 border-snow-200 last:border-b-0"
                     >
                       <Skeleton className="w-8 h-4" />
                       <div className="flex flex-3/9 justify-end items-center gap-3">

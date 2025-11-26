@@ -1,16 +1,31 @@
 
 
+import type { InputHTMLAttributes } from "react";
+
+type FormInputProps = InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  icon?: string;
+  className?: string;
+  containerClass?: string;
+  inputClass?: string;
+  secondIcon?: string;
+  secondIconAlt?: string;
+  onSecondIconClick?: () => void;
+};
+
 const FormInput = ({
   label = 'Label',
   type = 'text',
   placeholder = '',
   icon = '',
   className = '',
-  secondIcon =``,
+  secondIcon = ``,
+  secondIconAlt = '',
+  onSecondIconClick,
   containerClass = '',
   inputClass = '',
   ...props
-}) => {
+}: FormInputProps) => {
   return (
     <div className={`${containerClass}`}>
       {label && <p className="text-[14px] sm:text-[15px] md:text-[16px] mb-2">{label}</p>}
@@ -34,7 +49,19 @@ const FormInput = ({
           className={`w-full text-[13px] sm:text-[14px] md:text-[15px] outline-none border-none ${inputClass}`}
           {...props}
         />
-        {secondIcon && <img src={secondIcon} className="justify-end" />}
+        {secondIcon &&
+          (onSecondIconClick ? (
+            <button
+              type="button"
+              onClick={onSecondIconClick}
+              className="p-1"
+              aria-label={secondIconAlt || label}
+            >
+              <img src={secondIcon} alt={secondIconAlt} className="w-6" />
+            </button>
+          ) : (
+            <img src={secondIcon} alt={secondIconAlt} className="w-6 " />
+          ))}
       </div>
     </div>
   );
