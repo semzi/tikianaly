@@ -1,7 +1,10 @@
 import StaggerChildren from "@/animations/staggerChildren";
 import PageHeader from "@/components/layout/PageHeader";
+import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
+import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
+import PlayerMatchesWidget from "@/components/player/PlayerMatchesWidget";
 import {
   ArrowLeftIcon,
   BellAlertIcon,
@@ -19,11 +22,10 @@ const playerProfile = () => {
     { id: "profile", label: "Profile" },
     { id: "matches", label: "Matches" },
     { id: "career", label: "Career" },
-    { id: "season", label: "Season" },
   ];
-  // Load from localStorage (fallback to "commentary")
+  // Load from localStorage (fallback to "profile")
   const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem("activeTab") || "overview"
+    () => localStorage.getItem("activeTab") || "profile"
   );
 
   // Save whenever activeTab changes
@@ -34,15 +36,15 @@ const playerProfile = () => {
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
       <PageHeader />
-      <div className="bg-brand-secondary">
+      <div className="bg-brand-secondary relative z-0">
         <div
-          className="overflow-hidden h-80 bg-cover bg-center w-full"
+          className="overflow-hidden h-auto md:h-80 bg-cover bg-center w-full relative z-0"
           style={{
             backgroundImage: "url('./players/Picture.png')",
           }}
         >
-          <div className="w-full bg-black/30 backdrop-blur-3xl h-full  page-padding-x">
-            <div className="justify-between flex py-5">
+          <div className="w-full bg-black/30 backdrop-blur-3xl h-full min-h-[280px] md:min-h-0 page-padding-x pb-4 md:pb-0 relative z-0">
+            <div className="justify-between flex py-3 md:py-5">
               <div
                 onClick={() => navigate(-1)}
                 className="relative cursor-pointer px-3 z-10 grid grid-cols-3 items-center"
@@ -59,9 +61,10 @@ const playerProfile = () => {
               </div>
             </div>
 
-            <div className="flex justify-between">
+            {/* Desktop Layout */}
+            <div className="hidden md:flex justify-between">
               {/* ---------------------------- */}
-              <div className="flex flex-col  gap-1">
+              <div className="flex flex-col gap-1">
                 <div className="flex gap-4">
                   <div
                     className="overflow-hidden h-40 bg-cover bg-center w-40 rounded-2xl bg-brand-p1"
@@ -164,6 +167,112 @@ const playerProfile = () => {
               </div>
               {/* ------------------------------ */}
             </div>
+
+            {/* Mobile Layout */}
+            <div className="md:hidden flex flex-col gap-3 pt-2 pb-4">
+              {/* Player Image and Name Section - Vertically Centered */}
+              <div className="flex items-center gap-4">
+                {/* Small Image on Left */}
+                <div
+                  className="overflow-hidden h-20 bg-cover bg-center w-20 rounded-xl bg-brand-p1 flex-shrink-0"
+                  style={{
+                    backgroundImage: "url('./players/dembele.png')",
+                  }}
+                ></div>
+                {/* Name in Middle */}
+                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                  <p className="font-extrabold text-2xl leading-tight text-white">
+                    Ousmane
+                  </p>
+                  <p className="font-extrabold text-2xl leading-tight text-white flex items-center gap-1">
+                    Dembélé
+                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                  </p>
+                </div>
+                {/* Follow Icon Button on Right */}
+                <div className="px-4 py-1.5 rounded bg-neutral-n1 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-n4 transition-all flex-shrink-0">
+                  <StarIcon className="w-4 text-ui-pending" />
+                  <span className="text-[9px] text-white font-medium mt-0.5">17.5k</span>
+                </div>
+              </div>
+
+              {/* Club below - Left Aligned */}
+              <div className="flex mt-2 items-center gap-2 pl-0">
+                <img
+                  src="/assets/icons/Football/Team/Manchester City.png"
+                  alt=""
+                  className="w-8 h-8 flex-shrink-0"
+                />
+                <div className="flex flex-col">
+                  <p className="text-white font-semibold text-xs">
+                    Machester City FC
+                  </p>
+                  <p className="text-[10px] text-snow-200">
+                    Contract ends 13 June 2027
+                  </p>
+                </div>
+              </div>
+
+              {/* Key Stats - Mobile Horizontal Scroll */}
+              <div className="relative -mx-4 px-4">
+                <div className="overflow-x-auto hide-scrollbar">
+                  <div className="flex gap-2 min-w-max">
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Position</p>
+                      <p className="text-white font-bold text-xs">Forward</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Age</p>
+                      <p className="text-white font-bold text-xs">29 Yrs</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Number</p>
+                      <p className="text-white font-bold text-xs">11</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Nationality</p>
+                      <div className="flex items-center gap-1">
+                        <img
+                          src="/assets/icons/United Kingdom.png"
+                          alt=""
+                          className="w-3 h-3"
+                        />
+                        <p className="text-white font-bold text-xs">England</p>
+                      </div>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Primary Foot</p>
+                      <p className="text-white font-bold text-xs">Right</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Clubs Played</p>
+                      <p className="text-white font-bold text-xs">2</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Height</p>
+                      <p className="text-white font-bold text-xs">179 cm</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Market Value</p>
+                      <p className="text-white font-bold text-xs">£ 96M</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Scroll Hint Overlay */}
+                <div className="absolute right-0 top-0 bottom-0 w-20 pointer-events-none flex items-center justify-end pr-2"
+                  style={{
+                    background: 'linear-gradient(to left, rgba(0, 0, 0, 0.4) 0%, transparent 100%)'
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-white text-[10px] font-medium">Scroll</span>
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -188,7 +297,7 @@ const playerProfile = () => {
       {/* ----------------- navigation content end --------------- */}
 
       <div className="page-padding-x">
-        {/* ---------------profile---------------- */}
+        {/* Banter Section - Common for all tabs */}
         <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
           <div className="flex flex-2 gap-3 flex-col edge-lighting block-style relative">
             {/* Overlay gradient with text */}
@@ -282,8 +391,16 @@ const playerProfile = () => {
             </div>
           </div>
 
-          {/* ----------------- */}
+          {/* Content Section - Different for each tab */}
           <div className="flex flex-col gap-5 flex-5 ">
+            {/* ---------------Matches Tab---------------- */}
+            {activeTab === 'matches' && (
+              <PlayerMatchesWidget />
+            )}
+
+            {/* ---------------profile---------------- */}
+            {activeTab === 'profile' && (
+              <>
             <StaggerChildren className="flex block-style divide-snow-200 dark:divide-snow-100/10  space-y-10 flex-col">
               <div className="block space-y-2">
                 <div className="flex items-center text-neutral-n4 dark:text-snow-100 gap-2">
@@ -309,7 +426,13 @@ const playerProfile = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-7">
+            <MonthlyRatingChart />
+            <div className="block-style">
+              <p className="font-bold text-lg mb-3 theme-text">Dembélé Attributes</p>
+              <PlayerRadarChart />
+              
+            </div>
+              <div className="grid md:grid-cols-2 gap-7">
                 <img src="heatmap.jpg" alt="" />
                 <div className="space-">
                   <p className="font-bold text-lg mb-3 theme-text">Transfer History</p>
@@ -348,14 +471,10 @@ const playerProfile = () => {
                 </div>
               </div>
             </StaggerChildren>
-            <div className="block-style">
-              <p className="font-bold text-lg mb-3 theme-text">Dembélé Attributes</p>
-              <PlayerRadarChart />
-            </div>
-            <div className="flex gap-5 block-style">
+            <div className="flex flex-col md:flex-row gap-5 block-style">
               <div className="flex bg-ui-success/10 rounded px-3 py-4 flex-1 flex-col gap-2">
                 <p className="font-bold text-lg text-ui-success">Strenght</p>
-                <ul className="grid grid-cols-2 font-semibold theme-text list-inside">
+                <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                   <li>Anchor Play</li>
                   <li>Finishing</li>
                   <li>Set-Pieces</li>
@@ -369,7 +488,7 @@ const playerProfile = () => {
               </div>
               <div className="flex bg-ui-negative/10 rounded px-3 py-4 flex-1 flex-col gap-2">
                 <p className="font-bold text-lg text-ui-negative">Weakness</p>
-                <ul className="grid grid-cols-2 font-semibold theme-text list-inside">
+                <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                   <li>Defensive Work</li>
                   <li>Aerial Duels</li>
                   <li>Physical Strength</li>
@@ -382,11 +501,14 @@ const playerProfile = () => {
                   </ul>
               </div>
             </div>
-            
+              </>
+            )}
           </div>
         </div>
-        {/* --------------profile end ---------------------- */}
       </div>
+
+      {/* Footer */}
+      <FooterComp />
     </div>
   );
 };

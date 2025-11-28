@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/components/dashboard/Category";
 import { FavouriteSelection } from "@/components/dashboard/FavouriteSelection";
+import Leftbar from "@/components/layout/LeftBar";
 import popularLeagues from "@/data/favouriteSelect";
-import allLeagues from "@/data/allLeagues";
+import { getAllTeams, getAllLeagues, getAllPlayers } from "@/lib/api/endpoints";
+import { usePaginatedApi } from "@/hooks/usePaginatedApi";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -14,26 +16,94 @@ const Skeleton = ({ className = "" }) => (
   />
 );
 
-export const favourite = () => {
-  const [loading, setLoading] = useState(true);
-  // Initialize selected items from data (items with fav: true)
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(
-    new Set(popularLeagues.filter(item => item.fav).map(item => item.name))
-  );
+interface FavouriteItem {
+  name: string;
+  icon: string;
+  id: number;
+  type: 'team' | 'league' | 'player';
+  fav?: boolean;
+}
 
+export const favourite = () => {
+  const limit = 21;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Initialize selected items using IDs
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  // Use pagination hook for teams
+  const teamsHook = usePaginatedApi<FavouriteItem>({
+    apiFunction: getAllTeams,
+    limit,
+    enableInfiniteScroll: true,
+    scrollThreshold: 0.8,
+    transformResponse: (response: any) => {
+      if (!response?.success || !response?.responseObject?.items) return [];
+      return response.responseObject.items.map((team: any) => ({
+        name: team.name,
+        icon: team.image_path || team.logo || '/assets/icons/team-placeholder.png',
+        id: team.id,
+        type: 'team' as const,
+      }));
+    },
+  });
+
+  // Use pagination hook for leagues
+  const leaguesHook = usePaginatedApi<FavouriteItem>({
+    apiFunction: getAllLeagues,
+    limit,
+    enableInfiniteScroll: true,
+    scrollThreshold: 0.8,
+    transformResponse: (response: any) => {
+      if (!response?.success || !response?.responseObject?.items) return [];
+      return response.responseObject.items.map((league: any) => ({
+        name: league.name,
+        icon: league.logo || league.image_path || '/assets/icons/league-placeholder.png',
+        id: league.id,
+        type: 'league' as const,
+      }));
+    },
+  });
+
+  // Use pagination hook for players
+  const playersHook = usePaginatedApi<FavouriteItem>({
+    apiFunction: getAllPlayers,
+    limit,
+    enableInfiniteScroll: true,
+    scrollThreshold: 0.8,
+    transformResponse: (response: any) => {
+      if (!response?.success || !response?.responseObject?.items) return [];
+      return response.responseObject.items.map((player: any) => ({
+        name: player.name || `${player.firstname || ''} ${player.lastname || ''}`.trim(),
+        icon: player.image_path || player.photo || '/assets/icons/player-placeholder.png',
+        id: player.id,
+        type: 'player' as const,
+      }));
+    },
+  });
+
+  // Set scroll container for all hooks
   useEffect(() => {
-    // Set loading to false after 2.5 seconds
-    const timer = setTimeout(() => setLoading(false), 2);
-    return () => clearTimeout(timer);
+    if (scrollContainerRef.current) {
+      teamsHook.setScrollContainer(scrollContainerRef.current);
+      leaguesHook.setScrollContainer(scrollContainerRef.current);
+      playersHook.setScrollContainer(scrollContainerRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggleItemSelection = (itemName: string) => {
+  // Combine all items
+  const allItems = [...teamsHook.items, ...leaguesHook.items, ...playersHook.items];
+  const loading = teamsHook.initialLoading || leaguesHook.initialLoading || playersHook.initialLoading;
+  const error = teamsHook.error || leaguesHook.error || playersHook.error;
+
+  const toggleItemSelection = (itemId: string) => {
     setSelectedItems((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(itemName)) {
-        newSet.delete(itemName);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
       } else {
-        newSet.add(itemName);
+        newSet.add(itemId);
       }
       return newSet;
     });
@@ -52,89 +122,48 @@ export const favourite = () => {
         <Category />
       )}
 
-      <div className="flex page-padding-x dark:bg-[#0D1117] gap-5 py-5 justify-around">
+      <div className="flex page-padding-x dark:bg-[#0D1117] gap-5 py-5 justify-around" style={{ height: 'calc(100vh - 20px)' }}>
         {/* Left Sidebar */}
-        <div className="w-1/5 hidden lg:block">
-          <div className="sticky top-5 h-screen flex flex-col gap-y-10 ">
-            <div className="flex flex-col gap-y-10">
-              {/* Popular Leagues Section */}
-              <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200  rounded p-5">
-                <p className="font-[500] text-[#23272A] dark:text-white">
-                  Popular Leagues
-                </p>
-                {loading
-                  ? Array.from({ length: 5 }).map((_, idx) => (
-                      <li
-                        key={idx}
-                        className="flex mt-5 items-center gap-2 mb-4"
-                      >
-                        <Skeleton className="w-6 h-6" />
-                        <Skeleton className="w-24 h-4" />
-                      </li>
-                    ))
-                  : popularLeagues.map((league, idx) => (
-                      <li
-                        key={league.name + idx}
-                        className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
-                      >
-                        <img src={league.icon} alt={league.name} />
-                        <span>{league.name}</span>
-                      </li>
-                    ))}
-              </ul>
-
-              {/* All Leagues Section */}
-              <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200 rounded p-5">
-                <div className="flex items-center my-auto">
-                  <p className="font-[500] dark:text-white text-[#23272A]">
-                    All Leagues
-                  </p>
-                  <img
-                    src="/assets/icons/search-black.png"
-                    className="w-[17px] h-[17px] ml-auto align-basel"
-                    alt=""
-                  />
-                </div>
-                {loading
-                  ? Array.from({ length: 5 }).map((_, idx) => (
-                      <li
-                        key={idx}
-                        className="flex mt-5 items-center gap-2 mb-4"
-                      >
-                        <Skeleton className="w-6 h-6" />
-                        <Skeleton className="w-24 h-4 flex-1" />
-                        <Skeleton className="w-4 h-4" />
-                      </li>
-                    ))
-                  : allLeagues.map((league, idx) => (
-                      <li
-                        key={league.name + idx}
-                        className="flex mt-5 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-4"
-                      >
-                        <img src={league.icon} alt={league.name} />
-                        <span className="flex-1">{league.name}</span>
-                        <img
-                          src="/assets/icons/expand-up-down-line 1.png"
-                          className="cursor-pointer ml-auto align-basel "
-                          alt={league.name}
-                        />
-                      </li>
-                    ))}
-              </ul>
-            </div>
-          </div>
-        </div>
+        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+          <Leftbar />
+        </section>
 
         {/* Main Content Area */}
-        <FavouriteSelection
-          loading={loading}
-          items={popularLeagues}
-          selectedItems={selectedItems}
-          toggleItemSelection={toggleItemSelection}
-        />
+        <div 
+          ref={scrollContainerRef}
+          className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2"
+        >
+          {error && !loading ? (
+            <div className="w-full flex flex-col gap-y-5">
+              <div className="block-style">
+                <div className="flex flex-col items-center justify-center py-12 px-6">
+                  <p className="text-lg font-semibold text-neutral-n4 dark:text-snow-200 mb-2">
+                    {error}
+                  </p>
+                  <p className="text-sm text-neutral-n5 dark:text-snow-200/70">
+                    Please try again later
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <FavouriteSelection
+              loading={loading}
+              items={allItems.length > 0 ? allItems : popularLeagues} 
+              selectedItems={selectedItems}
+              toggleItemSelection={toggleItemSelection}
+            />
+          )}
+          {/* Loading indicator for pagination */}
+          {(teamsHook.loading || leaguesHook.loading || playersHook.loading) && !loading && (
+            <div className="flex justify-center py-4">
+              <div className="text-sm text-neutral-n5">Loading more...</div>
+            </div>
+          )}
+        </div>
 
         {/* Right Sidebar */}
-        <div className="w-1/5 hidden lg:block">
+        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
           <div className="flex flex-col gap-y-10">
             {/* News Section */}
             <ul className="block-style ">

@@ -1,37 +1,54 @@
-import React, { useState } from "react";
-import popularLeagues from "@/data/popularLeagues";
-import allLeagues from "@/data/allLeagues";
-import { ChevronUpDownIcon, HeartIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronUpDownIcon } from "@heroicons/react/24/outline";
+import { getAllLeagues } from "@/lib/api/endpoints";
 
-interface Team {
-  name: string;
-  logo?: string;
-}
+// Pulsating skeleton loader component
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`animate-pulse bg-snow-200 rounded ${className}`}
+    style={{ minHeight: "1em" }}
+  />
+);
 
-interface League {
+interface LeagueItem {
   name: string;
   icon: string;
-  teams: Team[];
+  id: number;
 }
 
 interface LeagueListProps {
-  allLeagues: League[];
+  allLeagues: LeagueItem[];
+  loading?: boolean;
 }
 
-const LeagueList: React.FC<LeagueListProps> = ({ allLeagues }) => {
+const LeagueList: React.FC<LeagueListProps> = ({ allLeagues, loading }) => {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const toggleExpand = (idx: number) => {
     setExpandedIdx(expandedIdx === idx ? null : idx);
   };
 
+  if (loading) {
+    return (
+      <>
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <li key={idx} className="flex mt-4 items-center gap-2 mb-2">
+            <Skeleton className="w-6 h-6" />
+            <Skeleton className="w-24 h-4 flex-1" />
+            <Skeleton className="w-4 h-4" />
+          </li>
+        ))}
+      </>
+    );
+  }
+
   return (
     <>
       {allLeagues.map((league, idx) => (
-        <div key={league.name + idx} className="flex flex-col">
+        <div key={league.id ? `${league.id}-${idx}` : `league-${idx}`} className="flex flex-col">
           {/* League Row */}
           <li className="flex mt-4 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-2">
-            <img src={league.icon} alt={league.name} />
+            <img src={league.icon} alt={league.name} className="w-6 h-6 object-contain" />
             <span className="flex-1">{league.name}</span>
             <ChevronUpDownIcon
               className={`ml-auto w-6 transition-transform ${
@@ -40,21 +57,6 @@ const LeagueList: React.FC<LeagueListProps> = ({ allLeagues }) => {
               onClick={() => toggleExpand(idx)}
             />
           </li>
-
-          {/* Teams - only show when expanded */}
-          {expandedIdx === idx && (
-            <div className="divide-y divide-snow-200/50">
-              {league.teams.map((team, tIdx) => (
-                <div
-                  key={team.name + tIdx}
-                  className="flex py-2 text-neutral-m6 pl-5"
-                >
-                  <p className="sz-8">{team.name}</p>
-                  <HeartIcon className="cursor-pointer ml-auto w-3" />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       ))}
     </>
@@ -62,43 +64,85 @@ const LeagueList: React.FC<LeagueListProps> = ({ allLeagues }) => {
 };
 
 export const Leftbar = () => {
+  const [loading, setLoading] = useState(true);
+  const [leagues, setLeagues] = useState<LeagueItem[]>([]);
+  const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent double calls (especially in React StrictMode)
+    if (hasFetchedRef.current) return;
+    
+    const fetchLeagues = async () => {
+      hasFetchedRef.current = true;
+      try {
+        setLoading(true);
+        const response = await getAllLeagues(1, 50);
+        
+        if (response?.success && response?.responseObject?.items) {
+          // Transform API response to match component structure
+          const transformedLeagues: LeagueItem[] = response.responseObject.items.map((league: any) => ({
+            name: league.name,
+            icon: league.logo || league.image_path || '/assets/icons/league-placeholder.png',
+            id: league.id,
+          }));
+          setLeagues(transformedLeagues);
+        }
+      } catch (error) {
+        console.error("Error fetching leagues:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeagues();
+  }, []);
+
   return (
     <div>
-  <div className="flex flex-col gap-y-10">
-    <div className="flex flex-col gap-y-10">
-      {/* Popular Leagues Section */}
-      <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200  rounded p-5">
-        <p className="font-[500] text-[#23272A] dark:text-white">
-          Popular Leagues
-        </p>
-        {popularLeagues.map((league, idx) => (
-          <li
-            key={league.name + idx}
-            className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
-          >
-            <img src={league.icon} alt={league.name} />
-            <span>{league.name}</span>
-          </li>
-        ))}
-      </ul>
+      <div className="flex flex-col gap-y-10">
+        <div className="flex flex-col gap-y-10">
+          {/* Popular Leagues Section */}
+          <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200  rounded p-5">
+            <p className="font-[500] text-[#23272A] dark:text-white">
+              Popular Leagues
+            </p>
+            {loading
+              ? Array.from({ length: 5 }).map((_, idx) => (
+                  <li
+                    key={idx}
+                    className="flex mt-5 items-center gap-2 mb-4"
+                  >
+                    <Skeleton className="w-6 h-6" />
+                    <Skeleton className="w-24 h-4" />
+                  </li>
+                ))
+              : leagues.slice(0, 10).map((league, idx) => (
+                  <li
+                    key={league.id ? `${league.id}-${idx}` : `league-${idx}`}
+                    className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
+                  >
+                    <img src={league.icon} alt={league.name} className="w-6 h-6 object-contain" />
+                    <span>{league.name}</span>
+                  </li>
+                ))}
+          </ul>
 
-      {/* All Leagues Section */}
-      {/* All Leagues Section */}
-      <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200 rounded p-5">
-        <div className="flex items-center my-auto">
-          <p className="font-[500] dark:text-white text-[#23272A]">
-            All Leagues
-          </p>
-          <img
-            src="/assets/icons/search-black.png"
-            className="w-[17px] h-[17px] ml-auto align-basel"
-            alt=""
-          />
+          {/* All Leagues Section */}
+          <ul className="bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-1 h-fit border-snow-200 rounded p-5">
+            <div className="flex items-center my-auto">
+              <p className="font-[500] dark:text-white text-[#23272A]">
+                All Leagues
+              </p>
+              <img
+                src="/assets/icons/search-black.png"
+                className="w-[17px] h-[17px] ml-auto align-basel"
+                alt=""
+              />
+            </div>
+            <LeagueList allLeagues={leagues} loading={loading} />
+          </ul>
         </div>
-        <LeagueList allLeagues={allLeagues} />
-      </ul>
-    </div>
-    </div>
+      </div>
     </div>
   );
 };

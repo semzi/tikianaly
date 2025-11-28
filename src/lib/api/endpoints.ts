@@ -1,4 +1,5 @@
 import apiClient from './axios';
+import { apiCache } from './cache';
 
 // Authentication Endpoints
 
@@ -74,5 +75,203 @@ export const getFavorites = async (params?: any) => {
 export const deleteFavorite = async (id: string | number) => {
   const response = await apiClient.delete(`/api/v1/football/delete-favorites/${id}`);
   return response.data;
+};
+
+// Football Players Endpoints
+
+/**
+ * Fetch all players (paginated)
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ */
+export const getAllPlayers = async (page: number = 1, limit: number = 50) => {
+  const endpoint = '/api/v1/football/players/all-players';
+  const params = { page, limit };
+
+  // Check cache first
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Fetch from API
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
+  // Store in cache (5 minutes TTL)
+  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
+
+  return data;
+};
+
+/**
+ * Fetch a player by name
+ * @param playerName - The name of the player to fetch
+ */
+export const getPlayerByName = async (playerName: string) => {
+  const response = await apiClient.get(`/api/v1/football/players/name/${playerName}`);
+  return response.data;
+};
+
+/**
+ * Fetch a player by ID
+ * @param playerId - The ID of the player to fetch
+ */
+export const getPlayerById = async (playerId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/players/id/${playerId}`);
+  return response.data;
+};
+
+/**
+ * Get stats for multiple players by their IDs
+ * @param data - Request data containing player IDs
+ */
+export const getPlayersStats = async (data: any) => {
+  const response = await apiClient.post('/api/v1/football/players/stats', data);
+  return response.data;
+};
+
+// Football Leagues Endpoints
+
+/**
+ * Fetch all leagues (paginated)
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ */
+export const getAllLeagues = async (page: number = 1, limit: number = 50) => {
+  const endpoint = '/api/v1/football/leagues/all-leagues';
+  const params = { page, limit };
+
+  // Check cache first
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Fetch from API
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
+  // Store in cache (5 minutes TTL)
+  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
+
+  return data;
+};
+
+/**
+ * Fetch a league by name
+ * @param leagueName - The name of the league to fetch
+ */
+export const getLeagueByName = async (leagueName: string) => {
+  const response = await apiClient.get(`/api/v1/football/leagues/name/${leagueName}`);
+  return response.data;
+};
+
+/**
+ * Fetch a league by ID
+ * @param leagueId - The ID of the league to fetch
+ */
+export const getLeagueById = async (leagueId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/leagues/id/${leagueId}`);
+  return response.data;
+};
+
+// Football Teams Endpoints
+
+/**
+ * Fetch all teams (paginated)
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ */
+export const getAllTeams = async (page: number = 1, limit: number = 50) => {
+  const endpoint = '/api/v1/football/teams/all-teams';
+  const params = { page, limit };
+
+  // Check cache first
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Fetch from API
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
+  // Store in cache (5 minutes TTL)
+  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
+
+  return data;
+};
+
+/**
+ * Fetch a team by its name
+ * @param teamName - The name of the team to fetch
+ */
+export const getTeamByName = async (teamName: string) => {
+  const response = await apiClient.get(`/api/v1/football/teams/name/${teamName}`);
+  return response.data;
+};
+
+/**
+ * Fetch a team by its ID
+ * @param teamId - The ID of the team to fetch
+ */
+export const getTeamById = async (teamId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/teams/id/${teamId}`);
+  return response.data;
+};
+
+// Cache Management Utilities
+
+/**
+ * Clear cache for all teams
+ * @param page - Optional page number to clear specific page cache
+ * @param limit - Optional limit to clear specific limit cache
+ */
+export const clearTeamsCache = (page?: number, limit?: number) => {
+  const endpoint = '/api/v1/football/teams/all-teams';
+  if (page !== undefined && limit !== undefined) {
+    apiCache.clear(endpoint, { page, limit });
+  } else {
+    // Clear all variations of this endpoint
+    apiCache.clear(endpoint);
+  }
+};
+
+/**
+ * Clear cache for all leagues
+ * @param page - Optional page number to clear specific page cache
+ * @param limit - Optional limit to clear specific limit cache
+ */
+export const clearLeaguesCache = (page?: number, limit?: number) => {
+  const endpoint = '/api/v1/football/leagues/all-leagues';
+  if (page !== undefined && limit !== undefined) {
+    apiCache.clear(endpoint, { page, limit });
+  } else {
+    // Clear all variations of this endpoint
+    apiCache.clear(endpoint);
+  }
+};
+
+/**
+ * Clear cache for all players
+ * @param page - Optional page number to clear specific page cache
+ * @param limit - Optional limit to clear specific limit cache
+ */
+export const clearPlayersCache = (page?: number, limit?: number) => {
+  const endpoint = '/api/v1/football/players/all-players';
+  if (page !== undefined && limit !== undefined) {
+    apiCache.clear(endpoint, { page, limit });
+  } else {
+    // Clear all variations of this endpoint
+    apiCache.clear(endpoint);
+  }
+};
+
+/**
+ * Clear all API cache
+ */
+export const clearAllCache = () => {
+  apiCache.clearAll();
 };
 

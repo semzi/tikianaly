@@ -206,25 +206,25 @@ export const dashboard = () => {
                 {Array.from({ length: 3 }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
+                    className="flex items-center justify-between border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                   >
                     {/* Time Skeleton */}
-                    <Skeleton className="w-12 h-4" />
+                    <Skeleton className="w-10 h-3" />
                     {/* Teams Skeleton */}
-                    <div className="flex flex-col flex-1 mx-2 gap-1">
+                    <div className="flex flex-col flex-1 mx-1 gap-0.5">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-9 h-9" />
-                          <Skeleton className="h-4 w-20" />
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="w-5 h-5" />
+                          <Skeleton className="h-3 w-20" />
                         </div>
-                        <Skeleton className="h-5 w-8" />
+                        <Skeleton className="h-4 w-6" />
                       </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-9 h-9" />
-                          <Skeleton className="h-4 w-20" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="w-5 h-5" />
+                          <Skeleton className="h-3 w-20" />
                         </div>
-                        <Skeleton className="h-5 w-8" />
+                        <Skeleton className="h-4 w-6" />
                       </div>
                     </div>
                   </div>
@@ -248,53 +248,53 @@ export const dashboard = () => {
                     <Link
                         to={`/overview`}
                         key={gameIdx}
-                      className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-3 py-2 last:border-b-0 bg-neutral-n9"
+                      className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                     >
                       {/* Time */}
                       {game.status === "live" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-10 font-semibold">
+                        <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-medium">
                           {game.time}
                         </p>
                       ) : (
-                        <p className="text-xs dark:text-snow-200 text-neutral-n4 text-center w-10 font-semibold">
+                        <p className="text-xs dark:text-snow-200 text-neutral-n4 text-center w-15 px-2 font-medium">
                           {game.time}
                         </p>
                       )}
                       {/* Teams */}
-                      <div className="flex  flex-col flex-1 mx-2">
-                        <div className="flex  items-center justify-between">
-                          <div className="flex items-center gap-2">
+                      <div className="flex flex-col flex-1 mx-1 gap-0.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
                             <img
                               src={game.home.icon}
                               alt={game.home.name}
-                              className="w-9 h-9"
+                              className="w-5 h-5"
                             />
-                            <span className="font-[500] h  dark:text-white text-neutral-n4">
+                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
                               {game.home.name}
                             </span>
                           </div>
-                          {game.status === "live" ? (
-                            <p className="score">{game.home.score}</p>
-                          ) : (
-                            <p className="score">-</p>
-                          )}
+                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                              {game.status === "live" ? game.home.score : '-'}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <img
                               src={game.away.icon}
                               alt={game.away.name}
-                              className="w-9 h-9"
+                              className="w-5 h-5"
                             />
-                            <span className="font-[500] dark:text-white text-neutral-n4">
+                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
                               {game.away.name}
                             </span>
                           </div>
-                          {game.status === "live" ? (
-                            <p className="score">{game.away.score}</p>
-                          ) : (
-                            <p className="score">-</p>
-                          )}
+                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                              {game.status === "live" ? game.away.score : '-'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </Link>

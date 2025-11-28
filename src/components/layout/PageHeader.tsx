@@ -161,7 +161,7 @@ export const PageHeader = () => {
 
   return (
     <header
-      className={`bg-brand-primary text-white m-page-padding-x ${
+      className={`bg-brand-primary text-white m-page-padding-x relative z-10 ${
         isMobile ? "py-1" : "py-3"
       }`}
     >
@@ -343,7 +343,7 @@ export const PageHeader = () => {
                 <UserIcon className="h-5" />
               </button>
               {openMenu === "desktop" && (
-                <div className="absolute z-100 right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
+                <div className="absolute z-10000 right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
                   {userProfile ? (
                     <>
                       <div className="flex items-center gap-4">
