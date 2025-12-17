@@ -3,6 +3,7 @@ import { useState } from 'react';
 interface RatingData {
   month: string;
   ratings: number[];
+  gamesPlayed?: number[]; // Number of games played for each rating
   hasInjury?: boolean;
 }
 
@@ -13,17 +14,18 @@ interface MonthlyRatingChartProps {
 
 const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
   data = [
-    { month: 'Jan', ratings: [6.4, 6.7] },
-    { month: 'Mar', ratings: [], hasInjury: true },
-    { month: 'May', ratings: [] },
-    { month: 'Jul', ratings: [], hasInjury: true },
-    { month: 'Sep', ratings: [6.5, 7.4, 6.4] },
-    { month: 'Nov', ratings: [6.6, 8.0, 5.8] },
+    { month: 'Jan', ratings: [6.4, 6.7], gamesPlayed: [2, 3] },
+    { month: 'Mar', ratings: [], gamesPlayed: [], hasInjury: true },
+    { month: 'May', ratings: [], gamesPlayed: [] },
+    { month: 'Jul', ratings: [], gamesPlayed: [], hasInjury: true },
+    { month: 'Sep', ratings: [6.5, 7.4], gamesPlayed: [1, 2, 1] },
+    { month: 'Nov', ratings: [6.6, 8.0, 5.8], gamesPlayed: [2, 1, 1] },
   ],
   averageRating = 6.7,
 }) => {
-  const [showValues, setShowValues] = useState(true);
-  const maxRating = 10;
+  // Track which bars are showing games played (using "monthIndex-ratingIndex" as key)
+  const [showGamesPlayed, setShowGamesPlayed] = useState<Set<string>>(new Set());
+  const maxRating = 10
   const chartHeight = 150; // Reduced from 220 for mobile
 
   // Get color based on rating
@@ -60,7 +62,7 @@ const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
           {/* Chart Area */}
           <div className="pr-2 md:pr-4" style={{ height: `${chartHeight}px` }}>
             {/* Average line */}
-            <div
+            {/* <div
               className="absolute left-0 border-t border-dashed md:border-t-2"
               style={{
                 bottom: `${(averageRating / maxRating) * chartHeight}px`,
@@ -68,7 +70,7 @@ const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
                 borderColor: '#eab308',
                 zIndex: 1,
               }}
-            ></div>
+            ></div> */}
 
             {/* Bars */}
             <div className="flex items-end justify-between h-full px-2 md:px-4">
@@ -96,35 +98,48 @@ const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
                       </svg>
                     </div>
                   )}
-                  <div className="flex items-end justify-center gap-1 md:gap-1.5">
+                  <div className="flex items-end justify-center gap-3 md:gap-1.5">
                     {monthData.ratings.length > 0 ? (
                       monthData.ratings.map((rating, ratingIndex) => {
                         const height = getBarHeight(rating);
                         const color = getBarColor(rating);
+                        const barKey = `${monthIndex}-${ratingIndex}`;
+                        const isShowingGames = showGamesPlayed.has(barKey);
+                        const gamesPlayed = monthData.gamesPlayed?.[ratingIndex] || 0;
+                        
                         return (
                           <div
-                            key={`${monthIndex}-${ratingIndex}`}
-                            className="relative flex flex-col items-center w-5 md:w-7"
+                            key={barKey}
+                            className="relative flex flex-col items-center"
                           >
                             {/* Bar */}
                             <div
-                              className="rounded-t transition-all hover:opacity-80 cursor-pointer w-5 md:w-7"
+                              className="rounded-t transition-all hover:opacity-80 cursor-pointer w-4.5 md:w-7"
                               style={{
                                 height: `${height}px`,
                                 backgroundColor: color,
                                 minHeight: '3px',
                               }}
-                              onClick={() => setShowValues(!showValues)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowGamesPlayed((prev) => {
+                                  const newSet = new Set(prev);
+                                  if (newSet.has(barKey)) {
+                                    newSet.delete(barKey);
+                                  } else {
+                                    newSet.add(barKey);
+                                  }
+                                  return newSet;
+                                });
+                              }}
                             ></div>
-                            {/* Value label */}
-                            {showValues && (
-                              <span
-                                className="text-[10px] md:text-xs font-semibold mt-1"
-                                style={{ color }}
-                              >
-                                {rating.toFixed(1)}
-                              </span>
-                            )}
+                            {/* Value label - shows rating or games played */}
+                            <span
+                              className="text-[10px] md:text-xs font-semibold mt-1"
+                              style={{ color }}
+                            >
+                              {isShowingGames ? gamesPlayed : rating.toFixed(1)}
+                            </span>
                           </div>
                         );
                       })
@@ -171,8 +186,8 @@ const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            <span className="hidden sm:inline">Click graph to swap values</span>
-            <span className="sm:hidden">Tap to swap</span>
+            <span className="hidden sm:inline">Tap bar to show games played</span>
+            <span className="sm:hidden">Tap bar for games</span>
           </div>
         </div>
 

@@ -851,16 +851,37 @@ export const gameInfo = () => {
     { id: "headtohead", label: "Head To Head" },
     { id: "standings", label: "Standings" },
   ];
+  
+  // Get initial tab from URL hash (fallback to "overview")
+  const getTabFromHash = () => {
+    if (typeof window === "undefined") return "overview";
+    const hash = window.location.hash.replace("#", "");
+    return tabs.find((tab) => tab.id === hash) ? hash : "overview";
+  };
 
-  // Load from localStorage (fallback to "commentary")
-  const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem("activeTab") || "overview"
-  );
+  const [activeTab, setActiveTab] = useState(getTabFromHash);
 
-  // Save whenever activeTab changes
+  // Update tab when hash changes (e.g., browser back/forward)
   useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      const foundTab = tabs.find((tab) => tab.id === hash);
+      setActiveTab(foundTab ? hash : "overview");
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [tabs]);
+
+  // Update URL hash when tab changes (without navigation)
+  const handleTabClick = (tabId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveTab(tabId);
+    // Update hash without triggering navigation, preserving current pathname
+    const newUrl = `${window.location.pathname}${window.location.search}#${tabId}`;
+    window.history.replaceState(null, "", newUrl);
+  };
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
@@ -1005,23 +1026,22 @@ export const gameInfo = () => {
         </div>
       </div>
 
-      <div className="flex z-10 h-12 w-full overflow-y-hidden md:gap-5 md:items-center md:justify-center overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
-        
+      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar">
+        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
           {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => setActiveTab(tab.id)}
-          className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm  transition-colors ${
-            activeTab === tab.id
-          ? "text-orange-500 font-medium"
-          : "text-gray-600 hover:text-gray-800"
-          }`}
-          style={{ flexShrink: 0 }}
-        >
-          {tab.label}
-        </button>
+            <button
+              key={tab.id}
+              onClick={(e) => handleTabClick(tab.id, e)}
+              className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
+                activeTab === tab.id
+                  ? "text-orange-500 font-medium"
+                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
-        
+        </div>
       </div>
 
       <div className="page-padding-x">

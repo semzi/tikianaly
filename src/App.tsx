@@ -1,6 +1,6 @@
 import "./styles/index.css";
 import {
-  HashRouter,
+  BrowserRouter,
   Routes,
   Route,
   useLocation,
@@ -23,6 +23,8 @@ import { setNavigator } from "./lib/router/navigate";
 import { useEffect } from "react";
 import PlayerProfile from "./features/football/pages/playerProfile";
 import Onboard from "./features/onboarding/pages/onboard";
+import Afcon from "./features/football/pages/afcon";
+import NewsRead from "./features/news/pages/read";
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -58,6 +60,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <League />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/news/read/:id"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <NewsRead id={""} initialPost={null} initialError={null} />
             </motion.div>
           }
         />
@@ -100,6 +116,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <News />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/football/afcon"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <Afcon />
             </motion.div>
           }
         />
@@ -209,12 +239,12 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ThemeProvider>
-      <HashRouter>
+      <BrowserRouter>
         <ScrollToTop />
         <Layout>
           <AnimatedRoutes />
         </Layout>
-      </HashRouter>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }

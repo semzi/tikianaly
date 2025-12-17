@@ -23,15 +23,37 @@ const playerProfile = () => {
     { id: "matches", label: "Matches" },
     { id: "career", label: "Career" },
   ];
-  // Load from localStorage (fallback to "profile")
-  const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem("activeTab") || "profile"
-  );
+  
+  // Get initial tab from URL hash (fallback to "profile")
+  const getTabFromHash = () => {
+    if (typeof window === "undefined") return "profile";
+    const hash = window.location.hash.replace("#", "");
+    return tabs.find((tab) => tab.id === hash) ? hash : "profile";
+  };
 
-  // Save whenever activeTab changes
+  const [activeTab, setActiveTab] = useState(getTabFromHash);
+
+  // Update tab when hash changes (e.g., browser back/forward)
   useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      const foundTab = tabs.find((tab) => tab.id === hash);
+      setActiveTab(foundTab ? hash : "profile");
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [tabs]);
+
+  // Update URL hash when tab changes (without navigation)
+  const handleTabClick = (tabId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveTab(tabId);
+    // Update hash without triggering navigation, preserving current pathname
+    const newUrl = `${window.location.pathname}${window.location.search}#${tabId}`;
+    window.history.replaceState(null, "", newUrl);
+  };
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
@@ -278,21 +300,22 @@ const playerProfile = () => {
       </div>
 
       {/* ----------------- navigation content--------------- */}
-      <div className="flex z-10 h-12 w-full overflow-y-hidden md:gap-5 md:items-center md:justify-center overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm  transition-colors ${
-              activeTab === tab.id
-                ? "text-orange-500 font-medium"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-            style={{ flexShrink: 0 }}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar">
+        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={(e) => handleTabClick(tab.id, e)}
+              className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
+                activeTab === tab.id
+                  ? "text-orange-500 font-medium"
+                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
       {/* ----------------- navigation content end --------------- */}
 
@@ -471,9 +494,10 @@ const playerProfile = () => {
                 </div>
               </div>
             </StaggerChildren>
+            
             <div className="flex flex-col md:flex-row gap-5 block-style">
               <div className="flex bg-ui-success/10 rounded px-3 py-4 flex-1 flex-col gap-2">
-                <p className="font-bold text-lg text-ui-success">Strenght</p>
+                <p className="font-bold text-lg text-ui-success">Strength</p>
                 <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                   <li>Anchor Play</li>
                   <li>Finishing</li>

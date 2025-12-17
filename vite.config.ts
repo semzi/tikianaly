@@ -12,4 +12,7 @@ export default defineConfig({
       '@/public': path.resolve(__dirname, './public'),
     },
   },
+  // Note: Vite dev server automatically handles History API fallback
+  // For production, configure your server to serve index.html for all routes
+  // See vercel.json (for Vercel) and public/_redirects (for Netlify)
 })

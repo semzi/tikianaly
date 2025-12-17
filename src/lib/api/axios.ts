@@ -8,6 +8,25 @@ const apiClient = axios.create({
   },
 });
 
+// blog  baserurl 
+const API = axios.create({
+  baseURL: "https://tikianaly-blog.onrender.com/api/v1/",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: false,
+});
+API.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem("token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+// end of blog url
+
 // Auth token helpers
 export const getAuthToken = (): string | null => {
   if (typeof window === "undefined") return null;

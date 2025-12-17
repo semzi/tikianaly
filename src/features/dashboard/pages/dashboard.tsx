@@ -11,6 +11,7 @@ import {
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
 import { Link } from "react-router-dom";
+import { AfconBanner } from "@/components/dashboard/AfconBanner";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -44,7 +45,10 @@ export const dashboard = () => {
 
         {/* Main Content Area */}
         <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+          
           {/* Date and Filter Controls */}
+          <div className="flex-col">
+          <AfconBanner />
           <div className="block-style ">
             <div className="flex dark:text-snow-200 justify-center flex-col">
               {/* Date Navigation */}
@@ -78,6 +82,9 @@ export const dashboard = () => {
               </div>
             </div>
           </div>
+          </div>
+
+
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-y-3 md:gap-y-6">
@@ -192,6 +199,7 @@ export const dashboard = () => {
                 ))
               )}
             </div>
+            
 
             {/* Mobile Section */}
             {loading ? (
