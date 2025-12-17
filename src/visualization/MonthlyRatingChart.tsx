@@ -21,7 +21,7 @@ const MonthlyRatingChart: React.FC<MonthlyRatingChartProps> = ({
     { month: 'Sep', ratings: [6.5, 7.4], gamesPlayed: [1, 2, 1] },
     { month: 'Nov', ratings: [6.6, 8.0, 5.8], gamesPlayed: [2, 1, 1] },
   ],
-  averageRating = 6.7,
+  // averageRating = 6.7,
 }) => {
   // Track which bars are showing games played (using "monthIndex-ratingIndex" as key)
   const [showGamesPlayed, setShowGamesPlayed] = useState<Set<string>>(new Set());
