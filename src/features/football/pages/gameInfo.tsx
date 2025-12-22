@@ -36,97 +36,6 @@ const events = [
   },
 ];
 
-const LineupSection = () => {
-
-  return (
-    <div className="my-8 space-y-8">
-
-      <div className="block-style">
-      <LineupBuilder />
-      </div>
-
-      {/* Manchester City Lineup */}
-      <div className="block-style">
-        <div className="flex items-center gap-3 mb-6">
-          <img
-            src="/assets/icons/Football/Team/Manchester City.png"
-            alt="Manchester City"
-            className="w-10 h-10"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/assets/icons/Football/Team/Manchester City.png";
-            }}
-          />
-          <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200">Manchester City</h3>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          <p className="theme-text">Coach</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-        <div className="flex gap-3 items-center mb-6 pb-4 border-b border-snow-200 dark:border-[#1F2937]">
-          <img
-            src="/assets/icons/Football/Team/Manchester City.png"
-            alt=""
-            className="h-10"
-          />
-          <p className="theme-text sz-6">Pep Guardiola</p>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          <p className="theme-text">Line-Up</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-
-        {/* Football Field Layout - Desktop Horizontal / Mobile Vertical */}
-
-        {/* Substitutes */}
-        <div className="flex gap-2 mt-6 mb-4">
-          <p className="theme-text">Substitutes</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-      </div>
-
-      {/* Arsenal Lineup */}
-      <div className="block-style">
-        <div className="flex items-center gap-3 mb-6">
-          <img
-            src="/assets/icons/Football/Team/Arsenal.png"
-            alt="Arsenal"
-            className="w-10 h-10"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/assets/icons/Football/Team/Arsenal.png";
-            }}
-          />
-          <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200">Arsenal</h3>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          <p className="theme-text">Coach</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-        <div className="flex gap-3 items-center mb-6 pb-4 border-b border-snow-200 dark:border-[#1F2937]">
-          <img
-            src="/assets/icons/Football/Team/Arsenal.png"
-            alt=""
-            className="h-10"
-          />
-          <p className="theme-text sz-6">Mikel Arteta</p>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          <p className="theme-text">Line-Up</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-
-        {/* Substitutes */}
-        <div className="flex gap-2 mt-6 mb-4">
-          <p className="theme-text">Substitutes</p>
-          <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const HeadToHeadSection = () => {
   const [selectedTeam, setSelectedTeam] = useState<"Manchester City" | "Arsenal">("Manchester City");
@@ -678,6 +587,7 @@ export const gameInfo = () => {
                 className=" w-3 md:w-4 invert sepia"
                 alt=""
               />
+              <GetTeamLogo teamId={fixtureDetails.localteam.id} alt={fixtureDetails.localteam.name} className="w-8 h-8 object-cover" />
             </div>
             <div className="flex gap-3 flex-1 items-start justify-start mt-1">
               <img
@@ -690,6 +600,7 @@ export const gameInfo = () => {
                   <p key={index}>{goal.player} {goal.minute}'</p>
                 ))}
               </StaggerChildren>
+              <GetTeamLogo teamId={fixtureDetails.visitorteam.id} alt={fixtureDetails.visitorteam.name} className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
         )}
@@ -1178,7 +1089,7 @@ export const gameInfo = () => {
         {/* -----------------------------------------------line up------------------------------------------------------- */}
 
         {activeTab === "lineup" && (
-          <LineupBuilder />
+          <LineupBuilder localteam={fixtureDetails?.lineups?.localteam} visitorteam={fixtureDetails?.lineups?.visitorteam} />
         )}
 
         {/* ----------------------------------------------------line up end------------------------------------------------------- */}

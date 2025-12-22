@@ -45,12 +45,7 @@ export const EliminationBracket: React.FC<EliminationBracketProps> = ({ data, lo
   const roundRefs = useRef<Record<string, HTMLDivElement | null>>({}); 
   const bracketContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const totalRounds = data.rounds.length;
-  const finalRoundIndex = totalRounds > 0 ? totalRounds - 1 : -1;
 
-  const leftBracketRounds = data.rounds.slice(0, Math.floor(finalRoundIndex / 2));
-  const finalRound = totalRounds > 0 ? data.rounds[finalRoundIndex] : null;
-  const rightBracketRounds = data.rounds.slice(Math.floor(finalRoundIndex / 2), finalRoundIndex).reverse();
 
   useEffect(() => {
     if (loading || !bracketContainerRef.current) return;

@@ -332,11 +332,7 @@ export const dashboard = () => {
                         <div className="flex flex-col flex-1 mx-1 gap-0.5">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <img
-                                src={'/loading-state/shield.svg'} // Placeholder as icon is not in response
-                                alt={game.localteam.name}
-                                className="w-5 h-5"
-                              />
+                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
                               <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                 {game.localteam.name}
                               </span>
@@ -349,11 +345,7 @@ export const dashboard = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <img
-                                src={'/loading-state/shield.svg'} // Placeholder as icon is not in response
-                                alt={game.visitorteam.name}
-                                className="w-5 h-5"
-                              />
+                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
                               <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                 {game.visitorteam.name}
                               </span>
