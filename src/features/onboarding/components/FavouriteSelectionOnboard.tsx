@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import StaggerChildren from "../../../animations/staggerChildren";
 import { XCircleIcon } from "@heroicons/react/24/solid";
@@ -15,6 +15,9 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
 interface FavouriteItem {
   name: string;
   icon: string;
+  id?: number;
+  player_id?: number;
+  type?: 'team' | 'league' | 'player';
   fav?: boolean;
 }
 
@@ -22,7 +25,7 @@ interface FavouriteSelectionProps {
   loading: boolean;
   items: FavouriteItem[];
   selectedItems: Set<string>;
-  toggleItemSelection: (itemName: string) => void;
+  toggleItemSelection: (itemIdentifier: string) => void;
 }
 
 export const FavouriteSelectionOnboard = ({
@@ -36,6 +39,28 @@ export const FavouriteSelectionOnboard = ({
   const [selectedSport, setSelectedSport] = useState("Football");
   
   const sports = ["Football", "Basketball", "Cricket", "E-Sport"];
+
+  const getEffectiveItemId = (item: FavouriteItem): number | undefined => {
+    if (item.id !== undefined) return item.id;
+    if (item.type === "player" && item.player_id !== undefined) return item.player_id;
+    return undefined;
+  };
+
+  const getItemIdentifier = (item: FavouriteItem): string => {
+    const effectiveId = getEffectiveItemId(item);
+    return effectiveId !== undefined ? effectiveId.toString() : item.name;
+  };
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (selectedFilter === "All") return true;
+      if (!item.type) return true;
+      if (selectedFilter === "Teams") return item.type === 'team';
+      if (selectedFilter === "Leagues") return item.type === 'league';
+      if (selectedFilter === "Players") return item.type === 'player';
+      return true;
+    });
+  }, [items, selectedFilter]);
 
   return (
     <div className="w-full flex flex-col gap-y-5">
@@ -142,12 +167,13 @@ export const FavouriteSelectionOnboard = ({
             className="grid max-h-[280px] hide-scrollbar overflow-y-auto grid-cols-3 p-5 gap-4 text-center items-stretch"
             stagger={0.15}
           >
-            {items.map((item, idx) => {
-              const isSelected = selectedItems.has(item.name);
+            {filteredItems.map((item, idx) => {
+              const itemIdentifier = getItemIdentifier(item);
+              const isSelected = selectedItems.has(itemIdentifier);
               return (
                 <div
-                  key={item.name + idx}
-                  onClick={() => toggleItemSelection(item.name)}
+                  key={itemIdentifier + idx}
+                  onClick={() => toggleItemSelection(itemIdentifier)}
                   className={`flex flex-col items-center justify-center gap-3 text-center cursor-pointer rounded-lg p-4 transition-all min-h-[120px] ${
                     isSelected
                       ? "bg-blue-50 border-2 border-brand-primary dark:bg-blue-900/20 dark:border-brand-primary"
@@ -177,12 +203,13 @@ export const FavouriteSelectionOnboard = ({
 
           <div className="border-t drop-shadow-[0_-4px_6px_rgba(0,0,0,0.02)] h-fit w-full bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded-b p-5 pt-2 pb-0">
             <div className="flex pt-3 overflow-x-auto hide-scrollbar gap-6">
-              {Array.from(selectedItems).map((selectedName, idx) => {
-                const selectedItem = items.find((item) => item.name === selectedName);
+              {Array.from(selectedItems).map((selectedIdentifier, idx) => {
+                const selectedItem = filteredItems.find((item) => getItemIdentifier(item) === selectedIdentifier) ??
+                  items.find((item) => getItemIdentifier(item) === selectedIdentifier);
                 if (!selectedItem) return null;
                 
                 return (
-                  <div key={selectedName + idx} className="hover:translate-y-[-6px] transition-transform">
+                  <div key={selectedIdentifier + idx} className="hover:translate-y-[-6px] transition-transform">
                     <div className="w-10 h-10 shadow-lg bg-body border-dotted border border-snow-200 rounded-full overflow-hidden">
                       <img
                         src={selectedItem.icon}
@@ -194,7 +221,7 @@ export const FavouriteSelectionOnboard = ({
                       className="h-5 w-5 cursor-pointer bg-white text-brand-primary rounded-full relative bottom-12 left-7"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleItemSelection(selectedName);
+                        toggleItemSelection(selectedIdentifier);
                       }}
                     />
                   </div>

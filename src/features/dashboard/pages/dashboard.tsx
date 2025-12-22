@@ -14,8 +14,9 @@ import {
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
 import { Link } from "react-router-dom";
-import { AfconBanner } from "@/components/dashboard/AfconBanner";
+// import { AfconBanner } from "@/components/dashboard/AfconBanner";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -34,7 +35,7 @@ export const dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const topLeagueIds = [1204, 1399, 1229, 1269, 1221, 1141, 1322, 1352, 1368, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030];
+  const topLeagueIds = [1204, 1399, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1368, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030];
   // const topLeagueIds = [1399, 1204, 1269];
 
   useEffect(() => {
@@ -142,7 +143,7 @@ export const dashboard = () => {
           
           {/* Date and Filter Controls */}
           <div className="flex-col">
-          <AfconBanner />
+          {/* <AfconBanner /> */}
           <div className="block-style ">
             <div className="flex dark:text-snow-200 justify-center flex-col">
               {/* Date Navigation */}
@@ -232,7 +233,11 @@ export const dashboard = () => {
                   <div key={leagueFixture.leagueId + "-" + leagueIdx} className="block-style">
                     <div className="flex gap-3 border-b-1 px-5 py-3  border-snow-200 dark:border-[#1F2937]">
                       {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                        <img src={'/loading-state/shield.svg'} className="w-fit" alt="" />
+                        <GetLeagueLogo
+                          leagueId={leagueFixture.leagueId}
+                          alt={leagueFixture.fixtures[0].league_name}
+                          className="w-6 h-6 object-contain"
+                        />
                       )}
                       <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
                         {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
@@ -264,7 +269,7 @@ export const dashboard = () => {
                               <p>{game.visitorteam.name}</p>
                             </div>
                           </>
-                        ) : game.status === "live" ? (
+                        ) : game.status === "1st Half" || game.status === "2nd Half" ? (
                           <>
                             <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{game.time}</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
@@ -358,7 +363,11 @@ export const dashboard = () => {
                 >
                   <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200">
                     {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                      <img src={'/loading-state/shield.svg'} className="w-fit" alt="" />
+                      <GetLeagueLogo
+                        leagueId={leagueFixture.leagueId}
+                        alt={leagueFixture.fixtures[0].league_name}
+                        className="w-6 h-6 object-contain"
+                      />
                     )}
                     <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
                       {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}

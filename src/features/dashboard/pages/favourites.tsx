@@ -22,7 +22,8 @@ const Skeleton = ({ className = "" }) => (
 interface FavouriteItem {
   name: string;
   icon: string;
-  id: number;
+  id?: number;
+  player_id?: number;
   type: 'team' | 'league' | 'player';
   fav?: boolean;
 }
@@ -108,9 +109,9 @@ export const favourite = () => {
     transformResponse: (response: any) => {
       if (!response?.success || !response?.responseObject?.items) return [];
       return response.responseObject.items.map((player: any) => ({
-        name: player.name || `${player.firstname || ''} ${player.lastname || ''}`.trim(),
+        name: `${player.firstname || ''} ${player.lastname || ''}`.trim(),
         icon: normalizeImageSrc(player.image, '/loading-state/player.svg'),
-        id: player.id,
+        player_id: player.player_id,
         type: 'player' as const,
       }));
     },

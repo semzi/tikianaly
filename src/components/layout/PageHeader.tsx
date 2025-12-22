@@ -5,17 +5,30 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Cog6ToothIcon,
   MagnifyingGlassIcon,
+  ArrowRightIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { clearAuthToken } from "@/lib/api/axios";
+import { getLeagueByName, getPlayerByName, getTeamByName } from "@/lib/api/endpoints";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchShow, setSearchShow] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [searchScope, setSearchScope] = useState<
+    "all" | "players" | "teams" | "leagues"
+  >("all");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [demoResults, setDemoResults] = useState<
+    Array<{ name: string; country: string; image?: string; kind: "player" | "team" | "league" }>
+  >([]);
   const { theme, setTheme } = useTheme();
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false
   );
+
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -24,6 +37,260 @@ export const PageHeader = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!searchShow) return;
+
+    const id = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [searchShow]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    if (searchShow && isMobile) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [searchShow, isMobile]);
+
+  useEffect(() => {
+    if (!searchShow) return;
+
+    const q = searchValue.trim();
+    if (!q) {
+      setSearchLoading(false);
+      setDemoResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    const requestId = ++searchRequestIdRef.current;
+
+    const timeoutId = window.setTimeout(() => {
+      if (searchScope === "all") {
+        (async () => {
+          try {
+            const [playersRes, teamsRes, leaguesRes] = await Promise.allSettled([
+              getPlayerByName(q),
+              getTeamByName(q),
+              getLeagueByName(q),
+            ]);
+
+            if (requestId !== searchRequestIdRef.current) return;
+
+            const playersItems =
+              playersRes.status === "fulfilled"
+                ? playersRes.value?.responseObject?.item
+                : [];
+            const teamsItems =
+              teamsRes.status === "fulfilled" ? teamsRes.value?.responseObject?.item : [];
+            const leaguesItems =
+              leaguesRes.status === "fulfilled"
+                ? leaguesRes.value?.responseObject?.item
+                : [];
+
+            const players: Array<{
+              name: string;
+              country: string;
+              image?: string;
+              kind: "player";
+            }> = Array.isArray(playersItems)
+              ? playersItems.slice(0, 5).map((p: any) => {
+                  const rawImage = p?.image;
+                  const image =
+                    typeof rawImage === "string" && rawImage.length
+                      ? rawImage.startsWith("data:image")
+                        ? rawImage
+                        : `data:image/png;base64,${rawImage}`
+                      : undefined;
+
+                  const name =
+                    [p?.firstname, p?.lastname].filter(Boolean).join(" ") || "Unknown";
+
+                  return {
+                    name: String(name),
+                    country: String(p?.nationality ?? ""),
+                    image,
+                    kind: "player",
+                  };
+                })
+              : [];
+
+            const teams: Array<{ name: string; country: string; image?: string; kind: "team" }> =
+              Array.isArray(teamsItems)
+                ? teamsItems.slice(0, 5).map((t: any) => {
+                    const rawImage = t?.image;
+                    const image =
+                      typeof rawImage === "string" && rawImage.length
+                        ? rawImage.startsWith("data:image")
+                          ? rawImage
+                          : `data:image/png;base64,${rawImage}`
+                        : undefined;
+
+                    return {
+                      name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
+                      country: String(t?.country ?? ""),
+                      image,
+                      kind: "team",
+                    };
+                  })
+                : [];
+
+            const leagues: Array<{ name: string; country: string; image?: string; kind: "league" }> =
+              Array.isArray(leaguesItems)
+                ? leaguesItems.slice(0, 5).map((l: any) => {
+                    return {
+                      name: String(l?.name ?? "Unknown"),
+                      country: String(l?.category ?? ""),
+                      kind: "league",
+                    };
+                  })
+                : [];
+
+            setDemoResults([...players, ...teams, ...leagues]);
+            setSearchLoading(false);
+          } catch {
+            if (requestId !== searchRequestIdRef.current) return;
+            setDemoResults([]);
+            setSearchLoading(false);
+          }
+        })();
+
+        return;
+      }
+
+      if (searchScope === "players") {
+        (async () => {
+          try {
+            const data = await getPlayerByName(q);
+
+            if (requestId !== searchRequestIdRef.current) return;
+
+            const items = data?.responseObject?.item;
+            const normalized: Array<{ name: string; country: string; image?: string; kind: "player" }> =
+              Array.isArray(items)
+                ? items.slice(0, 10).map((p: any) => {
+                    const rawImage = p?.image;
+                    const image =
+                      typeof rawImage === "string" && rawImage.length
+                        ? rawImage.startsWith("data:image")
+                          ? rawImage
+                          : `data:image/png;base64,${rawImage}`
+                        : undefined;
+
+                    const name =
+                      [p?.firstname, p?.lastname].filter(Boolean).join(" ") || "Unknown";
+
+                    return {
+                      name: String(name),
+                      country: String(p?.nationality ?? ""),
+                      image,
+                      kind: "player",
+                    };
+                  })
+                : [];
+
+            setDemoResults(normalized);
+            setSearchLoading(false);
+          } catch {
+            if (requestId !== searchRequestIdRef.current) return;
+            setDemoResults([]);
+            setSearchLoading(false);
+          }
+        })();
+
+        return;
+      }
+
+      if (searchScope === "teams") {
+        (async () => {
+          try {
+            const data = await getTeamByName(q);
+
+            if (requestId !== searchRequestIdRef.current) return;
+
+            const items = data?.responseObject?.item;
+            const normalized: Array<{ name: string; country: string; image?: string; kind: "team" }> =
+              Array.isArray(items)
+                ? items.slice(0, 10).map((t: any) => {
+                    const rawImage = t?.image;
+                    const image =
+                      typeof rawImage === "string" && rawImage.length
+                        ? rawImage.startsWith("data:image")
+                          ? rawImage
+                          : `data:image/png;base64,${rawImage}`
+                        : undefined;
+
+                    return {
+                      name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
+                      country: String(t?.country ?? ""),
+                      image,
+                      kind: "team",
+                    };
+                  })
+                : [];
+
+            setDemoResults(normalized);
+            setSearchLoading(false);
+          } catch {
+            if (requestId !== searchRequestIdRef.current) return;
+            setDemoResults([]);
+            setSearchLoading(false);
+          }
+        })();
+
+        return;
+      }
+
+      if (searchScope === "leagues") {
+        (async () => {
+          try {
+            const data = await getLeagueByName(q);
+
+            if (requestId !== searchRequestIdRef.current) return;
+
+            const items = data?.responseObject?.item;
+            const normalized: Array<{ name: string; country: string; image?: string; kind: "league" }> =
+              Array.isArray(items)
+                ? items.slice(0, 10).map((l: any) => {
+                    return {
+                      name: String(l?.name ?? "Unknown"),
+                      country: String(l?.category ?? ""),
+                      kind: "league",
+                    };
+                  })
+                : [];
+
+            setDemoResults(normalized);
+            setSearchLoading(false);
+          } catch {
+            if (requestId !== searchRequestIdRef.current) return;
+            setDemoResults([]);
+            setSearchLoading(false);
+          }
+        })();
+
+        return;
+      }
+
+      if (requestId !== searchRequestIdRef.current) return;
+      setDemoResults([]);
+      setSearchLoading(false);
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchValue, searchScope, searchShow]);
 
   type UserProfile = {
     name?: string;
@@ -172,15 +439,203 @@ export const PageHeader = () => {
     </div>
   );
 
+  const shouldShowDemoPanel = searchShow && searchValue.trim().length > 0;
+
+  const renderDemoSearchPanel = (panelClassName: string) => {
+    if (!shouldShowDemoPanel) return null;
+
+    const isDark = theme === "dark";
+    const scopeIsSingle = searchScope !== "all";
+    const skeletonLogoBgClass = isDark ? "bg-white/10" : "bg-snow-200";
+
+    return (
+      <div className={panelClassName}>
+        <div
+          className={`rounded-xl p-3 shadow-lg ${
+            isDark ? "bg-neutral-900 text-white" : "bg-white text-brand-primary"
+          }`}
+        >
+          <div className={`mb-2 text-xs font-semibold ${isDark ? "text-white/70" : "text-neutral-n5"}`}>
+            {searchScope.toUpperCase()} RESULTS
+          </div>
+
+          {searchLoading ? (
+            <div className="space-y-1 animate-pulse">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 ${
+                    isDark ? "bg-white/0" : "bg-transparent"
+                  }`}
+                >
+                  <div
+                    className={`h-10 w-10 object-cover ${
+                      scopeIsSingle && searchScope === "players" ? "rounded-full" : "rounded-none"
+                    } ${skeletonLogoBgClass}`}
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <div
+                      className={`h-4 w-2/3 rounded ${
+                        isDark ? "bg-white/10" : "bg-snow-200"
+                      }`}
+                    />
+                    <div
+                      className={`h-3 w-1/3 rounded ${
+                        isDark ? "bg-white/10" : "bg-snow-200"
+                      }`}
+                    />
+                  </div>
+                  <div
+                    className={`ml-auto h-9 w-9 rounded-full ${
+                      isDark ? "bg-white/10" : "bg-snow-200"
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {demoResults.map((r) => (
+                <button
+                  key={r.name}
+                  type="button"
+                  className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors ${
+                    isDark ? "hover:bg-white/10" : "hover:bg-snow-100"
+                  }`}
+                  onClick={() => {
+                    setSearchValue(r.name);
+                  }}
+                >
+                  <img
+                    src={
+                      r.image ||
+                      (r.kind === "league"
+                        ? "/loading-state/shield.svg"
+                        : "/loading-state/player.svg")
+                    }
+                    alt={r.name}
+                    className={`h-10 w-10 object-cover ${
+                      r.kind === "player" ? "rounded-full" : "rounded-none"
+                    } ${
+                      r.kind === "player"
+                        ? isDark
+                          ? "bg-white/10"
+                          : "bg-snow-200"
+                        : "bg-transparent"
+                    }`}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      img.onerror = null;
+                      img.src =
+                        r.kind === "league"
+                          ? "/loading-state/shield.svg"
+                          : "/loading-state/player.svg";
+                    }}
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className={`truncate text-sm font-semibold ${
+                        isDark ? "text-white" : "text-brand-primary"
+                      }`}
+                    >
+                      {r.name}
+                    </span>
+                    <span className={`truncate text-xs ${isDark ? "text-white/60" : "text-neutral-n5"}`}>
+                      {r.country}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={`ml-auto flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                      isDark
+                        ? "bg-white/10 text-white hover:bg-white/20"
+                        : "bg-snow-100 text-brand-primary hover:bg-snow-200"
+                    }`}
+                    aria-label="Open"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearchValue(r.name);
+                    }}
+                  >
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </button>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSearchInput = (inputClassName: string) => (
-    <div className="flex w-full">
+    <div className="flex w-full py-2">
       <input
         type="text"
         placeholder="Search Here...."
-        className={`w-full rounded-[8px] bg-white/90 px-4 py-2 text-brand-primary outline-none ${inputClassName}`}
+        className={`w-full rounded-[8px] px-4 py-2 outline-none ${
+          theme === "dark"
+            ? "bg-white/10 text-white placeholder:text-white/50"
+            : "bg-white/90 text-brand-primary"
+        } ${inputClassName}`}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
+        ref={searchInputRef}
       />
+    </div>
+  );
+
+  const closeSearch = () => {
+    setSearchShow(false);
+    setSearchValue("");
+  };
+
+  const renderSearchScopeButtons = (wrapperClassName: string) => (
+    <div className={wrapperClassName}>
+      <button
+        type="button"
+        onClick={() => setSearchScope("all")}
+        className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+          searchScope === "all"
+            ? "bg-white text-brand-primary"
+            : "bg-brand-secondary text-white hover:bg-brand-secondary/90"
+        }`}
+      >
+        All
+      </button>
+      <button
+        type="button"
+        onClick={() => setSearchScope("players")}
+        className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+          searchScope === "players"
+            ? "bg-white text-brand-primary"
+            : "bg-brand-secondary text-white hover:bg-brand-secondary/90"
+        }`}
+      >
+        Players
+      </button>
+      <button
+        type="button"
+        onClick={() => setSearchScope("teams")}
+        className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+          searchScope === "teams"
+           ? "bg-white text-brand-primary"
+            : "bg-brand-secondary text-white hover:bg-brand-secondary/90"
+        }`}
+      >
+        Teams
+      </button>
+      <button
+        type="button"
+        onClick={() => setSearchScope("leagues")}
+        className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+          searchScope === "leagues"
+            ? "bg-white text-brand-primary"
+            : "bg-brand-secondary text-white hover:bg-brand-secondary/90"
+        }`}
+      >
+        Leagues
+      </button>
     </div>
   );
 
@@ -190,6 +645,72 @@ export const PageHeader = () => {
         isMobile ? "py-1" : "py-3"
       }`}
     >
+      {!isMobile && searchShow && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm"
+          onClick={() => {
+            setOpenMenu(null);
+            closeSearch();
+          }}
+        >
+          <div
+            className="mx-auto mt-20 w-full max-w-3xl px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rounded-2xl bg-brand-primary p-4 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">{renderSearchInput("text-base")}</div>
+                {renderSearchScopeButtons("hidden md:flex items-center gap-2")}
+                <button
+                  type="button"
+                  className="rounded-md p-2 text-white/90 hover:bg-white/10"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    closeSearch();
+                  }}
+                  aria-label="Close search"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              {renderDemoSearchPanel("mt-2")}
+            </div>
+          </div>
+        </div>
+      )}
+      {isMobile && searchShow && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm"
+          onClick={() => {
+            setOpenMenu(null);
+            closeSearch();
+          }}
+        >
+          <div
+            className="mx-auto mt-10 w-full max-w-lg px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rounded-2xl bg-brand-primary p-4 text-white shadow-2xl">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">{renderSearchInput("text-base")}</div>
+                <button
+                  type="button"
+                  className="rounded-md p-2 text-white/90 hover:bg-white/10"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    closeSearch();
+                  }}
+                  aria-label="Close search"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              {renderSearchScopeButtons("mt-2 flex flex-wrap items-center gap-2")}
+              {renderDemoSearchPanel("mt-2")}
+            </div>
+          </div>
+        </div>
+      )}
       {isMobile ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-3">
@@ -203,7 +724,10 @@ export const PageHeader = () => {
             <div className="flex items-center gap-3 text-white/80">
               <MagnifyingGlassIcon
                 className="h-5 w-5"
-                onClick={() => setSearchShow(!searchShow)}
+                onClick={() => {
+                  setOpenMenu(null);
+                  setSearchShow(true);
+                }}
               />
               <Cog6ToothIcon className="h-5 w-5" />
               <button
@@ -300,135 +824,138 @@ export const PageHeader = () => {
               </div>
             </div>
           </div>
-          {searchShow && renderSearchInput("text-sm")}
         </div>
       ) : (
         <div className="flex items-center justify-between gap-4">
-          {/* Left Section */}
-          <div className="flex items-center gap-4 md:gap-10">
-            <a href="/">
-              <img
-                src="\logos\whitelogo.png"
-                className="w-35 md:w-40"
-                alt="TikiAnaly Logo"
-              />
-            </a>
-            {renderNavLinks(
-              "hidden md:flex cursor-pointer items-center gap-6 font-semibold"
-            )}
-          </div>
-          {/* Right Section */}
-          <div className="flex items-center gap-4 md:gap-6">
-            {!searchShow && (
-              <div className="hidden items-center gap-2 rounded border p-2 md:flex md:border-none">
-                <img src="/assets/icons/Vector.png" alt="" className="h-4 w-4" />
-                <img
-                  src="/assets/icons/United Kingdom.png"
-                  alt=""
-                  className="h-5 w-5"
-                />
-                <p className="text-sm font-semibold md:text-base">ENG</p>
+          {searchShow ? null : (
+            <>
+              {/* Left Section */}
+              <div className="flex items-center gap-4 md:gap-10">
+                <a href="/">
+                  <img
+                    src="\logos\whitelogo.png"
+                    className="w-35 md:w-40"
+                    alt="TikiAnaly Logo"
+                  />
+                </a>
+                {renderNavLinks(
+                  "hidden md:flex cursor-pointer items-center gap-6 font-semibold"
+                )}
               </div>
-            )}
-            {searchShow && renderSearchInput("max-w-xs text-base")}
-            <MagnifyingGlassIcon
-              className="h-5"
-              onClick={() => setSearchShow(!searchShow)}
-            />
-            <Cog6ToothIcon className="h-5" />
-            <button
-              className="bg-transparent transition-colors"
-              onClick={() => setTheme(theme === "dark" ? "" : "dark")}
-              aria-label="Toggle theme"
-            >
-              <span className="relative block h-5 w-5">
-                <Sun
-                  className={`absolute inset-0 h-5 w-5 text-white transition-all duration-300 ${
-                    theme === "dark"
-                      ? "scale-100 rotate-0 opacity-100"
-                      : "-rotate-90 scale-75 opacity-0"
-                  }`}
+              {/* Right Section */}
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="hidden items-center gap-2 rounded border p-2 md:flex md:border-none">
+                  <img src="/assets/icons/Vector.png" alt="" className="h-4 w-4" />
+                  <img
+                    src="/assets/icons/United Kingdom.png"
+                    alt=""
+                    className="h-5 w-5"
+                  />
+                  <p className="text-sm font-semibold md:text-base">ENG</p>
+                </div>
+                <MagnifyingGlassIcon
+                  className="h-5"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    setSearchShow(true);
+                  }}
                 />
-                <Moon
-                  className={`absolute inset-0 h-5 w-5 text-white transition-all duration-300 ${
-                    theme !== "dark"
-                      ? "scale-100 rotate-0 opacity-100"
-                      : "rotate-90 scale-75 opacity-0"
-                  }`}
-                />
-              </span>
-            </button>
-            <div className="relative hidden lg:flex" ref={desktopMenuRef}>
-              <button
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-2 text-brand-primary"
-                onClick={() => toggleMenu("desktop")}
-                aria-haspopup="true"
-                aria-expanded={openMenu === "desktop"}
-              >
-                <UserIcon className="h-5" />
-              </button>
-              {openMenu === "desktop" && (
-                <div className="absolute z-10000 right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
-                  {userProfile ? (
-                    <>
-                      <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
-                          <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
-                            {(profile.name || "U").charAt(0).toUpperCase()}
+                <Cog6ToothIcon className="h-5" />
+                <button
+                  className="bg-transparent transition-colors"
+                  onClick={() => setTheme(theme === "dark" ? "" : "dark")}
+                  aria-label="Toggle theme"
+                >
+                  <span className="relative block h-5 w-5">
+                    <Sun
+                      className={`absolute inset-0 h-5 w-5 text-white transition-all duration-300 ${
+                        theme === "dark"
+                          ? "scale-100 rotate-0 opacity-100"
+                          : "-rotate-90 scale-75 opacity-0"
+                      }`}
+                    />
+                    <Moon
+                      className={`absolute inset-0 h-5 w-5 text-white transition-all duration-300 ${
+                        theme !== "dark"
+                          ? "scale-100 rotate-0 opacity-100"
+                          : "rotate-90 scale-75 opacity-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+                <div className="relative hidden lg:flex" ref={desktopMenuRef}>
+                  <button
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-2 text-brand-primary"
+                    onClick={() => toggleMenu("desktop")}
+                    aria-haspopup="true"
+                    aria-expanded={openMenu === "desktop"}
+                  >
+                    <UserIcon className="h-5" />
+                  </button>
+                  {openMenu === "desktop" && (
+                    <div className="absolute z-10000 right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
+                      {userProfile ? (
+                        <>
+                          <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+                              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
+                                {(profile.name || "U").charAt(0).toUpperCase()}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base font-semibold truncate">{profile.name}</p>
+                              <p className="text-sm text-neutral-n5 truncate" title={profile.email || ""}>
+                                {truncateEmail(profile.email || "", 22)}
+                              </p>
+                            </div>
                           </div>
+                          <div className="mt-5 space-y-2">
+                            <Link
+                              to="/account"
+                              className="block rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
+                              onClick={() => setOpenMenu(null)}
+                            >
+                              Account
+                            </Link>
+                            <button
+                              className="w-full rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
+                              onClick={() => setOpenMenu(null)}
+                            >
+                              Settings
+                            </button>
+                            <button
+                              className="w-full rounded-lg bg-ui-negative px-4 py-2 text-sm font-semibold text-white hover:bg-ui-negative/80"
+                              onClick={handleLogout}
+                            >
+                              Logout
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-neutral-n5 mb-3 text-center">Sign in to access your account</p>
+                          <Link
+                            to="/login"
+                            className="block w-full rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white text-center hover:bg-blue-600 transition-colors"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            Login
+                          </Link>
+                          <Link
+                            to="/signup"
+                            className="block w-full rounded-lg border border-brand-primary px-4 py-2 text-sm font-semibold text-brand-primary text-center hover:bg-brand-primary/5 transition-colors"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            Sign Up
+                          </Link>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold truncate">{profile.name}</p>
-                          <p className="text-sm text-neutral-n5 truncate" title={profile.email || ""}>
-                            {truncateEmail(profile.email || "", 22)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-5 space-y-2">
-                        <Link
-                          to="/account"
-                          className="block rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
-                          onClick={() => setOpenMenu(null)}
-                        >
-                          Account
-                        </Link>
-                        <button
-                          className="w-full rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
-                          onClick={() => setOpenMenu(null)}
-                        >
-                          Settings
-                        </button>
-                        <button
-                          className="w-full rounded-lg bg-ui-negative px-4 py-2 text-sm font-semibold text-white hover:bg-ui-negative/80"
-                          onClick={handleLogout}
-                        >
-                          Logout
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-neutral-n5 mb-3 text-center">Sign in to access your account</p>
-                      <Link
-                        to="/login"
-                        className="block w-full rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white text-center hover:bg-blue-600 transition-colors"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        to="/signup"
-                        className="block w-full rounded-lg border border-brand-primary px-4 py-2 text-sm font-semibold text-brand-primary text-center hover:bg-brand-primary/5 transition-colors"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        Sign Up
-                      </Link>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </header>

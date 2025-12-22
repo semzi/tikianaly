@@ -16,6 +16,7 @@ interface FavouriteItem {
   name: string;
   icon: string;
   id?: number;
+  player_id?: number;
   type?: 'team' | 'league' | 'player';
   fav?: boolean;
 }
@@ -45,9 +46,16 @@ export const FavouriteSelection = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const getEffectiveItemId = (item: FavouriteItem): number | undefined => {
+    if (item.id !== undefined) return item.id;
+    if (item.type === "player" && item.player_id !== undefined) return item.player_id;
+    return undefined;
+  };
+
   // Helper function to get identifier (id if available, otherwise name)
   const getItemIdentifier = (item: FavouriteItem): string => {
-    return item.id !== undefined ? item.id.toString() : item.name;
+    const effectiveId = getEffectiveItemId(item);
+    return effectiveId !== undefined ? effectiveId.toString() : item.name;
   };
 
   // Shuffle function to randomize array
@@ -90,11 +98,12 @@ export const FavouriteSelection = ({
           (item) => getItemIdentifier(item) === selectedIdentifier
         );
 
-        if (!selectedItem?.type || selectedItem.id === undefined) return null;
+        const effectiveId = selectedItem ? getEffectiveItemId(selectedItem) : undefined;
+        if (!selectedItem?.type || effectiveId === undefined) return null;
 
         return {
           type: selectedItem.type,
-          itemId: String(selectedItem.id),
+          itemId: String(effectiveId),
         };
       })
       .filter(Boolean) as Array<{ type: string; itemId: string }>;
@@ -235,6 +244,15 @@ export const FavouriteSelection = ({
                   key={itemIdentifier + idx}
                   onClick={() => {
                     if (!isLoggedIn) return;
+                    console.log("FavouriteSelection item click:", {
+                      identifier: itemIdentifier,
+                      id: item.id,
+                      player_id: item.player_id,
+                      effectiveId: getEffectiveItemId(item),
+                      type: item.type,
+                      name: item.name,
+                      wasSelected: isSelected,
+                    });
                     toggleItemSelection(itemIdentifier);
                   }}
                   className={`flex flex-col items-center justify-center gap-3 text-center rounded-lg p-4 transition-all min-h-[120px] ${

@@ -109,7 +109,9 @@ export const getAllPlayers = async (page: number = 1, limit: number = 50) => {
  * @param playerName - The name of the player to fetch
  */
 export const getPlayerByName = async (playerName: string) => {
-  const response = await apiClient.get(`/api/v1/football/players/name/${playerName}`);
+  const response = await apiClient.get(
+    `/api/v1/football/players/name/${encodeURIComponent(playerName)}`
+  );
   return response.data;
 };
 
@@ -163,7 +165,9 @@ export const getAllLeagues = async (page: number = 1, limit: number = 50) => {
  * @param leagueName - The name of the league to fetch
  */
 export const getLeagueByName = async (leagueName: string) => {
-  const response = await apiClient.get(`/api/v1/football/leagues/name/${leagueName}`);
+  const response = await apiClient.get(
+    `/api/v1/football/leagues/name/${encodeURIComponent(leagueName)}`
+  );
   return response.data;
 };
 
@@ -238,7 +242,9 @@ export const getAllTeams = async (page: number = 1, limit: number = 50) => {
  * @param teamName - The name of the team to fetch
  */
 export const getTeamByName = async (teamName: string) => {
-  const response = await apiClient.get(`/api/v1/football/teams/name/${teamName}`);
+  const response = await apiClient.get(
+    `/api/v1/football/teams/name/${encodeURIComponent(teamName)}`
+  );
   return response.data;
 };
 

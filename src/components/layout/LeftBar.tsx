@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronUpDownIcon } from "@heroicons/react/24/outline";
 import { getAllLeagues } from "@/lib/api/endpoints";
+import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }: { className?: string }) => (
@@ -24,6 +25,13 @@ interface LeagueListProps {
 const LeagueList: React.FC<LeagueListProps> = ({ allLeagues, loading }) => {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
+  const getLeagueLogoId = (league: LeagueItem): string | null => {
+    const anyLeague = league as unknown as { leagueId?: unknown; id?: unknown };
+    const raw = anyLeague.leagueId ?? anyLeague.id;
+    if (raw === null || raw === undefined) return null;
+    return String(raw);
+  };
+
   const toggleExpand = (idx: number) => {
     setExpandedIdx(expandedIdx === idx ? null : idx);
   };
@@ -45,10 +53,22 @@ const LeagueList: React.FC<LeagueListProps> = ({ allLeagues, loading }) => {
   return (
     <>
       {allLeagues.map((league, idx) => (
-        <div key={league.id ? `${league.id}-${idx}` : `league-${idx}`} className="flex flex-col">
+        <div
+          key={(() => {
+            const logoId = getLeagueLogoId(league);
+            return logoId ? `${logoId}-${idx}` : `league-${idx}`;
+          })()}
+          className="flex flex-col"
+        >
           {/* League Row */}
           <li className="flex mt-4 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-2">
-            <img src={league.icon} alt={league.name} className="w-6 h-6 object-contain" />
+            {(() => {
+              const logoId = getLeagueLogoId(league);
+              if (!logoId) {
+                return <img src={"/loading-state/shield.svg"} alt={`${league.name} - No Logo`} className="w-6 h-6 object-contain" />;
+              }
+              return <GetLeagueLogo leagueId={logoId} alt={league.name} className="w-6 h-6 object-contain" />;
+            })()}
             <span className="flex-1">{league.name}</span>
             <ChevronUpDownIcon
               className={`ml-auto w-6 transition-transform ${
@@ -83,7 +103,7 @@ export const Leftbar = () => {
           const transformedLeagues: LeagueItem[] = response.responseObject.items.map((league: any) => ({
             name: league.name,
             icon: league.logo || league.image_path || '/assets/icons/league-placeholder.png',
-            id: league.id,
+            id: league.leagueId ?? league.id,
           }));
           setLeagues(transformedLeagues);
         }

@@ -25,6 +25,7 @@ import PlayerProfile from "./features/football/pages/playerProfile";
 import Onboard from "./features/onboarding/pages/onboard";
 import Afcon from "./features/football/pages/afcon";
 import NewsRead from "./features/news/pages/read";
+import ScriptSandbox from "./features/dev/pages/ScriptSandbox";
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -148,7 +149,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/profile"
+          path="/player/profile"
           element={
             <motion.div
               variants={pageVariants}
@@ -172,6 +173,20 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <GameInfo />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/test"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <ScriptSandbox />
             </motion.div>
           }
         />
