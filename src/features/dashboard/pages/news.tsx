@@ -77,7 +77,7 @@ const News = () => {
           ) : (
             <button
               key={idx}
-              className={`px-3 py-1 rounded ${
+              className={`px-3 py-1 rounded cursor-pointer ${
                 page === p ? "bg-brand-primary text-white" : "bg-gray-300 dark:bg-gray-700"
               }`}
               onClick={() => setPage(Number(p))}
