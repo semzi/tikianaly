@@ -587,7 +587,6 @@ export const gameInfo = () => {
                 className=" w-3 md:w-4 invert sepia"
                 alt=""
               />
-              <GetTeamLogo teamId={fixtureDetails.localteam.id} alt={fixtureDetails.localteam.name} className="w-8 h-8 object-cover" />
             </div>
             <div className="flex gap-3 flex-1 items-start justify-start mt-1">
               <img
@@ -600,7 +599,6 @@ export const gameInfo = () => {
                   <p key={index}>{goal.player} {goal.minute}'</p>
                 ))}
               </StaggerChildren>
-              <GetTeamLogo teamId={fixtureDetails.visitorteam.id} alt={fixtureDetails.visitorteam.name} className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
         )}

@@ -149,7 +149,7 @@ const News = () => {
             {/* Sidebar with 5 posts */}
             <div className="md:flex flex-col hidden py-4 w-2/6 gap-y-5">
               {loading
-                ? Array.from({ length: 5 }).map((_, idx) => <SkeletonPost key={idx} />)
+                ? Array.from({ length: 4 }).map((_, idx) => <SkeletonPost key={idx} />)
                 : sidePosts.length
                 ? sidePosts.map((news, idx) => (
                     <Link
@@ -183,7 +183,7 @@ const News = () => {
           </div>
 
           {loading
-            ? Array.from({ length: 6 }).map((_, idx) => <SkeletonPost key={idx} />)
+            ? Array.from({ length: 5 }).map((_, idx) => <SkeletonPost key={idx} />)
             : remainingPosts.length
             ? remainingPosts.map((news, idx) => (
                 <Link
@@ -192,7 +192,7 @@ const News = () => {
                   className="flex items-center border-b border-snow-100 dark:border-[#1F2937] p-3 gap-3 text-neutral-n4 mb-2 bg-snow-100 hover:bg-gray-200 dark:hover:bg-[#1F2937] rounded transition"
                 >
                   <img
-                    className="image w-2/6 object-cover bg-center h-20 rounded"
+                    className="image w-40 object-cover bg-center h-full rounded"
                     src={`${news.imageUrl || "/logo.webp"}`}
                   />
                   <div className="w-4/6">
