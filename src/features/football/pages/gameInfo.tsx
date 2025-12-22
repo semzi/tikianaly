@@ -150,10 +150,10 @@ const HeadToHeadSection = ({
         <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200 mb-4">Recent form</h3>
         
         {/* Team Selection Tabs */}
-        <div className="flex mb-2 gap-2 mb-6">
+        <div className="flex gap-2 mb-6">
           <button
             onClick={() => setSelectedTeamSide("home")}
-            className={`px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+            className={`px-3 sm:px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
               selectedTeamSide === "home"
                 ? "bg-brand-primary text-white"
                 : "bg-white dark:bg-[#161B22] text-neutral-n5 dark:text-snow-200 border border-snow-200 dark:border-[#1F2937]"
@@ -163,7 +163,7 @@ const HeadToHeadSection = ({
           </button>
           <button
             onClick={() => setSelectedTeamSide("away")}
-            className={`px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+            className={`px-3 sm:px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
               selectedTeamSide === "away"
                 ? "bg-brand-primary text-white"
                 : "bg-white dark:bg-[#161B22] text-neutral-n5 dark:text-snow-200 border border-snow-200 dark:border-[#1F2937]"
@@ -174,7 +174,7 @@ const HeadToHeadSection = ({
         </div>
 
         {/* Match List */}
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {recentMatches.map((match, index) => {
             const selectedTeamIsTeam1 = match.team1 === selectedTeamName;
             const [team1Score, team2Score] = match.score.split("-").map(Number);
@@ -199,58 +199,69 @@ const HeadToHeadSection = ({
             }
 
             return (
-              <div key={index} className="flex items-center gap-4">
-                <div className="text-sm flex-2 text-neutral-n5 dark:text-snow-200 min-w-[140px]">
+              <div
+                key={index}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+              >
+                <div className="text-sm text-neutral-n5 dark:text-snow-200 sm:min-w-[160px]">
                   <span className="font-medium text-sm text-black dark:text-snow-200">{match.league}</span>
-                  <br />
-                  {match.date}
+                  <span className="sm:hidden"> · </span>
+                  <span className="sm:hidden">{match.date}</span>
+                  <div className="hidden sm:block">{match.date}</div>
                 </div>
-                <div className="flex-3 flex">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+
+                <div className="flex w-full sm:flex-1 sm:items-center">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                   {selectedTeamIsTeam1 ? (
                     <>
                       {match.team1Id ? (
-                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       )}
                       <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">{match.team1}</span>
                     </>
                   ) : (
                     <>
                       {match.team2Id ? (
-                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       )}
                       <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">{match.team2}</span>
                     </>
                   )}
-                </div>
-                <div className={`px-4 py-1.5 rounded-lg border font-semibold text-sm ${resultColor}`}>
-                  {match.score}
-                </div>
-                <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
+
+                  </div>
+
+                  <div className="mx-2 sm:mx-4 flex-shrink-0">
+                    <div className={`px-3 sm:px-4 py-1.5 rounded-lg border font-semibold text-sm ${resultColor}`}>
+                      {match.score}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-end">
                   {selectedTeamIsTeam1 ? (
                     <>
                       <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-right">{match.team2}</span>
                       {match.team2Id ? (
-                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       )}
                     </>
                   ) : (
                     <>
                       <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-right">{match.team1}</span>
                       {match.team1Id ? (
-                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                       )}
                     </>
                   )}
                 </div>
+
                 </div>
               </div>
             );
@@ -414,6 +425,39 @@ export const gameInfo = () => {
   const [fixtureDetails, setFixtureDetails] = useState<any>(null);
   const { fixtureId } = useParams<{ fixtureId: string }>();
 
+  const getGroupedGoalsByTeam = (teamKey: "localteam" | "visitorteam") => {
+    const goals = (fixtureDetails?.goals ?? []) as Array<{ team?: string; player?: string; minute?: string | number }>;
+    const byPlayer = new Map<string, { player: string; minutes: Array<string | number> }>();
+
+    goals
+      .filter((g) => g?.team === teamKey)
+      .forEach((g) => {
+        const player = (g.player ?? "").trim();
+        if (!player) return;
+        const current = byPlayer.get(player);
+        if (current) {
+          current.minutes.push(g.minute ?? "");
+        } else {
+          byPlayer.set(player, { player, minutes: [g.minute ?? ""] });
+        }
+      });
+
+    const toMinuteNumber = (m: string | number) => {
+      const n = Number(String(m).replace(/\D+/g, ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    return Array.from(byPlayer.values())
+      .map((item) => ({
+        player: item.player,
+        minutes: item.minutes
+          .map((m) => String(m).trim())
+          .filter(Boolean)
+          .sort((a, b) => toMinuteNumber(a) - toMinuteNumber(b)),
+      }))
+      .sort((a, b) => toMinuteNumber(a.minutes[0] ?? 0) - toMinuteNumber(b.minutes[0] ?? 0));
+  };
+
   useEffect(() => {
     const fetchFixtureDetails = async () => {
       if (fixtureId) {
@@ -454,23 +498,30 @@ export const gameInfo = () => {
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
       <PageHeader />
-      <div className="relative overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
+      <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
+        <div
+          className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-99"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+          }}
+        />
         {/* Floating SVG background */}
         <img
           src="./icons/football-line-1.svg"
-          className="absolute w-60 md:w-150 invert sepia opacity-8 pointer-events-none z-0 float-edges"
+          className="absolute w-60 md:w-150 invert sepia opacity-8 pointer-events-none z-[1] float-edges"
           alt=""
           style={{ animation: "float-around-edges 12s linear infinite" }}
         />
         {/* Foreground content */}
-        <div  onClick={() => navigate(-1)} className="relative cursor-pointer px-3 z-10 grid grid-cols-3 items-center">
+        <div  onClick={() => navigate(-1)} className="relative cursor-pointer px-3 z-[2] grid grid-cols-3 items-center">
           <div className="flex gap-4">
             <ArrowLeftIcon className="text-white h-5" />
             <p className="text-white hidden md:block">Back</p>
           </div>
 
-          <div className="bg-brand-secondary/70 backdrop-blur-3xl md:opacity-100 opacity-0 font-semibold mb-2 sz-7 items-center text-white py-1 px-4 rounded w-fit mx-auto">
-            1st Half - 55:56
+          <div className="bg-brand-secondary md:opacity-100 opacity-0 font-semibold mb-2 text items-center text-white py-1.5 px-4 rounded w-fit mx-auto">
+            55:21'
           </div>
 
           <div className="flex gap-4 justify-end">
@@ -480,19 +531,62 @@ export const gameInfo = () => {
           </div>
         </div>
 
-        <div className=" md:mt-5 mb-5 px-3 grid grid-cols-3 items-start text-white">
+        {fixtureDetails && (
+          <div className="md:hidden px-3 mt-2 text-white">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 flex items-center gap-2">
+                <GetTeamLogo
+                  teamId={fixtureDetails.localteam.id}
+                  alt={fixtureDetails.localteam.name}
+                  className="h-9 w-fit shrink-0"
+                />
+                <p className="min-w-0 truncate text-[13px] font-semibold">
+                  {fixtureDetails.localteam.name}
+                </p>
+              </div>
+
+              <p className="shrink-0 text-[11px] bg-brand-secondary px-2 py-0.5 rounded">
+                {fixtureDetails.time}
+              </p>
+
+              <div className="min-w-0 flex-1 flex items-center justify-end gap-2">
+                <p className="min-w-0 truncate text-[13px] font-semibold text-right">
+                  {fixtureDetails.visitorteam.name}
+                </p>
+                <GetTeamLogo
+                  teamId={fixtureDetails.visitorteam.id}
+                  alt={fixtureDetails.visitorteam.name}
+                  className="h-9 w-fit shrink-0"
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-col items-center">
+              <div className="flex justify-center items-center gap-3 leading-none tabular-nums tall-font text-[56px]">
+                <p className="leading-none">{fixtureDetails.localteam.score}</p>
+                <p className="text-[32px] leading-none">-</p>
+                <p className="leading-none">{fixtureDetails.visitorteam.score}</p>
+              </div>
+              <p className="mt-1 text-[11px] opacity-90">{fixtureDetails.status}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="hidden md:grid md:mt-5 mb-5 px-3 grid-cols-3 items-start text-white">
           {/* Home team (right aligned) */}
           {fixtureDetails && (
             <>
-              <div className="flexitems-center md:items-end flex-col">
-                <div className="flex-col-reverse  flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-end items-center font-semibold  md:gap-3">
-                  <p className="text-center">{fixtureDetails.localteam.name}</p>
-                  <GetTeamLogo teamId={fixtureDetails.localteam.id} alt={fixtureDetails.localteam.name} className="w-fit h-10" />
+              <div className="flex items-center md:items-end flex-col">
+                <div className="flex flex-col-reverse sz-7 md:flex-row md:mr-2 md:text-[20px] md:font-light md:justify-end items-center font-semibold md:gap-3">
+                  <p className="text-center sz-4 font-bold">{fixtureDetails.localteam.name}</p>
+                  <GetTeamLogo teamId={fixtureDetails.localteam.id} alt={fixtureDetails.localteam.name} className="w-fit h-12" />
                 </div>
                 <div className="md:flex gap-3 hidden items-start justify-end mt-1">
                   <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
-                    {fixtureDetails.goals.filter((goal: any) => goal.team === "localteam").map((goal: any, index: number) => (
-                      <p key={index}>{goal.player} {goal.minute}'</p>
+                    {getGroupedGoalsByTeam("localteam").map((goal, index: number) => (
+                      <p key={`${goal.player}-${index}`}>
+                        {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
+                      </p>
                     ))}
                   </StaggerChildren>
                   <img
@@ -506,20 +600,20 @@ export const gameInfo = () => {
               {/* Score line (always centered) */}
               <div className="flex-col flex">
                 <p className="text-center block md:hidden bg-brand-secondary/70 w-fit mx-auto px-2">{fixtureDetails.time}</p>
-                <div className="flex sz-2  justify-center items-start gap-3">
-                  <p>{fixtureDetails.localteam.score}</p>
+                <div className="flex text-[56px] md:text-[80px] tall-font justify-center items-center gap-3 leading-none tabular-nums">
+                  <p className="leading-none">{fixtureDetails.localteam.score}</p>
                   <p>-</p>
-                  <p>{fixtureDetails.visitorteam.score}</p>
+                  <p className="leading-none">{fixtureDetails.visitorteam.score}</p>
                 </div>
                 <p className="text-center block md:hidden">{fixtureDetails.status}</p>
               </div>
 
               {/* Away team (left aligned) */}
               <div className="flex items-center md:items-start flex-col">
-                <div className="flex-col-reverse flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-start items-center font-semibold  md:gap-3">
-                  <p className="text-center">{fixtureDetails.visitorteam.name}</p>
-                  <GetTeamLogo teamId={fixtureDetails.visitorteam.id} alt={fixtureDetails.visitorteam.name} className="w-fit h-10" />
-            </div>
+                <div className="flex flex-col sz-7 md:flex-row md:ml-2 md:text-[20px] md:font-light md:justify-start items-center font-semibold md:gap-3">
+                  <GetTeamLogo teamId={fixtureDetails.visitorteam.id} alt={fixtureDetails.visitorteam.name} className="w-fit h-12" />
+                  <p className="text-center sz-4 font-bold">{fixtureDetails.visitorteam.name}</p>
+                </div>
 
             <div className="md:flex hidden gap-3 justify-start mt-1">
               <img
@@ -528,8 +622,10 @@ export const gameInfo = () => {
                 alt=""
               />
               <StaggerChildren className="flex font-light sz-8 flex-col text-left">
-                {fixtureDetails.goals.filter((goal: any) => goal.team === "visitorteam").map((goal: any, index: number) => (
-                  <p key={index}>{goal.player} {goal.minute}'</p>
+                {getGroupedGoalsByTeam("visitorteam").map((goal, index: number) => (
+                  <p key={`${goal.player}-${index}`}>
+                    {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
+                  </p>
                 ))}
               </StaggerChildren>
             </div>
@@ -543,8 +639,10 @@ export const gameInfo = () => {
           <div className="flex text-white md:hidden mb-7 gap-5">
             <div className="flex flex-1 gap-3 items-start justify-end mt-1">
               <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
-                {fixtureDetails.goals.filter((goal: any) => goal.team === "localteam").map((goal: any, index: number) => (
-                  <p key={index}>{goal.player} {goal.minute}'</p>
+                {getGroupedGoalsByTeam("localteam").map((goal, index: number) => (
+                  <p key={`${goal.player}-${index}`}>
+                    {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
+                  </p>
                 ))}
               </StaggerChildren>
               <img
@@ -560,8 +658,10 @@ export const gameInfo = () => {
                 alt=""
               />
               <StaggerChildren className="flex font-light text-[12px] flex-col text-left">
-                {fixtureDetails.goals.filter((goal: any) => goal.team === "visitorteam").map((goal: any, index: number) => (
-                  <p key={index}>{goal.player} {goal.minute}'</p>
+                {getGroupedGoalsByTeam("visitorteam").map((goal, index: number) => (
+                  <p key={`${goal.player}-${index}`}>
+                    {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
+                  </p>
                 ))}
               </StaggerChildren>
             </div>
@@ -578,14 +678,6 @@ export const gameInfo = () => {
               />
               <p>{fixtureDetails.league_name}, Week {fixtureDetails.week}</p>
             </div>
-            <div className="flex gap-2 items-center">
-              <img
-                src="./icons/soccer-field-1.svg"
-                className=" w-4 invert sepia"
-                alt=""
-              />
-              <p>{fixtureDetails.venue}, {fixtureDetails.venue_city}</p>
-            </div>
             {fixtureDetails.referee.name && (
               <div className="flex gap-2 items-center">
                 <img
@@ -600,8 +692,8 @@ export const gameInfo = () => {
         )}
       </div>
 
-      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar">
-        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
+      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
+        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -609,7 +701,7 @@ export const gameInfo = () => {
               className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
                 activeTab === tab.id
                   ? "text-orange-500 font-medium"
-                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  : "text-gray-600 dark:text-neutral-n3 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
               }`}
             >
               {tab.label}

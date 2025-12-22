@@ -6,12 +6,23 @@
 @tailwind components;
 @custom-variant dark (&:where(.dark, .dark *));
 
-
 body {
   font-family: "Poppins", sans-serif;
   background-color: #fdfdfd;
 }
 
+:root {
+  --gameinfo-stripe-color: rgba(220, 220, 220, 0.35);
+}
+
+.dark {
+  --gameinfo-stripe-color: rgba(0, 0, 0, 0.35);
+}
+
+.tall-font {
+  font-family: "Squada One", sans-serif;
+  font-style: normal;
+}
 
 
 /* 

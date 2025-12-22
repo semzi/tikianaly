@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const teamLogoMemoryCache = new Map<number, string>();
+
+const getTeamLogoCacheKey = (teamId: number) => `teamLogo:${teamId}`;
+
 interface GetTeamLogoProps {
   teamId: number;
   alt: string;
@@ -16,19 +20,48 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
     const fetchTeamLogo = async () => {
       setLoading(true);
       setError(null);
+
+      const cachedMemory = teamLogoMemoryCache.get(teamId);
+      if (cachedMemory) {
+        setLogoUrl(cachedMemory);
+        setLoading(false);
+        return;
+      }
+
       try {
-          const response = await axios.get(`https://tikianaly-service-backend.onrender.com/api/v1/football/teams/id/${teamId}`);
-          console.log(`API Response for teamId ${teamId}:`, response.data);
-          if (response.data && response.data.responseObject && response.data.responseObject.item && response.data.responseObject.item.image) {
-            // Convert base64 to data URI
-            const base64Image = response.data.responseObject.item.image;
-            const dataUri = `data:image/png;base64,${base64Image}`;
-            setLogoUrl(dataUri);
-            console.log(`Setting logoUrl for teamId ${teamId}:`, dataUri);
-          } else {
-            setLogoUrl(null);
-            console.log(`No logo found or invalid response for teamId ${teamId}.`);
+        const key = getTeamLogoCacheKey(teamId);
+        const cachedSession = typeof window !== 'undefined' ? window.sessionStorage.getItem(key) : null;
+        if (cachedSession) {
+          teamLogoMemoryCache.set(teamId, cachedSession);
+          setLogoUrl(cachedSession);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // ignore storage errors
+      }
+
+      try {
+        const response = await axios.get(`https://tikianaly-service-backend.onrender.com/api/v1/football/teams/id/${teamId}`);
+        console.log(`API Response for teamId ${teamId}:`, response.data);
+        if (response.data && response.data.responseObject && response.data.responseObject.item && response.data.responseObject.item.image) {
+          // Convert base64 to data URI
+          const base64Image = response.data.responseObject.item.image;
+          const dataUri = `data:image/png;base64,${base64Image}`;
+          setLogoUrl(dataUri);
+          teamLogoMemoryCache.set(teamId, dataUri);
+          try {
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.setItem(getTeamLogoCacheKey(teamId), dataUri);
+            }
+          } catch {
+            // ignore storage errors
           }
+          console.log(`Setting logoUrl for teamId ${teamId}:`, dataUri);
+        } else {
+          setLogoUrl(null);
+          console.log(`No logo found or invalid response for teamId ${teamId}.`);
+        }
       } catch (err) {
         console.error(`Error fetching logo for teamId ${teamId}:`, err);
         setError('Failed to load logo');

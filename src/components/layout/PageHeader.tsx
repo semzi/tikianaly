@@ -641,10 +641,19 @@ export const PageHeader = () => {
 
   return (
     <header
-      className={`bg-brand-primary text-white m-page-padding-x relative z-10 ${
+      className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-hidden z-10 ${
         isMobile ? "py-1" : "py-3"
       }`}
     >
+      <div
+        className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-99"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+        }}
+      />
+
+      <div className="relative z-[1]">
       {!isMobile && searchShow && (
         <div
           className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm"
@@ -958,6 +967,7 @@ export const PageHeader = () => {
           )}
         </div>
       )}
+      </div>
     </header>
   );
 };
