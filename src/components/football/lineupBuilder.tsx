@@ -11,17 +11,24 @@ export default function LineupBuilder({
   away,
   localteam,
   visitorteam,
+  homeTeamName,
+  awayTeamName,
 }: {
   home?: TeamApi;
   away?: TeamApi;
   localteam?: TeamApi;
   visitorteam?: TeamApi;
+  homeTeamName?: string;
+  awayTeamName?: string;
 }) {
   // prefer explicit home/away props, fall back to localteam/visitorteam
   const propHome = home ?? localteam;
   const propAway = away ?? visitorteam;
   const [showHome, setShowHome] = useState(true);
   const [showAway, setShowAway] = useState(true);
+  
+  const resolvedHomeTeamName = homeTeamName ?? "Home Team";
+  const resolvedAwayTeamName = awayTeamName ?? "Away Team";
   
 
   // Convert API shape into internal lineup structure.
@@ -126,14 +133,14 @@ export default function LineupBuilder({
             onClick={() => setShowHome((s) => !s)}
             className={`px-3 py-1 rounded ${showHome ? 'bg-blue-600 text-white' : 'bg-white/40 text-black'}`}
           >
-            {showHome ? 'Hide Home' : 'Show Home'}
+            {showHome ? `Hide ${resolvedHomeTeamName}` : `Show ${resolvedHomeTeamName}`}
           </button>
           <button
             type="button"
             onClick={() => setShowAway((s) => !s)}
             className={`px-3 py-1 rounded ${showAway ? 'bg-brand-secondary text-white' : 'bg-white/40 text-black'}`}
           >
-            {showAway ? 'Hide Away' : 'Show Away'}
+            {showAway ? `Hide ${resolvedAwayTeamName}` : `Show ${resolvedAwayTeamName}`}
           </button>
         </div>
 

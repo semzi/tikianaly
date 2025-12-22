@@ -1,7 +1,7 @@
 import { Moon, Sun, UserIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Cog6ToothIcon,
   MagnifyingGlassIcon,
@@ -9,6 +9,7 @@ import {
 import { clearAuthToken } from "@/lib/api/axios";
 export const PageHeader = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchShow, setSearchShow] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const { theme, setTheme } = useTheme();
@@ -134,11 +135,35 @@ export const PageHeader = () => {
     { label: "About Us", href: "/about" },
   ];
 
+  const isNavActive = (href: string) => {
+    const path = location.pathname;
+
+    if (href === "/news") {
+      return (
+        path === "/news" ||
+        path.startsWith("/news/") ||
+        path === "/new" ||
+        path.startsWith("/new/")
+      );
+    }
+
+    return path === href || path.startsWith(`${href}/`);
+  };
+
   const renderNavLinks = (wrapperClass: string) => (
     <div className={wrapperClass}>
       {navigationItems.map(({ label, href }) => (
-        <Link key={label} to={href} className="relative group">
-          <span className="transition-colors duration-300 group-hover:text-brand-secondary">
+        <Link
+          key={label}
+          to={href}
+          className="relative group"
+          aria-current={isNavActive(href) ? "page" : undefined}
+        >
+          <span
+            className={`transition-colors duration-300 group-hover:text-brand-secondary ${
+              isNavActive(href) ? "text-brand-secondary" : ""
+            }`}
+          >
             {label}
           </span>
           <span className="secondary-hover"></span>

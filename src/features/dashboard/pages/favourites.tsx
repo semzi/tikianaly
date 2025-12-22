@@ -7,6 +7,9 @@ import Leftbar from "@/components/layout/LeftBar";
 import popularLeagues from "@/data/favouriteSelect";
 import { getAllTeams, getAllLeagues, getAllPlayers } from "@/lib/api/endpoints";
 import { usePaginatedApi } from "@/hooks/usePaginatedApi";
+import { useNavigate } from "react-router-dom";
+import RightBar from "@/components/layout/RightBar";
+import { getAuthToken } from "@/lib/api/axios";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -24,12 +27,43 @@ interface FavouriteItem {
   fav?: boolean;
 }
 
+const normalizeImageSrc = (value: unknown, fallback: string) => {
+  if (!value || typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  if (trimmed.startsWith("data:image/")) return trimmed;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) return trimmed;
+  if (/^[A-Za-z0-9+/\r\n]+={0,2}$/.test(trimmed)) return `data:image/png;base64,${trimmed}`;
+  return fallback;
+};
+
 export const favourite = () => {
+  const navigate = useNavigate();
   const limit = 21;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Initialize selected items using IDs
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncLoginState = () => {
+      try {
+        const stored = localStorage.getItem("tikianaly_user");
+        const token = getAuthToken();
+        setIsLoggedIn(Boolean(stored) && Boolean(token));
+      } catch {
+        setIsLoggedIn(false);
+      }
+    };
+
+    syncLoginState();
+    window.addEventListener("storage", syncLoginState);
+    return () => window.removeEventListener("storage", syncLoginState);
+  }, []);
 
   // Use pagination hook for teams
   const teamsHook = usePaginatedApi<FavouriteItem>({
@@ -41,7 +75,7 @@ export const favourite = () => {
       if (!response?.success || !response?.responseObject?.items) return [];
       return response.responseObject.items.map((team: any) => ({
         name: team.name,
-        icon: team.image_path || team.logo || '/assets/icons/team-placeholder.png',
+        icon: normalizeImageSrc(team.image, '/loading-state/shield.svg'),
         id: team.id,
         type: 'team' as const,
       }));
@@ -58,7 +92,7 @@ export const favourite = () => {
       if (!response?.success || !response?.responseObject?.items) return [];
       return response.responseObject.items.map((league: any) => ({
         name: league.name,
-        icon: league.logo || league.image_path || '/assets/icons/league-placeholder.png',
+        icon: normalizeImageSrc(league.logo ?? league.image_path ?? league.image, '/loading-state/shield.svg'),
         id: league.id,
         type: 'league' as const,
       }));
@@ -75,7 +109,7 @@ export const favourite = () => {
       if (!response?.success || !response?.responseObject?.items) return [];
       return response.responseObject.items.map((player: any) => ({
         name: player.name || `${player.firstname || ''} ${player.lastname || ''}`.trim(),
-        icon: player.image_path || player.photo || '/assets/icons/player-placeholder.png',
+        icon: normalizeImageSrc(player.image, '/loading-state/player.svg'),
         id: player.id,
         type: 'player' as const,
       }));
@@ -98,6 +132,7 @@ export const favourite = () => {
   const error = teamsHook.error || leaguesHook.error || playersHook.error;
 
   const toggleItemSelection = (itemId: string) => {
+    if (!isLoggedIn) return;
     setSelectedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -152,6 +187,9 @@ export const favourite = () => {
               items={allItems.length > 0 ? allItems : popularLeagues} 
               selectedItems={selectedItems}
               toggleItemSelection={toggleItemSelection}
+              isLoggedIn={isLoggedIn}
+              onLogin={() => navigate("/login")}
+              onSaved={() => setSelectedItems(new Set())}
             />
           )}
           {/* Loading indicator for pagination */}
@@ -164,125 +202,7 @@ export const favourite = () => {
 
         {/* Right Sidebar */}
         <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <div className="flex flex-col gap-y-10">
-            {/* News Section */}
-            <ul className="block-style ">
-              {loading ? (
-                <>
-                  <Skeleton className="h-5 w-32 mb-4" />
-                  <div className="flex flex-col gap-y-3 mb-5">
-                    <Skeleton className="mt-4 w-full h-32 rounded" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  </div>
-                  <div className="flex-col flex gap-5">
-                    {/* single news column skeleton */}
-                    <div className="flex border-y-1 border-snow-200 py-5 items-center gap-3">
-                      <Skeleton className="w-24 h-20 rounded" />
-                      <div className="flex flex-col gap-2 flex-1">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/3" />
-                      </div>
-                    </div>
-                    {/* single news column skeleton */}
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="w-24 h-20 rounded" />
-                      <div className="flex flex-col gap-2 flex-1">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/3" />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="font-[500] dark:text-snow-200 text-[#23272A]">
-                    Latest News
-                  </p>
-                  <div className="flex text-neutral-n4 flex-col gap-y-3 mb-5">
-                    <div className='image mt-4 w-full bg-[url("/assets/icons/mbape.png")] bg-cover bg-top h-32 rounded'></div>
-                    <p className="sz-6 dark:text-white font-[500]">
-                      Kylian Mbappe Scores third goal in UCL win
-                    </p>
-                    <div className="flex dark:text-snow-200 gap-2 sz-8 ">
-                      <span>6 hours ago</span>
-                      <span>|</span>
-                      <span>6 mins read</span>
-                    </div>
-                  </div>
-                  <div className="flex-col flex gap-5">
-                    {/* single news column */}
-                    <div className="flex border-y-1 dark:border-[#1F2937] border-snow-200 py-5 items-center gap-3 text-neutral-n4">
-                      <div className='image w-50 bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-20 rounded'></div>
-                      <div className="">
-                        <p className="sz-8 dark:text-snow-200 font-[500]">
-                          Kylian Mbappe Scores third goal in UCL win
-                        </p>
-                        <span className="sz-8 dark:text-white">
-                          6 hours ago
-                        </span>
-                      </div>
-                    </div>
-                    {/* end of news col */}
-                    {/* single news column */}
-                    <div className="flex  items-center gap-3 text-neutral-n4">
-                      <div className='image w-50 bg-[url("/assets/icons/mbape.png")] bg-cover bg-center h-20 rounded'></div>
-                      <div>
-                        <p className="sz-8 dark:text-snow-200 font-[500]">
-                          Kylian Mbappe Scores third goal in UCL win
-                        </p>
-                        <span className="sz-8 dark:text-white">
-                          6 hours ago
-                        </span>
-                      </div>
-                    </div>
-                    {/* end of news col */}
-                  </div>
-                </>
-              )}
-            </ul>
-
-            {/* Download  Section */}
-            <div className="h-screen ">
-              <ul className="block-style ">
-                <p className="font-[500] dark:text-snow-200  mb-3 text-[#23272A]">
-                  Download our Mobile App
-                </p>
-                <div className="flex flex-col gap-3">
-                  <img src="\assets\icons\Group 1261157024.png" alt="" />
-                  <img
-                    src="\assets\icons\Frame 1261157588.png"
-                    className="cursor-pointer"
-                    alt=""
-                  />
-                  <img
-                    src="\assets\icons\Frame 1261157587.png"
-                    className="cursor-pointer"
-                    alt=""
-                  />
-                </div>
-              </ul>
-              <div className="h-[180ch]">
-                <ul className="block-style sticky top-5 mt-7  h-fit">
-                  <p className="font-[500] dark:text-snow-200  mb-3 text-[#23272A]">
-                    Chat with our AI Buddy
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <img src="\assets\icons\Chat bot-bro 1.png" alt="" />
-                    <img
-                      src="\assets\icons\Secondary.png"
-                      className="cursor-pointer"
-                      alt=""
-                    />
-                  </div>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <RightBar />
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { XCircleIcon } from "@heroicons/react/24/solid";
 import Button from "../ui/Form/FormButton";
+import { useNavigate } from "react-router-dom";
+import { addFavorite } from "@/lib/api/endpoints";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }: { className?: string }) => (
@@ -23,6 +25,9 @@ interface FavouriteSelectionProps {
   items: FavouriteItem[];
   selectedItems: Set<string>;
   toggleItemSelection: (itemIdentifier: string) => void;
+  isLoggedIn?: boolean;
+  onLogin?: () => void;
+  onSaved?: () => void;
 }
 
 export const FavouriteSelection = ({
@@ -30,8 +35,15 @@ export const FavouriteSelection = ({
   items,
   selectedItems,
   toggleItemSelection,
+  isLoggedIn = true,
+  onLogin,
+  onSaved,
 }: FavouriteSelectionProps) => {
+  const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Helper function to get identifier (id if available, otherwise name)
   const getItemIdentifier = (item: FavouriteItem): string => {
@@ -66,8 +78,75 @@ export const FavouriteSelection = ({
     return filtered;
   }, [items, selectedFilter]);
 
+  const handleNext = async () => {
+    if (!isLoggedIn) return;
+    if (submitting) return;
+    setSubmitError(null);
+    setToastMessage(null);
+
+    const payloads = Array.from(selectedItems)
+      .map((selectedIdentifier) => {
+        const selectedItem = items.find(
+          (item) => getItemIdentifier(item) === selectedIdentifier
+        );
+
+        if (!selectedItem?.type || selectedItem.id === undefined) return null;
+
+        return {
+          type: selectedItem.type,
+          itemId: String(selectedItem.id),
+        };
+      })
+      .filter(Boolean) as Array<{ type: string; itemId: string }>;
+
+    if (payloads.length === 0) {
+      setSubmitError("Please select at least one item.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      console.log("Saving favourites payloads:", payloads);
+
+      const results = await Promise.allSettled(payloads.map((payload) => addFavorite(payload)));
+
+      const rejected = results.filter((r) => r.status === "rejected");
+      if (rejected.length > 0) {
+        setSubmitError("Some favourites could not be saved. Please try again.");
+        return;
+      }
+
+      const fulfilledValues = results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+        .map((r) => r.value);
+
+      console.log("addFavorite responses:", fulfilledValues);
+
+      const unsuccessful = fulfilledValues.filter((v) => v?.success === false);
+      if (unsuccessful.length > 0) {
+        setSubmitError(
+          unsuccessful[0]?.message || "Failed to save favourites. Please try again."
+        );
+        return;
+      }
+
+      onSaved?.();
+      setToastMessage("Favourites added");
+      window.setTimeout(() => setToastMessage(null), 2500);
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to save favourites");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-y-5">
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-brand-primary px-4 py-2 text-white shadow-lg">
+          {toastMessage}
+        </div>
+      )}
       <div className="block-style">
         {loading ? (
           <div>
@@ -154,8 +233,13 @@ export const FavouriteSelection = ({
               return (
                 <div
                   key={itemIdentifier + idx}
-                  onClick={() => toggleItemSelection(itemIdentifier)}
-                  className={`flex flex-col items-center justify-center gap-3 text-center cursor-pointer rounded-lg p-4 transition-all min-h-[120px] ${
+                  onClick={() => {
+                    if (!isLoggedIn) return;
+                    toggleItemSelection(itemIdentifier);
+                  }}
+                  className={`flex flex-col items-center justify-center gap-3 text-center rounded-lg p-4 transition-all min-h-[120px] ${
+                    isLoggedIn ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                  } ${
                     isSelected
                       ? "bg-blue-50 border-2 border-brand-secondary dark:bg-blue-900/20 dark:border-brand-secondary"
                       : "bg-white border border-gray-200 dark:bg-[#161B22] dark:border-gray-300 hover:border-gray-400"
@@ -198,9 +282,12 @@ export const FavouriteSelection = ({
                       />
                     </div>
                     <XCircleIcon
-                      className="h-5 w-5 cursor-pointer bg-white text-brand-primary rounded-full relative bottom-12 left-7"
+                      className={`h-5 w-5 bg-white text-brand-primary rounded-full relative bottom-12 left-7 ${
+                        isLoggedIn ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (!isLoggedIn) return;
                         toggleItemSelection(selectedIdentifier);
                       }}
                     />
@@ -211,15 +298,32 @@ export const FavouriteSelection = ({
           </div>
         </div>
         <div className="flex gap-5 mb-5">
-          <Button
-            label="Skip"
-            className="btn-outline bg-transparent text-brand-primary border-brand-primary"
-          />
-          <Button
-            label="Next"
-            className="btn-primary text-white border-brand-primary"
-          />
+          {isLoggedIn ? (
+            <>
+              <Button
+                label="Skip"
+                className="btn-outline bg-transparent text-brand-primary border-brand-primary"
+                onClick={() => navigate("/")}
+              />
+              <Button
+                label={submitting ? "Saving..." : "Next"}
+                className="btn-primary text-white border-brand-primary"
+                onClick={handleNext}
+                disabled={submitting}
+              />
+            </>
+          ) : (
+            <Button
+              label="Login to add favourites"
+              className="btn-primary text-white border-brand-primary"
+              onClick={() => (onLogin ? onLogin() : navigate("/login"))}
+            />
+          )}
         </div>
+
+        {submitError && (
+          <p className="text-sm text-red-500">{submitError}</p>
+        )}
       </div>
     </div>
   );
