@@ -20,6 +20,7 @@
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.513.0",
     "marked": "^17.0.1",
+    "pnpm": "^10.26.1",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",
     "react-datepicker": "^9.1.0",
