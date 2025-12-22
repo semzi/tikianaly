@@ -2,7 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { navigate } from "../router/navigate";
 
 const apiClient = axios.create({
-  baseURL: 'https://tikianaly-service-backend.onrender.com',
+    baseURL: 'https://tikianaly-service-backend.onrender.com/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,15 +16,7 @@ const API = axios.create({
   },
   withCredentials: false,
 });
-API.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem("token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
-});
+export { API };
 // end of blog url
 
 // Auth token helpers

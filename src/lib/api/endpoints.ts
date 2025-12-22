@@ -9,7 +9,7 @@ import { apiCache } from './cache';
  */
 export const requestOTP = async (data: any) => {
   const response = await apiClient.post('/api/v1/user/request-otp', data);
-  return response.data;
+  return response.data; 
 };
 
 /**
@@ -175,6 +175,36 @@ export const getLeagueById = async (leagueId: string | number) => {
   const response = await apiClient.get(`/api/v1/football/leagues/id/${leagueId}`);
   return response.data;
 };
+
+// Football Fixtures Endpoints
+
+/**
+ * Fetch fixtures by league, date, page, and limit
+ * @param leagueId - The ID of the league to fetch fixtures for
+ * @param date - The date for which to fetch fixtures (format: YYYY-MM-DD)
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ */
+export const getFixturesByLeague = async (leagueId: string | number, date: string, page: number = 1, limit: number = 100) => {
+  const endpoint = `/api/v1/football/fixture/league`;
+  const params = { leagueId, date, page, limit };
+
+  // Fetch from API (cache removed)
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
+  return data;
+}
+
+/**
+ * Fetch fixture details by fixture ID
+ * @param fixtureId - The ID of the fixture to fetch details for
+ */
+export const getFixtureDetails = async (fixtureId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`);
+  return response.data;
+};
+
 
 // Football Teams Endpoints
 

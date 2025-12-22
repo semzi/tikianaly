@@ -11,6 +11,8 @@ body {
   background-color: #fdfdfd;
 }
 
+
+
 /* 
   Theme Variables Section
   -----------------------
@@ -22,6 +24,7 @@ body {
   --color-ui-success: #00d68f;
   --color-ui-negative: #cc2e2e;
   --color-ui-pending: #ffc82c;
+  --color-ui-darkv2: #161B22;
 
   /* Brand Primary + Secondary Colors */
   --color-brand-primary: #0056d2;

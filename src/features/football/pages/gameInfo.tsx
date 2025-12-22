@@ -10,6 +10,10 @@ import {
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Form/FormButton";
 import { navigate } from "@/lib/router/navigate";
+import { getFixtureDetails } from "@/lib/api/endpoints";
+import { useParams } from "react-router-dom";
+import GetTeamLogo from "@/components/common/GetTeamLogo";
+import LineupBuilder from "@/components/football/lineupBuilder";
 
 const events = [
   {
@@ -33,50 +37,14 @@ const events = [
 ];
 
 const LineupSection = () => {
-  const manchesterCityPlayers = [
-    { number: 31, name: "Ederson", position: "GK", image: "/players/Sasha Vezenkov.png" },
-    { number: 2, name: "Kyle Walker", position: "RB", image: "/players/Sasha Vezenkov.png" },
-    { number: 3, name: "Rúben Dias", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 5, name: "John Stones", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 6, name: "Nathan Aké", position: "LB", image: "/players/Sasha Vezenkov.png" },
-    { number: 16, name: "Rodri", position: "CDM", image: "/players/Sasha Vezenkov.png" },
-    { number: 17, name: "Kevin De Bruyne", position: "CM", image: "/players/Sasha Vezenkov.png" },
-    { number: 20, name: "Bernardo Silva", position: "CM", image: "/players/Sasha Vezenkov.png" },
-    { number: 47, name: "Phil Foden", position: "RW", image: "/players/Sasha Vezenkov.png" },
-    { number: 9, name: "Erling Haaland", position: "ST", image: "/players/Sasha Vezenkov.png" },
-    { number: 10, name: "Jack Grealish", position: "LW", image: "/players/Sasha Vezenkov.png" },
-  ];
-
-  const arsenalPlayers = [
-    { number: 22, name: "David Raya", position: "GK", image: "/players/Sasha Vezenkov.png" },
-    { number: 4, name: "Ben White", position: "RB", image: "/players/Sasha Vezenkov.png" },
-    { number: 2, name: "William Saliba", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 6, name: "Gabriel", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 18, name: "Oleksandr Zinchenko", position: "LB", image: "/players/Sasha Vezenkov.png" },
-    { number: 41, name: "Declan Rice", position: "CDM", image: "/players/Sasha Vezenkov.png" },
-    { number: 8, name: "Martin Ødegaard", position: "CM", image: "/players/Sasha Vezenkov.png" },
-    { number: 20, name: "Jorginho", position: "CM", image: "/players/Sasha Vezenkov.png" },
-    { number: 7, name: "Bukayo Saka", position: "RW", image: "/players/Sasha Vezenkov.png" },
-    { number: 9, name: "Gabriel Jesus", position: "ST", image: "/players/Sasha Vezenkov.png" },
-    { number: 11, name: "Gabriel Martinelli", position: "LW", image: "/players/Sasha Vezenkov.png" },
-  ];
-
-  const manchesterCitySubstitutes = [
-    { number: 18, name: "Stefan Ortega", position: "GK", image: "/players/Sasha Vezenkov.png" },
-    { number: 25, name: "Manuel Akanji", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 82, name: "Rico Lewis", position: "RB", image: "/players/Sasha Vezenkov.png" },
-    { number: 11, name: "Jérémy Doku", position: "LW", image: "/players/Sasha Vezenkov.png" },
-  ];
-
-  const arsenalSubstitutes = [
-    { number: 1, name: "Aaron Ramsdale", position: "GK", image: "/players/Sasha Vezenkov.png" },
-    { number: 15, name: "Jakub Kiwior", position: "CB", image: "/players/Sasha Vezenkov.png" },
-    { number: 19, name: "Leandro Trossard", position: "LW", image: "/players/Sasha Vezenkov.png" },
-    { number: 29, name: "Kai Havertz", position: "ST", image: "/players/Sasha Vezenkov.png" },
-  ];
 
   return (
     <div className="my-8 space-y-8">
+
+      <div className="block-style">
+      <LineupBuilder />
+      </div>
+
       {/* Manchester City Lineup */}
       <div className="block-style">
         <div className="flex items-center gap-3 mb-6">
@@ -110,282 +78,11 @@ const LineupSection = () => {
         </div>
 
         {/* Football Field Layout - Desktop Horizontal / Mobile Vertical */}
-        {/* Desktop: Horizontal Layout */}
-        <div className="hidden md:block relative w-full rounded-lg overflow-hidden mb-6">
-          <img 
-            src="pitch.jpg"
-            alt="Football Field"
-            className="w-full h-auto"
-          />
-          {/* Overlay for better visibility */}
-          <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none"></div>
-
-          {/* Manchester City Players (Left half) */}
-          <div className="absolute top-0 bottom-0 left-0 w-1/2 p-4 z-10">
-            <div className="relative h-full w-full">
-              {/* GK - Far back, centered */}
-              <div className="absolute" style={{ left: '8%', top: '50%', transform: 'translateY(-50%)' }}>
-                <div className="flex flex-row items-center gap-1">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                    {manchesterCityPlayers[0].number}
-                  </div>
-                  <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{manchesterCityPlayers[0].name.split(" ")[0]}</span>
-                </div>
-              </div>
-              {/* Defenders - Back line, spread across width */}
-              {manchesterCityPlayers.slice(1, 5).map((player, idx) => {
-                const verticalPositions = ['10%', '30%', '70%', '90%'];
-                return (
-                  <div key={idx} className="absolute" style={{ left: '25%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Midfielders - Middle section, spread across width */}
-              {manchesterCityPlayers.slice(5, 8).map((player, idx) => {
-                const verticalPositions = ['20%', '50%', '80%'];
-                return (
-                  <div key={idx} className="absolute" style={{ left: '45%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Forwards - Front line, spread across width */}
-              {manchesterCityPlayers.slice(8, 11).map((player, idx) => {
-                const verticalPositions = ['15%', '50%', '85%'];
-                return (
-                  <div key={idx} className="absolute" style={{ left: '75%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Arsenal Players (Right half) */}
-          <div className="absolute top-0 bottom-0 right-0 w-1/2 p-4 z-10">
-            <div className="relative h-full w-full">
-              {/* GK - Far back, centered */}
-              <div className="absolute" style={{ right: '8%', top: '50%', transform: 'translateY(-50%)' }}>
-                <div className="flex flex-row items-center gap-1">
-                  <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{arsenalPlayers[0].name.split(" ")[0]}</span>
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                    {arsenalPlayers[0].number}
-                  </div>
-                </div>
-              </div>
-              {/* Defenders - Back line, spread across width */}
-              {arsenalPlayers.slice(1, 5).map((player, idx) => {
-                const verticalPositions = ['10%', '30%', '70%', '90%'];
-                return (
-                  <div key={idx} className="absolute" style={{ right: '25%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Midfielders - Middle section, spread across width */}
-              {arsenalPlayers.slice(5, 8).map((player, idx) => {
-                const verticalPositions = ['20%', '50%', '80%'];
-                return (
-                  <div key={idx} className="absolute" style={{ right: '45%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Forwards - Front line, spread across width */}
-              {arsenalPlayers.slice(8, 11).map((player, idx) => {
-                const verticalPositions = ['15%', '50%', '85%'];
-                return (
-                  <div key={idx} className="absolute" style={{ right: '75%', top: verticalPositions[idx], transform: 'translateY(-50%)' }}>
-                    <div className="flex flex-row items-center gap-1">
-                      <span className="text-xs text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                        {player.number}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile: Vertical Layout - Rotated 90deg */}
-        <div className="md:hidden relative w-full rounded-lg overflow-hidden mb-6" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="relative" style={{ transform: 'rotate(90deg)', transformOrigin: 'center', display: 'inline-block' }}>
-            <img 
-              src="pitch.jpg"
-              alt="Football Field"
-              style={{ height: '100vh', width: 'auto', display: 'block' }}
-            />
-            {/* Overlay for better visibility */}
-            <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none"></div>
-
-            {/* Manchester City Players (Top half) */}
-            <div className="absolute top-0 left-0 right-0 p-2 z-10" style={{ height: '50%' }}>
-              <div className="relative h-full w-full">
-                {/* GK - Far back, centered */}
-                <div className="absolute" style={{ top: '8%', left: '50%', transform: 'translateX(-50%)' }}>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                      {manchesterCityPlayers[0].number}
-                    </div>
-                    <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{manchesterCityPlayers[0].name.split(" ")[0]}</span>
-                  </div>
-                </div>
-                {/* Defenders - Back line, spread across width */}
-                {manchesterCityPlayers.slice(1, 5).map((player, idx) => {
-                  const horizontalPositions = ['10%', '30%', '70%', '90%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ top: '25%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Midfielders - Middle section, spread across width */}
-                {manchesterCityPlayers.slice(5, 8).map((player, idx) => {
-                  const horizontalPositions = ['20%', '50%', '80%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ top: '45%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Forwards - Front line, spread across width */}
-                {manchesterCityPlayers.slice(8, 11).map((player, idx) => {
-                  const horizontalPositions = ['15%', '50%', '85%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ top: '75%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Arsenal Players (Bottom half) */}
-            <div className="absolute bottom-0 left-0 right-0 p-2 z-10" style={{ height: '50%' }}>
-              <div className="relative h-full w-full">
-                {/* GK - Far back, centered */}
-                <div className="absolute" style={{ bottom: '8%', left: '50%', transform: 'translateX(-50%)' }}>
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{arsenalPlayers[0].name.split(" ")[0]}</span>
-                    <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                      {arsenalPlayers[0].number}
-                    </div>
-                  </div>
-                </div>
-                {/* Defenders - Back line, spread across width */}
-                {arsenalPlayers.slice(1, 5).map((player, idx) => {
-                  const horizontalPositions = ['10%', '30%', '70%', '90%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ bottom: '25%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Midfielders - Middle section, spread across width */}
-                {arsenalPlayers.slice(5, 8).map((player, idx) => {
-                  const horizontalPositions = ['20%', '50%', '80%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ bottom: '45%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Forwards - Front line, spread across width */}
-                {arsenalPlayers.slice(8, 11).map((player, idx) => {
-                  const horizontalPositions = ['15%', '50%', '85%'];
-                  return (
-                    <div key={idx} className="absolute" style={{ bottom: '75%', left: horizontalPositions[idx], transform: 'translateX(-50%)' }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-white font-medium text-center bg-black/50 px-1 rounded whitespace-nowrap">{player.name.split(" ")[0]}</span>
-                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] border-2 border-white">
-                          {player.number}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Substitutes */}
         <div className="flex gap-2 mt-6 mb-4">
           <p className="theme-text">Substitutes</p>
           <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-        <div className="space-y-2">
-          {manchesterCitySubstitutes.map((player, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <div className="flex gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <p className="w-10 px-2 text-right text-neutral-m6 text-sm">{player.number}</p>
-                  <img
-                    src={player.image}
-                    alt={player.name}
-                    className="h-7 w-7 rounded-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/players/Sasha Vezenkov.png";
-                    }}
-                  />
-                </div>
-                <p className="theme-text sz-6">{player.name}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -425,26 +122,6 @@ const LineupSection = () => {
         <div className="flex gap-2 mt-6 mb-4">
           <p className="theme-text">Substitutes</p>
           <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
-        </div>
-        <div className="space-y-2">
-          {arsenalSubstitutes.map((player, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <div className="flex gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <p className="w-10 px-2 text-right text-neutral-m6 text-sm">{player.number}</p>
-                  <img
-                    src={player.image}
-                    alt={player.name}
-                    className="h-7 w-7 rounded-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/players/Sasha Vezenkov.png";
-                    }}
-                  />
-                </div>
-                <p className="theme-text sz-6">{player.name}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -860,6 +537,23 @@ export const gameInfo = () => {
   };
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
+  const [fixtureDetails, setFixtureDetails] = useState<any>(null);
+  const { fixtureId } = useParams<{ fixtureId: string }>();
+
+  useEffect(() => {
+    const fetchFixtureDetails = async () => {
+      if (fixtureId) {
+        try {
+          const response = await getFixtureDetails(fixtureId);
+          setFixtureDetails(response.responseObject.item[0]);
+        } catch (error) {
+          console.error("Error fetching fixture details:", error);
+        }
+      }
+    };
+
+    fetchFixtureDetails();
+  }, [fixtureId]);
 
   // Update tab when hash changes (e.g., browser back/forward)
   useEffect(() => {
@@ -914,49 +608,43 @@ export const gameInfo = () => {
 
         <div className=" md:mt-5 mb-5 px-3 grid grid-cols-3 items-start text-white">
           {/* Home team (right aligned) */}
-          <div className="flexitems-center md:items-end flex-col">
-            <div className="flex-col-reverse  flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-end items-center font-semibold  md:gap-3">
-              <p className="text-center">Manchester City</p>
-              <img
-                src="/assets/icons/Football/Team/Manchester City.png"
-                alt=""
-                className="h-[65px]"
-              />
-            </div>
-            <div className="md:flex gap-3 hidden items-start justify-end mt-1">
-              <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
-                <p>T. Reijders 2', 7'</p>
-                <p>E. Haaland 14', 25'</p>
-                <p>Silva 15' (P)</p>
-              </StaggerChildren>
-              <img
-                src="./icons/football-line-1.svg"
-                className=" w-3 md:w-4 invert sepia"
-                alt=""
-              />
-            </div>
-          </div>
+          {fixtureDetails && (
+            <>
+              <div className="flexitems-center md:items-end flex-col">
+                <div className="flex-col-reverse  flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-end items-center font-semibold  md:gap-3">
+                  <p className="text-center">{fixtureDetails.localteam.name}</p>
+                  <GetTeamLogo teamId={fixtureDetails.localteam.id} alt={fixtureDetails.localteam.name} className="w-fit h-10" />
+                </div>
+                <div className="md:flex gap-3 hidden items-start justify-end mt-1">
+                  <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
+                    {fixtureDetails.goals.filter((goal: any) => goal.team === "localteam").map((goal: any, index: number) => (
+                      <p key={index}>{goal.player} {goal.minute}'</p>
+                    ))}
+                  </StaggerChildren>
+                  <img
+                    src="./icons/football-line-1.svg"
+                    className=" w-3 md:w-4 invert sepia"
+                    alt=""
+                  />
+                </div>
+              </div>
 
-          {/* Score line (always centered) */}
-          <div className="flex-col flex">
-            <p className="text-center block md:hidden bg-brand-secondary/70 w-fit mx-auto px-2">15:45</p>
-          <div className="flex sz-2  justify-center items-start gap-3">
-            <p>5</p>
-            <p>-</p>
-            <p>2</p>
-          </div>
-            <p className="text-center block md:hidden">First Half</p>
-          </div>
+              {/* Score line (always centered) */}
+              <div className="flex-col flex">
+                <p className="text-center block md:hidden bg-brand-secondary/70 w-fit mx-auto px-2">{fixtureDetails.time}</p>
+                <div className="flex sz-2  justify-center items-start gap-3">
+                  <p>{fixtureDetails.localteam.score}</p>
+                  <p>-</p>
+                  <p>{fixtureDetails.visitorteam.score}</p>
+                </div>
+                <p className="text-center block md:hidden">{fixtureDetails.status}</p>
+              </div>
 
-          {/* Away team (left aligned) */}
-          <div className="flex items-center md:items-start flex-col">
-            <div className="flex-col-reverse flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-start items-center font-semibold  md:gap-3">
-              <p className="text-center">Arsenal</p>
-              <img
-                src="/assets/icons/Football/Team/Arsenal.png"
-                alt=""
-                className="h-[65px]"
-              />
+              {/* Away team (left aligned) */}
+              <div className="flex items-center md:items-start flex-col">
+                <div className="flex-col-reverse flex sz-7 md:flex-row md:mr-2 mdtext-[20px] md:font-light md:justify-start items-center font-semibold  md:gap-3">
+                  <p className="text-center">{fixtureDetails.visitorteam.name}</p>
+                  <GetTeamLogo teamId={fixtureDetails.visitorteam.id} alt={fixtureDetails.visitorteam.name} className="w-fit h-10" />
             </div>
 
             <div className="md:flex hidden gap-3 justify-start mt-1">
@@ -966,64 +654,76 @@ export const gameInfo = () => {
                 alt=""
               />
               <StaggerChildren className="flex font-light sz-8 flex-col text-left">
-                <p>Gabriel 2', 7'</p>
+                {fixtureDetails.goals.filter((goal: any) => goal.team === "visitorteam").map((goal: any, index: number) => (
+                  <p key={index}>{goal.player} {goal.minute}'</p>
+                ))}
               </StaggerChildren>
             </div>
           </div>
+        </>
+          )}
         </div>
 
 
-        <div className="flex text-white md:hidden mb-7 gap-5">
-          <div className="flex flex-1 gap-3 items-start justify-end mt-1">
-            <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
-              <p>T. Reijders 2', 7'</p>
-              <p>E. Haaland 14', 25'</p>
-              <p>Silva 15' (P)</p>
-            </StaggerChildren>
-            <img
-              src="./icons/football-line-1.svg"
-              className=" w-3 md:w-4 invert sepia"
-              alt=""
-            />
+        {fixtureDetails && (
+          <div className="flex text-white md:hidden mb-7 gap-5">
+            <div className="flex flex-1 gap-3 items-start justify-end mt-1">
+              <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
+                {fixtureDetails.goals.filter((goal: any) => goal.team === "localteam").map((goal: any, index: number) => (
+                  <p key={index}>{goal.player} {goal.minute}'</p>
+                ))}
+              </StaggerChildren>
+              <img
+                src="./icons/football-line-1.svg"
+                className=" w-3 md:w-4 invert sepia"
+                alt=""
+              />
+            </div>
+            <div className="flex gap-3 flex-1 items-start justify-start mt-1">
+              <img
+                src="./icons/football-line-1.svg"
+                className=" w-3 md:w-4 invert sepia"
+                alt=""
+              />
+              <StaggerChildren className="flex font-light text-[12px] flex-col text-left">
+                {fixtureDetails.goals.filter((goal: any) => goal.team === "visitorteam").map((goal: any, index: number) => (
+                  <p key={index}>{goal.player} {goal.minute}'</p>
+                ))}
+              </StaggerChildren>
+            </div>
           </div>
-          <div className="flex gap-3 flex-1 items-start justify-start mt-1">
-            <img
-              src="./icons/football-line-1.svg"
-              className=" w-3 md:w-4 invert sepia"
-              alt=""
-            />
-            <StaggerChildren className="flex font-light text-[12px] flex-col text-left">
-              <p>T. Reijders 2', 7'</p>
-            </StaggerChildren>
-          </div>
-        </div>
+        )}
 
-        <div className="md:flex-row flex flex-col mt-4 md:mt-0 sz-8 items-center  text-white mb-3 justify-center  md:gap-10">
-          <div className="flex gap-2 items-center">
-            <img
-              src="/assets/icons/Football/League/Rectangle 6.png"
-              className="w-4 invert sepia"
-              alt=""
-            />
-            <p>Premier League, Matchday 16</p>
+        {fixtureDetails && (
+          <div className="md:flex-row flex flex-col mt-4 md:mt-0 sz-8 items-center  text-white mb-3 justify-center  md:gap-10">
+            <div className="flex gap-2 items-center">
+              <img
+                src="/assets/icons/Football/League/Rectangle 6.png"
+                className="w-4 invert sepia"
+                alt=""
+              />
+              <p>{fixtureDetails.league_name}, Week {fixtureDetails.week}</p>
+            </div>
+            <div className="flex gap-2 items-center">
+              <img
+                src="./icons/soccer-field-1.svg"
+                className=" w-4 invert sepia"
+                alt=""
+              />
+              <p>{fixtureDetails.venue}, {fixtureDetails.venue_city}</p>
+            </div>
+            {fixtureDetails.referee.name && (
+              <div className="flex gap-2 items-center">
+                <img
+                  src="./icons/Whistle.svg"
+                  className=" w-4 invert sepia"
+                  alt=""
+                />
+                <p>{fixtureDetails.referee.name}</p>
+              </div>
+            )}
           </div>
-          <div className="flex gap-2 items-center">
-            <img
-              src="./icons/soccer-field-1.svg"
-              className=" w-4 invert sepia"
-              alt=""
-            />
-            <p>Football, Germany, Bundesliga, Round 24</p>
-          </div>
-          <div className="flex gap-2 items-center">
-            <img
-              src="./icons/Whistle.svg"
-              className=" w-4 invert sepia"
-              alt=""
-            />
-            <p>Ranjan Madugalle</p>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar">
@@ -1050,18 +750,29 @@ export const gameInfo = () => {
           <div className="flex  mt-6 mb-20 flex-col gap-10">
             <div className="sz-8 flex flex-col md:flex-row gap-7">
               <div className="grid grid-cols-1 md:grid-cols-2 justify-between flex-5 gap-4 block-style">
-                <img src="./icons/stadium.png" className="" alt="" />
+                <img src="/icons/stadium.png" className="" alt="" />
 
                 <StaggerChildren className="flex gap-1 flex-col">
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/calendar-line-1.svg"
+                      src="/icons/calendar-line-1.svg"
                       className=" w-4 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Date:</p>
-                      <p className="theme-text">Feb 27, 2025 - 9:35PM</p>
+                      <p className="theme-text">
+                        {/* Try to use a formatted date if available */}
+                        {fixtureDetails?.date 
+                          ? new Date(fixtureDetails.date).toLocaleString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : "--"}
+                      </p>
                     </div>
                   </div>
 
@@ -1074,70 +785,86 @@ export const gameInfo = () => {
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Competition:</p>
                       <p className="theme-text">
-                        Football, Germany, Bundesliga, Round 24
+                        {fixtureDetails?.league_name 
+                          ? `${fixtureDetails.league_name}${fixtureDetails?.country ? `, ${fixtureDetails.country}` : ""}${fixtureDetails?.round ? `, ${fixtureDetails.round}` : ""}`
+                          : "--"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/Whistle.svg"
+                      src="/icons/Whistle.svg"
                       className=" w-4 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
-                      <p className="text-neutral-m6">Refree:</p>
-                      <p className="theme-text">Ranjan Madugalle</p>
+                      <p className="text-neutral-m6">Referee:</p>
+                      <p className="theme-text">
+                        {fixtureDetails?.referee?.name ?? "--"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/team-line-1.svg"
+                      src="/icons/team-line-1.svg"
                       className="w-5 h-5 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Attendance:</p>
-                      <p className="theme-text">33,675</p>
+                      <p className="theme-text">
+                        {fixtureDetails?.attendance 
+                          ? fixtureDetails.attendance.toLocaleString()
+                          : "--"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/soccer-field-1.svg"
+                      src="/icons/soccer-field-1.svg"
                       className="w-5 h-5 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Stadium:</p>
                       <p className="theme-text">
-                        National Stadium, Stuttgart, Germany
+                        {fixtureDetails?.venue 
+                          ? `${fixtureDetails.venue}${fixtureDetails?.venue_city ? `, ${fixtureDetails.venue_city}` : ""}${fixtureDetails?.country ? `, ${fixtureDetails.country}` : ""}`
+                          : "--"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/soccer-field-1.svg"
+                      src="/icons/soccer-field-1.svg"
                       className="w-5 h-5 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Surface:</p>
-                      <p className="theme-text">Grass</p>
+                      <p className="theme-text">
+                        {fixtureDetails?.surface ?? "Grass"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <img
-                      src="./icons/location.svg"
+                      src="/icons/location.svg"
                       className="w-5 h-5 theme-icon"
                       alt=""
                     />
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Location:</p>
-                      <p className="theme-text">Kaj Zartows Vej 5, Herning</p>
+                      <p className="theme-text">
+                        {fixtureDetails?.venue_address 
+                          ? fixtureDetails.venue_address
+                          : fixtureDetails?.venue_city || "--"}
+                      </p>
                     </div>
                   </div>
                 </StaggerChildren>
@@ -1146,65 +873,73 @@ export const gameInfo = () => {
               <div className="flex flex-2 gap-2 flex-col block-style">
                 <div className="flex items-center gap-2">
                   <img
-                    src="./icons/calendar-line-1.svg"
+                    src="/icons/calendar-line-1.svg"
                     className=" w-4 theme-icon"
                     alt=""
                   />
                   <div className="flex flex-col">
                     <p className="text-neutral-m6">Date:</p>
-                    <p className="theme-text">Feb 27, 2025 - 9:35PM</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/assets/icons/Football/League/Rectangle 6.png"
-                    className="w-5 h-5 theme-icon"
-                    alt=""
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Competition:</p>
                     <p className="theme-text">
-                      Football, Germany, Bundesliga, Round 24
+                      {fixtureDetails?.date 
+                        ? new Date(fixtureDetails.date).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : "--"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <img
-                    src="./icons/Whistle.svg"
+                    src="/loading-state/shield.svg"
+                    className="w-5 h-5 theme-icon"
+                    alt=""
+                  />
+                  <div className="flex flex-col">
+                    <p className="text-neutral-m6">Competition:</p>
+                    <p className="theme-text">
+                      {fixtureDetails?.league_name 
+                        ? `${fixtureDetails.league_name}${fixtureDetails?.country ? `, ${fixtureDetails.country}` : ""}${fixtureDetails?.round ? `, ${fixtureDetails.round}` : ""}`
+                        : "--"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/icons/Whistle.svg"
                     className=" w-4 theme-icon"
                     alt=""
                   />
                   <div className="flex flex-col">
-                    <p className="text-neutral-m6">Refree:</p>
-                    <p className="theme-text">Ranjan Madugalle</p>
+                    <p className="text-neutral-m6">Referee:</p>
+                    <p className="theme-text">
+                      {fixtureDetails?.referee?.name ?? "--"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <img
-                    src="./icons/team-line-1.svg"
+                    src="/icons/team-line-1.svg"
                     className="w-5 h-5 theme-icon"
                     alt=""
                   />
                   <div className="flex flex-col">
                     <p className="text-neutral-m6">Attendance:</p>
-                    <p className="theme-text">33,675</p>
+                    <p className="theme-text">
+                      {fixtureDetails?.attendance 
+                        ? fixtureDetails.attendance.toLocaleString()
+                        : "--"}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <img
-                    src="./icons/team-line-1.svg"
-                    className="w-5 h-5 theme-icon"
-                    alt=""
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Attendance:</p>
-                    <p className="theme-text">33,675</p>
-                  </div>
-                </div>
+                {/* If you want to show Attendance twice, keep this, or remove if redundant */}
               </div>
             </div>
 
@@ -1443,7 +1178,7 @@ export const gameInfo = () => {
         {/* -----------------------------------------------line up------------------------------------------------------- */}
 
         {activeTab === "lineup" && (
-          <LineupSection />
+          <LineupBuilder />
         )}
 
         {/* ----------------------------------------------------line up end------------------------------------------------------- */}
@@ -1957,9 +1692,11 @@ export const gameInfo = () => {
                 <div className="flex px-4 py-3 items-center">
                   <p className="flex-1/11 text-neutral-m6">21'</p>
                   <div className="flex items-center flex-4/11 justify-end  gap-4">
-                    <div className="flex text-right flex-col">
-                      <p className="theme-text">E. Haaland</p>
-                      <p className="text-neutral-m6">Silva</p>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                      <p className="theme-text text-right">E. Haaland</p>
+                      </div>
+                       
                     </div>
                     <div className="w-4 h-5 bg-ui-pending"></div>
                   </div>
@@ -1968,19 +1705,19 @@ export const gameInfo = () => {
                   </p>
                   <span className="flex-4/11"></span>
                 </div>
+                
 
                 <div className="flex px-4 py-3 items-center">
                   <p className="flex-1/11 text-neutral-m6">21'</p>
                   <div className="flex items-center flex-4/11 justify-end  gap-4">
                     <div className="flex text-right flex-col">
                       <p className="theme-text">E. Haaland</p>
-                      <p className="text-neutral-m6">Silva</p>
                     </div>
                     <div className="block">
-                      <p className="text-[8px] font-semibold theme-text">PEN</p>
+                      {/* <p className="text-[8px] font-semibold theme-text">PEN</p> */}
                       <img
-                        src="./icons/football-line-1.svg"
-                        className="w-4 red-icon"
+                        src="/icons/goal-missed.svg"
+                        className="w-5 theme-icon"
                         alt=""
                       />
                     </div>
@@ -2004,17 +1741,26 @@ export const gameInfo = () => {
                   {/* Content above the effect */}
                   <p className="flex-1/11 text-neutral-m6 z-10">41'</p>
                   <div className="flex items-center flex-4/11 justify-end gap-4 z-10">
-                    <div className="flex text-right flex-col">
-                      <p className="theme-text">E. Haaland</p>
-                      <p className="text-neutral-m6">Silva</p>
-                    </div>
-                    <div className="block">
-                      <img
-                        src="./icons/football-line-1.svg"
+                  <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <img
+                        src="/icons/football-line-1.svg"
                         className="w-4 theme-icon"
                         alt=""
                       />
+                      <p className="theme-text text-right">E. Haaland</p>
+                      </div>
+                       <div className="flex flex-col">
+                      <div className="flex items-center gap-2 justify-end"><img
+                        src="/icons/assist.svg"
+                        className="w-3 text-neutral-m6 theme-icon"
+                        alt=""
+                      />
+                      <p className="text-neutral-m6">Silva</p>
+                      </div>
+                      </div>
                     </div>
+                    
                   </div>
                   <p className="theme-text font-bold text-center flex-2/11 z-10">
                     2 - 0

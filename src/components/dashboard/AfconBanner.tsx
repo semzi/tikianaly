@@ -13,22 +13,21 @@ export const AfconBanner: React.FC<AfconBannerProps> = ({ className = "" }) => {
         backgroundImage: "url('/afcon-backdrop.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        height: "150px",
       }}
     >
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-4">
+      <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-center md:justify-between px-4 py-3 md:px-6 md:py-4 text-center md:text-left">
+        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
           <img 
             src="/afcon-logo.png" 
             alt="AFCON Logo" 
-            className="w-16 h-16 md:w-20 md:h-20 object-contain"
+            className="w-12 h-12 md:w-16 md:h-16 object-contain"
           />
-          <div className="flex flex-col gap-1 text-white">
-            <span className="font-semibold text-base md:text-lg">
+          <div className="flex flex-col gap-0 md:gap-1 text-white">
+            <span className="font-semibold text-sm md:text-base lg:text-lg">
               AFCON FINAL Countdown
             </span>
-            <span className="font-mono tracking-widest text-2xl md:text-3xl font-bold">
+            <span className="font-mono tracking-widest text-xl md:text-2xl lg:text-3xl font-bold">
               01&nbsp;:&nbsp;12&nbsp;:&nbsp;47&nbsp;:&nbsp;23
             </span>
             <span className="text-xs font-medium opacity-80">
@@ -37,10 +36,10 @@ export const AfconBanner: React.FC<AfconBannerProps> = ({ className = "" }) => {
           </div>
         </div>
         <Link
-          className="mt-3 md:mt-0 ml-0 md:ml-7 px-5 py-2 rounded-lg bg-brand-primary text-white font-semibold text-sm shadow hover:bg-brand-primary/90 transition"
+          className="mt-3 md:mt-0 ml-0 md:ml-7 px-5 py-2 rounded-lg bg-white text-brand-primary font-semibold text-sm shadow hover:bg-gray-200 transition"
           to="/football/afcon"
         >
-        Visit League
+        Visit Cup
       </Link>
     </div>
   </div>

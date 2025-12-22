@@ -162,7 +162,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/overview"
+          path="/football/gameinfo/:fixtureId"
           element={
             <motion.div
               variants={pageVariants}

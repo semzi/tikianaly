@@ -3,6 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import { ArrowLeftIcon, StarIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { EliminationBracket } from "@/components/football/EliminationBracket";
 interface Team {
   name: string;
   flag: string;
@@ -25,8 +26,53 @@ const afcon = () => {
   const tabs = [
     { id: "standing", label: "Standing" },
     { id: "fixtures", label: "Fixtures" },
+    { id: "bracket", label: "Bracket" }, // New tab for the bracket
     { id: "information", label: "Information" },
   ];
+
+  const [bracketLoading, setBracketLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading for the bracket data
+    const timer = setTimeout(() => setBracketLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Dummy data for a 32-team elimination bracket (Round of 32 to Final)
+  const dummyBracketData = {
+    rounds: [
+      {
+        name: "Round 1",
+        matches: [
+          { id: "r32-1", round: "Round of 32", homeTeam: { id: "t1", name: "The Leons", flag: "/assets/icons/flag/a.png" }, awayTeam: { id: "t2", name: "Kitties", flag: "/assets/icons/flag/b.png" }, winner: { id: "t1", name: "The Leons", flag: "/assets/icons/flag/a.png" }, score: "2-1", date: "Wed Jul 05 2023" },
+          { id: "r32-2", round: "Round of 32", homeTeam: { id: "t3", name: "Team C", flag: "/assets/icons/flag/c.png" }, awayTeam: { id: "t4", name: "Team D", flag: "/assets/icons/flag/d.png" }, winner: { id: "t3", name: "Team C", flag: "/assets/icons/flag/c.png" }, score: "3-0", date: "Wed Jul 05 2023" },
+          { id: "r32-3", round: "Round of 32", homeTeam: { id: "t5", name: "Team E", flag: "/assets/icons/flag/e.png" }, awayTeam: { id: "t6", name: "Team F", flag: "/assets/icons/flag/f.png" }, winner: { id: "t5", name: "Team E", flag: "/assets/icons/flag/e.png" }, score: "1-1", date: "Wed Jul 05 2023", isDraw: true, isPenaltyShootout: true },
+          { id: "r32-4", round: "Round of 32", homeTeam: { id: "t7", name: "Team G", flag: "/assets/icons/flag/g.png" }, awayTeam: { id: "t8", name: "Team H", flag: "/assets/icons/flag/h.png" }, winner: null, score: "-", date: "Wed Jul 05 2023" },
+        ],
+      },
+      {
+        name: "Round 2",
+        matches: [
+          { id: "r16-1", round: "Round of 16", homeTeam: { id: "t1", name: "The Leons", flag: "/assets/icons/flag/a.png" }, awayTeam: { id: "t2", name: "Kitties", flag: "/assets/icons/flag/b.png" }, winner: { id: "t1", name: "The Leons", flag: "/assets/icons/flag/a.png" }, score: "1-0", date: "Wed Jul 05 2023" },
+          { id: "r16-2", round: "Round of 16", homeTeam: { id: "t3", name: "The Leons", flag: "/assets/icons/flag/c.png" }, awayTeam: { id: "t4", name: "Kitties", flag: "/assets/icons/flag/d.png" }, winner: null, score: "-", date: "Wed Jul 05 2023" },
+        ],
+      },
+      {
+        name: "Round 3",
+        matches: [
+          { id: "qf-1", round: "Quarter-finals", homeTeam: { id: "t1", name: "The Leons", flag: "/assets/icons/flag/a.png" }, awayTeam: { id: "t2", name: "Kitties", flag: "/assets/icons/flag/b.png" }, winner: null, score: "-", date: "Wed Jul 05 2023" },
+        ],
+      },
+      {
+        name: "Final",
+        matches: [
+          { id: "final-1", round: "Final", homeTeam: null, awayTeam: null, winner: null, score: "-", date: "Wed Jul 05 2023" },
+        ],
+      },
+    ],
+  };
+
+
 
   // Get initial tab from URL hash (fallback to "standing")
   const getTabFromHash = () => {
@@ -152,14 +198,59 @@ const afcon = () => {
     <div className="min-h-screen dark:bg-[#0D1117]">
       <PageHeader />
       
-      {/* AFCON Header Banner */}
+      {/* AFCON Header Banner - Mobile */}
       <div
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden h-fit md:hidden"
         style={{
           backgroundImage: "url('/afcon-backdrop.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          height: "200px",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+        <div className="relative z-10 flex flex-col items-start px-4 py-4 text-center">
+          <div
+            onClick={() => navigate(-1)}
+            className="relative cursor-pointer z-10 flex items-center gap-2 mb-2 mr-auto"
+          >
+            <ArrowLeftIcon className="text-white h-5" />
+            {/* <p className="text-white hidden md:block">Back</p> */}
+          </div>
+          
+          <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-col items-center gap-2 justify-center w-full">
+              <img 
+                src="/afcon-logo.png" 
+                alt="AFCON Logo" 
+                className="w-12 h-12 object-contain"
+              />
+              <div className="flex flex-col gap-0 text-white text-center">
+                <span className="font-semibold text-base">
+                  Africa Cup of Nations
+                </span>
+                <span className="text-xs opacity-90">
+                  2024 Tournament
+                </span>
+              </div>
+            </div>
+            
+            {/* Countdown block (mobile: stacked) */}
+            <div className="relative z-10 flex flex-col items-center gap-0 text-white mt-2 w-full">
+              <span className="font-semibold text-sm">AFCON FINAL Countdown</span>
+              <span className="font-mono tracking-widest text-lg font-bold">01&nbsp;:&nbsp;12&nbsp;:&nbsp;47&nbsp;:&nbsp;23</span>
+              <span className="text-xs font-medium opacity-80">Days&nbsp;&nbsp;Hrs&nbsp;&nbsp;Min&nbsp;&nbsp;Sec</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AFCON Header Banner - Desktop */}
+      <div
+        className="relative w-full overflow-hidden h-[200px] hidden md:block"
+        style={{
+          backgroundImage: "url('/afcon-backdrop.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -169,7 +260,7 @@ const afcon = () => {
             className="relative cursor-pointer z-10 flex items-center gap-2"
           >
             <ArrowLeftIcon className="text-white h-5" />
-            <p className="text-white hidden md:block">Back</p>
+            <p className="text-white">Back</p>
           </div>
           
           
@@ -189,12 +280,12 @@ const afcon = () => {
             </div>
           </div>
           
-          {/* Countdown block (mobile: stacked, desktop: row) */}
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-4">
+          {/* Countdown block */}
+          <div className="relative z-10 flex items-center gap-4">
             <div className="flex items-center gap-3 text-white">
-              <div className="flex flex-col gap-1 text-white text-center md:text-right">
-                <span className="font-semibold text-sm md:text-base">AFCON FINAL Countdown</span>
-                <span className="font-mono tracking-widest text-lg md:text-2xl font-bold">01&nbsp;:&nbsp;12&nbsp;:&nbsp;47&nbsp;:&nbsp;23</span>
+              <div className="flex flex-col gap-1 text-white text-right">
+                <span className="font-semibold text-base">AFCON FINAL Countdown</span>
+                <span className="font-mono tracking-widest text-2xl font-bold">01&nbsp;:&nbsp;12&nbsp;:&nbsp;47&nbsp;:&nbsp;23</span>
                 <span className="text-xs font-medium opacity-80">Days&nbsp;&nbsp;Hrs&nbsp;&nbsp;Min&nbsp;&nbsp;Sec</span>
               </div>
             </div>
@@ -414,6 +505,13 @@ const afcon = () => {
               <div className="block-style">
                 <p className="font-bold text-lg mb-4 theme-text">Fixtures</p>
                 <p className="text-neutral-n4 dark:text-snow-200">Fixtures will be displayed here...</p>
+              </div>
+            )}
+
+            {/* Bracket Tab */}
+            {activeTab === "bracket" && (
+              <div className=" block-style w-full overflow-x-hidden">
+              <EliminationBracket data={dummyBracketData} loading={bracketLoading} />
               </div>
             )}
 
