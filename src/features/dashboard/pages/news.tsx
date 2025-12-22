@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { Category } from "@/components/dashboard/Category";
+import { Category } from "@/features/dashboard/components/Category";
 import { BookmarkIcon, HeartIcon, ShareIcon } from "@heroicons/react/24/solid";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 import { ArrowUpRight } from "lucide-react";
+
 import { getAllPosts } from "@/lib/api/newsEndpoint";
 import { Link } from "react-router-dom";
 

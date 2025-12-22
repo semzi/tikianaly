@@ -3,7 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import { ArrowLeftIcon, StarIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { EliminationBracket } from "@/components/football/EliminationBracket";
+import { EliminationBracket } from "@/features/football/components/EliminationBracket";
 interface Team {
   name: string;
   flag: string;

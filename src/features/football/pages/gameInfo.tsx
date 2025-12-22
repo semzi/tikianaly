@@ -13,7 +13,7 @@ import { navigate } from "@/lib/router/navigate";
 import { getFixtureDetails } from "@/lib/api/endpoints";
 import { useParams } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
-import LineupBuilder from "@/components/football/lineupBuilder";
+import LineupBuilder from "@/features/football/components/lineupBuilder";
 import FeatureComingSoon from "@/components/common/FeatureComingSoon";
 
 const events = [

@@ -1,5 +1,11 @@
-import Button from "../ui/Button";
-import categories from "../../data/categoryList";
+import Button from "@/components/ui/Button";
+import categories from "@/data/categoryList";
+
+type CategoryItem = {
+  label: string;
+  variant: string;
+  href: string;
+};
 
 export const Category = () => {
   return (
@@ -10,7 +16,7 @@ export const Category = () => {
       <div
         className="flex hide-scrollbar dark:bg-[#0D1117]  w-full gap-2 overflow-x-auto overflow-y-hidden page-padding-x pb-1"
       >
-        {categories.map((cat) => (
+        {categories.map((cat: CategoryItem) => (
           <Button
             key={cat.label}
             label={cat.label}

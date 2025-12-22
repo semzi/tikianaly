@@ -1,180 +1,213 @@
-# TikiAnaly
+# TikiAnaly Web
 
-TikiAnaly is a modern web application built with React and Tailwind CSS, featuring authentication pages, a dashboard, a beautiful mobile navigation bar, and a clean, responsive UI. This project uses React Router for navigation and is structured for scalability and maintainability.
+TikiAnaly is a **React + TypeScript** web app for football-first exploration (fixtures, leagues, favourites, player views) with a responsive UI built on Tailwind.
 
----
+This README is written for **new contributors**: how to run the project, where things live, and the conventions we follow.
 
-## 🚀 Features
+## Tech stack
 
-- **Authentication:** Login, Signup, Forgot Password, and Reset Password pages.
-- **Dashboard:** Main user dashboard after authentication.
-- **Mobile Navigation Bar:** Bottom navigation with animated active state and icon swapping (solid/outline).
-- **Responsive Design:** Built with Tailwind CSS for mobile and desktop.
-- **Modern Routing:** Uses React Router v6 for seamless navigation.
-- **Reusable Components:** Form inputs, buttons, and layout elements.
-- **Custom Theming:** Easily change colors and fonts via Tailwind and CSS variables.
+- **React 19**
+- **TypeScript 5**
+- **Vite 6**
+- **React Router**
+- **Tailwind CSS**
+- **Axios** for API calls
+- **Framer Motion** for route/page transitions
 
----
-
-## 📁 Project Structure
-
-```
-src/
-│
-├── components/
-│   ├── dasboardelements/
-│   │   └── Navigation.tsx   # Mobile navigation bar
-│   └── formelements/
-│
-├── pages/
-│   ├── dashboard.tsx
-│   ├── forgot_password.tsx
-│   ├── login.tsx
-│   ├── reset_password.tsx
-│   └── signup.tsx
-│
-├── App.tsx
-└── index.css
-```
-
----
-
-## 🛠️ Getting Started
+## Quick start
 
 ### Prerequisites
 
-- Node.js (v16+ recommended)
-- npm or yarn
+- Node.js **18+** recommended (16+ may work, but modern tooling is smoother on 18+)
+- npm
 
-### Installation
+### Install & run
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/semzi/tikianaly.git
-   cd tikianaly
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+Then open:
 
-3. **Start the development server:**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+```text
+http://localhost:5173
+```
 
-4. **Open your browser:**
-   ```
-   http://localhost:5173
-   ```
-   (Port may vary depending on your setup.)
+## Scripts
 
----
+From `package.json`:
 
-## 🌐 Routing Overview
+- **`npm run dev`**
+  Runs the Vite dev server.
+- **`npm run build`**
+  Type-checks (`tsc -b`) and builds for production (`vite build`).
+- **`npm run preview`**
+  Serves the production build locally.
+- **`npm run lint`**
+  Runs ESLint.
+- **`npm test`**
+  Runs Jest tests.
 
-| Path                | Component         | Description                |
-|---------------------|------------------|----------------------------|
-| `/`                 | `Login`          | Login page                 |
-| `/signup`           | `Signup`         | Signup/registration page   |
-| `/dashboard`        | `Dashboard`      | Main dashboard             |
-| `/forgot-password`  | `Forgot`         | Forgot password page       |
-| `/reset-password`   | `Reset`          | Reset password page        |
+## Project structure (high-level)
 
-All routes are defined in [`src/App.tsx`](src/App.tsx).
+We follow a **feature-first** structure: each feature owns its pages and feature-specific components.
 
----
+```text
+src/
+  App.tsx                  # Routing is defined here
+  main.tsx                 # React entry
+  ScrollToTop.tsx
 
-## 📱 Mobile Navigation Bar
+  features/
+    auth/
+      pages/
+    dashboard/
+      pages/
+      components/          # Dashboard-only components (moved here)
+    football/
+      pages/
+      components/          # Football-only components (moved here)
+    news/
+      pages/
+      components/
+    onboarding/
+      pages/
+      components/
+    account/
+      pages/
 
-The mobile navigation bar is implemented in [`src/components/dasboardelements/Navigation.tsx`](src/components/dasboardelements/Navigation.tsx) and provides quick access to the main sections of the app:
+  components/
+    layout/                # Shared layout: Navigation, LeftBar, RightBar, PageHeader, Footer
+    common/                # Truly reusable components (e.g., logo helpers)
+    ui/                    # UI primitives + form controls
 
-- **Home**
+  lib/
+    api/                   # axios client, cache, endpoints
+    router/                # global navigate helper
+
+  data/                    # static data lists used by UI
+  context/                 # providers (ThemeContext)
+  animations/
+```
+
+### Import aliases
+
+We use path aliases to keep imports stable:
+
+- **`@/...`** resolves to `src/...`
+
+Configured in:
+
+- `vite.config.ts`
+- `tsconfig.app.json`
+
+Example:
+
+```ts
+import { getAllTeams } from "@/lib/api/endpoints";
+```
+
+## Routing
+
+All routes are defined in **`src/App.tsx`**.
+
+Notable behaviors:
+
+- Routes are wrapped with **Framer Motion** transitions.
+- Navigation is conditionally hidden on `/login` and `/signup`.
+
+If you add a new page:
+
+- Create it under `src/features/<feature>/pages/`
+- Add the route in `src/App.tsx`
+
+## API layer
+
+All API calls live in `src/lib/api/`:
+
+- `axios.ts` sets up the Axios instance
+- `cache.ts` provides a lightweight client-side cache
+- `endpoints.ts` exports typed functions used by UI
+
+### Endpoint organization
+
+`src/lib/api/endpoints.ts` is grouped in this order:
+
+- **Authentication**
+- **Players**
+- **Teams**
 - **Leagues**
-- **News**
-- **Favourite**
-- **Profile**
+- **Fixtures**
+- **Favorites**
+- **Cache utilities**
 
-### Icon Behavior
-- **Active State:**
-  - When a navigation link is active, its icon switches to the solid version and the text color changes to your brand primary color (`text-brand-primary`).
-  - A highlight bar (`<span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>`) appears above the active icon.
-- **Inactive State:**
-  - Inactive links display the outline version of the icon and default text color.
+When adding a new endpoint:
 
-### Icon Imports
-The navigation uses [Heroicons](https://heroicons.com/) for all icons. Both solid and outline versions are imported and swapped based on the active state:
+- Add it to the correct section
+- Keep naming consistent (`getXById`, `getAllX`, `addX`, etc.)
+- Prefer `encodeURIComponent` for user-provided strings
 
-```js
-import { HomeIcon as HomeIconSolid } from "@heroicons/react/20/solid";
-import { HomeIcon as HomeIconOutline } from "@heroicons/react/24/outline";
-import { TrophyIcon as TrophyIconSolid } from "@heroicons/react/24/solid";
-import { TrophyIcon as TrophyIconOutline } from "@heroicons/react/24/outline";
-import { BookOpenIcon as BookOpenIconSolid } from "@heroicons/react/24/solid";
-import { BookOpenIcon as BookOpenIconOutline } from "@heroicons/react/24/outline";
-import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
-import { HeartIcon as HeartIconOutline } from "@heroicons/react/24/outline";
-import { UserCircleIcon as UserCircleIconSolid } from "@heroicons/react/24/solid";
-import { UserCircleIcon as UserCircleIconOutline } from "@heroicons/react/24/outline";
+## Local dev proxy
+
+Vite proxies `/goalserve` to an upstream service (see `vite.config.ts`).
+
+If you call `/goalserve/...` in dev, it will be forwarded to:
+
+```text
+http://data2.goalserve.com:8084
 ```
 
-### Customization
-- **Add/Remove Items:** Edit the `Navigation.tsx` file to add or remove navigation items.
-- **Change Icons:** Swap out Heroicons for any other icon from the [Heroicons library](https://heroicons.com/).
-- **Active Bar Style:** Adjust the highlight bar by editing the `<span>` element and its classes.
-- **Colors:** Change the `text-brand-primary` and `bg-brand-primary` classes in your Tailwind config or CSS.
+## SPA deployment (routing fallback)
 
-### Example Usage
-```jsx
-<NavLink to="/news" className={({ isActive }) => `flex items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
-  {({ isActive }) => (
-    <>
-      {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
-      {isActive ? <BookOpenIconSolid className="h-7 w-7" /> : <BookOpenIconOutline className="h-7 w-7" />}
-      <p className="text-xs">News</p>
-    </>
-  )}
-</NavLink>
-```
+This is a single-page app, so production hosting must rewrite unknown routes to `index.html`.
 
----
+- **Vercel:** `vercel.json`
+- **Netlify:** `public/_redirects`
 
-## 🎨 Customization
+## Contributing guidelines
 
-- **Theming:** Edit `src/index.css` to change colors, fonts, and other design tokens.
-- **Assets:** Place your images/icons in the `public/assets` directory for easy reference.
+### Branching
 
----
+- Create a feature branch from `main`:
+  - `feature/<short-description>`
+  - `fix/<short-description>`
 
-## 🤝 Contributing
+### Commit style
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add some feature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
+- Keep commits small and focused.
+- Use clear messages, e.g.:
+  - `fix: handle empty fixtures response`
+  - `refactor: move dashboard components into feature folder`
 
----
+### Code conventions
 
-## 📄 License
+- Prefer `@/...` imports over deep relative imports.
+- Put feature-specific components under that feature’s `components/`.
+- Keep shared components under `src/components/`.
 
-This project is licensed under the MIT License.
+### Before opening a PR
 
----
+- Run:
+  - `npm run lint`
+  - `npm run build`
 
-## 🙏 Acknowledgements
+## Troubleshooting
 
-- [React](https://react.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [React Router](https://reactrouter.com/)
-- [Heroicons](https://heroicons.com/)
-- [Vite](https://vitejs.dev/)
+### “Cannot find module 'react-router-dom'”
 
----
+This typically means dependencies are not installed or TS server needs a refresh:
 
-> Made with ❤️ by the TikiAnaly Team
+- Run `npm install`
+- In VS Code: “TypeScript: Restart TS server”
+
+### Windows note
+
+This repo works on Windows. If you see path or script issues, include:
+
+- Node version (`node -v`)
+- npm version (`npm -v`)
+
+## License
+
+MIT (unless changed later).

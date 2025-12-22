@@ -4,7 +4,7 @@ import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
-import PlayerMatchesWidget from "@/components/player/PlayerMatchesWidget";
+import PlayerMatchesWidget from "@/features/football/components/player/PlayerMatchesWidget";
 import {
   ArrowLeftIcon,
   BellAlertIcon,

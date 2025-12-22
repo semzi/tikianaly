@@ -9,7 +9,7 @@ import { apiCache } from './cache';
  */
 export const requestOTP = async (data: any) => {
   const response = await apiClient.post('/api/v1/user/request-otp', data);
-  return response.data; 
+  return response.data;
 };
 
 /**
@@ -36,44 +36,6 @@ export const addUser = async (data: any) => {
  */
 export const login = async (data: any) => {
   const response = await apiClient.post('/api/v1/user/login', data);
-  return response.data;
-};
-
-// Football Favorites Endpoints
-
-/**
- * Filter favorites
- * @param data - Filter criteria for favorites
- */
-export const filterFavorites = async (data: any) => {
-  const response = await apiClient.post('/api/v1/football/filter-favorites', data);
-  return response.data;
-};
-
-/**
- * Add a favorite
- * @param data - Favorite item data to add
- */
-export const addFavorite = async (data: any) => {
-  const response = await apiClient.post('/api/v1/football/add-favorites', data);
-  return response.data;
-};
-
-/**
- * Get all favorites
- * @param params - Optional query parameters
- */
-export const getFavorites = async (params?: any) => {
-  const response = await apiClient.get('/api/v1/football/get-favorites', { params });
-  return response.data;
-};
-
-/**
- * Delete a favorite by ID
- * @param id - The ID of the favorite to delete
- */
-export const deleteFavorite = async (id: string | number) => {
-  const response = await apiClient.delete(`/api/v1/football/delete-favorites/${id}`);
   return response.data;
 };
 
@@ -133,6 +95,53 @@ export const getPlayersStats = async (data: any) => {
   return response.data;
 };
 
+// Football Teams Endpoints
+
+/**
+ * Fetch all teams (paginated)
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ */
+export const getAllTeams = async (page: number = 1, limit: number = 50) => {
+  const endpoint = '/api/v1/football/teams/all-teams';
+  const params = { page, limit };
+
+  // Check cache first
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Fetch from API
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
+  // Store in cache (5 minutes TTL)
+  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
+
+  return data;
+};
+
+/**
+ * Fetch a team by its name
+ * @param teamName - The name of the team to fetch
+ */
+export const getTeamByName = async (teamName: string) => {
+  const response = await apiClient.get(
+    `/api/v1/football/teams/name/${encodeURIComponent(teamName)}`
+  );
+  return response.data;
+};
+
+/**
+ * Fetch a team by its ID
+ * @param teamId - The ID of the team to fetch
+ */
+export const getTeamById = async (teamId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/teams/id/${teamId}`);
+  return response.data;
+};
+
 // Football Leagues Endpoints
 
 /**
@@ -189,8 +198,13 @@ export const getLeagueById = async (leagueId: string | number) => {
  * @param page - Page number for pagination
  * @param limit - Number of items per page
  */
-export const getFixturesByLeague = async (leagueId: string | number, date: string, page: number = 1, limit: number = 100) => {
-  const endpoint = `/api/v1/football/fixture/league`;
+export const getFixturesByLeague = async (
+  leagueId: string | number,
+  date: string,
+  page: number = 1,
+  limit: number = 100
+) => {
+  const endpoint = '/api/v1/football/fixture/league';
   const params = { leagueId, date, page, limit };
 
   // Fetch from API (cache removed)
@@ -198,62 +212,54 @@ export const getFixturesByLeague = async (leagueId: string | number, date: strin
   const data = response.data;
 
   return data;
-}
+};
 
 /**
  * Fetch fixture details by fixture ID
  * @param fixtureId - The ID of the fixture to fetch details for
  */
 export const getFixtureDetails = async (fixtureId: string | number) => {
-  const response = await apiClient.get(`/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`);
-  return response.data;
-};
-
-
-// Football Teams Endpoints
-
-/**
- * Fetch all teams (paginated)
- * @param page - Page number for pagination
- * @param limit - Number of items per page
- */
-export const getAllTeams = async (page: number = 1, limit: number = 50) => {
-  const endpoint = '/api/v1/football/teams/all-teams';
-  const params = { page, limit };
-
-  // Check cache first
-  const cached = apiCache.get(endpoint, params);
-  if (cached !== null) {
-    return cached;
-  }
-
-  // Fetch from API
-  const response = await apiClient.get(endpoint, { params });
-  const data = response.data;
-
-  // Store in cache (5 minutes TTL)
-  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
-
-  return data;
-};
-
-/**
- * Fetch a team by its name
- * @param teamName - The name of the team to fetch
- */
-export const getTeamByName = async (teamName: string) => {
   const response = await apiClient.get(
-    `/api/v1/football/teams/name/${encodeURIComponent(teamName)}`
+    `/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`
   );
   return response.data;
 };
 
+// Football Favorites Endpoints
+
 /**
- * Fetch a team by its ID
- * @param teamId - The ID of the team to fetch
+ * Filter favorites
+ * @param data - Filter criteria for favorites
  */
-export const getTeamById = async (teamId: string | number) => {
-  const response = await apiClient.get(`/api/v1/football/teams/id/${teamId}`);
+export const filterFavorites = async (data: any) => {
+  const response = await apiClient.post('/api/v1/football/filter-favorites', data);
+  return response.data;
+};
+
+/**
+ * Add a favorite
+ * @param data - Favorite item data to add
+ */
+export const addFavorite = async (data: any) => {
+  const response = await apiClient.post('/api/v1/football/add-favorites', data);
+  return response.data;
+};
+
+/**
+ * Get all favorites
+ * @param params - Optional query parameters
+ */
+export const getFavorites = async (params?: any) => {
+  const response = await apiClient.get('/api/v1/football/get-favorites', { params });
+  return response.data;
+};
+
+/**
+ * Delete a favorite by ID
+ * @param id - The ID of the favorite to delete
+ */
+export const deleteFavorite = async (id: string | number) => {
+  const response = await apiClient.delete(`/api/v1/football/delete-favorites/${id}`);
   return response.data;
 };
 

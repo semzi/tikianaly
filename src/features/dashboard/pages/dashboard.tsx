@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { Category } from "@/components/dashboard/Category";
+import { Category } from "@/features/dashboard/components/Category";
 import { getFixturesByLeague } from "@/lib/api/endpoints";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -14,7 +14,7 @@ import {
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
 import { Link } from "react-router-dom";
-// import { AfconBanner } from "@/components/dashboard/AfconBanner";
+// import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 

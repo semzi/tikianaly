@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { Category } from "@/components/dashboard/Category";
-import { FavouriteSelection } from "@/components/dashboard/FavouriteSelection";
+import { Category } from "@/features/dashboard/components/Category";
+import { FavouriteSelection } from "@/features/dashboard/components/FavouriteSelection";
 import Leftbar from "@/components/layout/LeftBar";
 import popularLeagues from "@/data/favouriteSelect";
 import { getAllTeams, getAllLeagues, getAllPlayers } from "@/lib/api/endpoints";

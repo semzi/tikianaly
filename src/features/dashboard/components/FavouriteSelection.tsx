@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { XCircleIcon } from "@heroicons/react/24/solid";
-import Button from "../ui/Form/FormButton";
+import Button from "@/components/ui/Form/FormButton";
 import { useNavigate } from "react-router-dom";
 import { addFavorite } from "@/lib/api/endpoints";
 
