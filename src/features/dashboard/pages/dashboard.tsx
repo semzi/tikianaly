@@ -310,7 +310,7 @@ export const dashboard = () => {
                     {/* Games */}
                     {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                       <Link
-                          to={`/overview`}
+                          to={`/football/gameinfo/${game.fixture_id}`}
                           key={gameIdx}
                         className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                       >

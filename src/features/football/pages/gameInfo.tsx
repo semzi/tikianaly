@@ -919,8 +919,14 @@ export const gameInfo = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 block-style">
+              <div className="flex relative flex-col gap-2 block-style">
                 {/* -------------------------------------- */}
+                 {/* Overlay gradient with text */}
+              <div className="pointer-events-none absolute theme-fade left-0 right-0 bottom-0 h-40 w-full flex items-end justify-center z-2">
+                <span className="mb-4 text-neutral-m6 font-medium text-center w-full">
+                  Feature coming soon
+                </span>
+              </div>
                 <div className="flex gap-1 mb-1">
                   <p className="theme-text">Sidelined</p>
                   <InformationCircleIcon className="w-4 theme-text opacity-45 cursor-pointer" />
