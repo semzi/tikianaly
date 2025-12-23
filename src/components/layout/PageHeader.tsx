@@ -641,12 +641,12 @@ export const PageHeader = () => {
 
   return (
     <header
-      className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-hidden z-10 ${
-        isMobile ? "py-1" : "py-3"
-      }`}
+      className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-hidden ${
+        searchShow ? "z-[10000]" : "z-10"
+      } ${isMobile ? "py-1" : "py-3"}`}
     >
       <div
-        className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-99"
+        className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
         style={{
           backgroundImage:
             "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",

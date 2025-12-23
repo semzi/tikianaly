@@ -15,6 +15,7 @@ import { useParams } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import LineupBuilder from "@/features/football/components/lineupBuilder";
 import FeatureComingSoon from "@/components/common/FeatureComingSoon";
+import StandingsTable from "@/features/football/components/standings/StandingsTable";
 
 const events = [
   {
@@ -500,7 +501,7 @@ export const gameInfo = () => {
       <PageHeader />
       <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
         <div
-          className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-99"
+          className= "absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
           style={{
             backgroundImage:
               "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
@@ -538,7 +539,7 @@ export const gameInfo = () => {
                 <GetTeamLogo
                   teamId={fixtureDetails.localteam.id}
                   alt={fixtureDetails.localteam.name}
-                  className="h-9 w-fit shrink-0"
+                  className="h-10 w-10 shrink-0"
                 />
                 <p className="min-w-0 truncate text-[13px] font-semibold">
                   {fixtureDetails.localteam.name}
@@ -556,7 +557,7 @@ export const gameInfo = () => {
                 <GetTeamLogo
                   teamId={fixtureDetails.visitorteam.id}
                   alt={fixtureDetails.visitorteam.name}
-                  className="h-9 w-fit shrink-0"
+                  className="h-10 w-10 shrink-0"
                 />
               </div>
             </div>
@@ -692,7 +693,7 @@ export const gameInfo = () => {
         )}
       </div>
 
-      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
+      <div className="flex z-3 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => (
             <button
@@ -1167,7 +1168,7 @@ export const gameInfo = () => {
         {/* -------------------------------------------------------standings-------------------------------------------------------- */}
         {activeTab === "standings" && (
           <div className="my-8">
-            <FeatureComingSoon />
+            <StandingsTable />
           </div>
         )}
         {/* -------------------------------------------------------standings end-------------------------------------------------------- */}

@@ -80,14 +80,14 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
   }, [teamId]);
 
   if (loading) {
-    return <div className={`animate-pulse bg-gray-300 rounded-full ${className}`} style={{ minWidth: '20px', minHeight: '20px' }} />;
+    return <div className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`} style={{ minWidth: '20px', minHeight: '20px' }} />;
   }
 
   if (error || !logoUrl) {
-    return <img src={'/loading-state/shield.svg'} alt={`${alt} - No Logo`} className={className} />;
+    return <img src={'/loading-state/shield.svg'} alt={`${alt} - No Logo`} className={`object-contain ${className ?? ""}`} />;
   }
 
-  return <img src={logoUrl} alt={alt} className={className} />;
+  return <img src={logoUrl} alt={alt} className={`object-contain ${className ?? ""}`} />;
 };
 
 export default GetTeamLogo;

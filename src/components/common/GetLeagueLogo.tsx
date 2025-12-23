@@ -12,25 +12,64 @@ interface LeagueLogoApiItem {
   base64?: string;
 }
 
+const leagueLogoMemoryCache = new Map<string, string>();
+const leagueLogoStorageKey = (id: string) => `league_logo_base64_${id}`;
+
 const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className }) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchLeagueLogo = async () => {
       setLoading(true);
       setError(null);
 
       const id = String(leagueId);
 
+      const memoryCached = leagueLogoMemoryCache.get(id);
+      if (memoryCached) {
+        setLogoUrl(memoryCached);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const stored = sessionStorage.getItem(leagueLogoStorageKey(id));
+        if (stored) {
+          leagueLogoMemoryCache.set(id, stored);
+          setLogoUrl(stored);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // ignore storage errors
+      }
+
       try {
         const url = `/goalserve/api/v1/logotips/soccer/leagues?k=13bf8a6da00f4047d69808de0442e200&ids=${id}`;
-        const response = await axios.get(url, { timeout: 15000 });
+        let responseData: unknown;
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const response = await axios.get(url, {
+              timeout: 15000,
+              signal: controller.signal,
+            });
+            responseData = response.data;
+            lastErr = undefined;
+            break;
+          } catch (e) {
+            lastErr = e;
+            if ((e as any)?.name === "CanceledError" || controller.signal.aborted) throw e;
+            await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
+          }
+        }
 
-        console.log(`API Response for leagueId ${id}:`, response.data);
+        if (lastErr) throw lastErr;
 
-        const raw = response.data as unknown;
+        const raw = responseData as unknown;
         const parsed: unknown =
           typeof raw === "string"
             ? (() => {
@@ -46,11 +85,18 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className 
         const first = Array.isArray(data) ? data[0] : undefined;
         if (first && typeof first.base64 === "string" && first.base64) {
           const dataUri = `data:image/png;base64,${first.base64}`;
+          leagueLogoMemoryCache.set(id, dataUri);
+          try {
+            sessionStorage.setItem(leagueLogoStorageKey(id), dataUri);
+          } catch {
+            // ignore storage errors
+          }
           setLogoUrl(dataUri);
         } else {
           setLogoUrl(null);
         }
       } catch (err: any) {
+        if (err?.name === "CanceledError" || controller.signal.aborted) return;
         console.error(`Error fetching logo for leagueId ${leagueId}:`, err);
         const status = err?.response?.status;
         const statusText = err?.response?.statusText;
@@ -68,6 +114,10 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className 
     }
 
     fetchLeagueLogo();
+
+    return () => {
+      controller.abort();
+    };
   }, [leagueId]);
 
   if (loading) {

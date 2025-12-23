@@ -62,13 +62,11 @@ const LeagueList: React.FC<LeagueListProps> = ({ allLeagues, loading }) => {
         >
           {/* League Row */}
           <li className="flex mt-4 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-2">
-            {(() => {
-              const logoId = getLeagueLogoId(league);
-              if (!logoId) {
-                return <img src={"/loading-state/shield.svg"} alt={`${league.name} - No Logo`} className="w-6 h-6 object-contain" />;
-              }
-              return <GetLeagueLogo leagueId={logoId} alt={league.name} className="w-6 h-6 object-contain" />;
-            })()}
+            <GetLeagueLogo
+              leagueId={league.id}
+              alt={league.name}
+              className="w-6 h-6 object-contain"
+            />
             <span className="flex-1">{league.name}</span>
             <ChevronUpDownIcon
               className={`ml-auto w-6 transition-transform ${
@@ -141,7 +139,11 @@ export const Leftbar = () => {
                     key={league.id ? `${league.id}-${idx}` : `league-${idx}`}
                     className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
                   >
-                    <img src={league.icon} alt={league.name} className="w-6 h-6 object-contain" />
+                    <GetLeagueLogo
+                      leagueId={league.id}
+                      alt={league.name}
+                      className="w-6 h-6 object-contain"
+                    />
                     <span>{league.name}</span>
                   </li>
                 ))}
