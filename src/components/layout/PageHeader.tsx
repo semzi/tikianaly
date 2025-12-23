@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { clearAuthToken } from "@/lib/api/axios";
 import { getLeagueByName, getPlayerByName, getTeamByName } from "@/lib/api/endpoints";
+import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,7 +21,13 @@ export const PageHeader = () => {
   >("all");
   const [searchLoading, setSearchLoading] = useState(false);
   const [demoResults, setDemoResults] = useState<
-    Array<{ name: string; country: string; image?: string; kind: "player" | "team" | "league" }>
+    Array<{
+      id?: string | number;
+      name: string;
+      country: string;
+      image?: string;
+      kind: "player" | "team" | "league";
+    }>
   >([]);
   const { theme, setTheme } = useTheme();
   const [isMobile, setIsMobile] = useState(
@@ -145,10 +152,11 @@ export const PageHeader = () => {
                   })
                 : [];
 
-            const leagues: Array<{ name: string; country: string; image?: string; kind: "league" }> =
+            const leagues: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "league" }> =
               Array.isArray(leaguesItems)
                 ? leaguesItems.slice(0, 5).map((l: any) => {
                     return {
+                      id: l?.id ?? l?.league_id ?? l?.gid,
                       name: String(l?.name ?? "Unknown"),
                       country: String(l?.category ?? ""),
                       kind: "league",
@@ -259,10 +267,11 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
 
             const items = data?.responseObject?.item;
-            const normalized: Array<{ name: string; country: string; image?: string; kind: "league" }> =
+            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "league" }> =
               Array.isArray(items)
                 ? items.slice(0, 10).map((l: any) => {
                     return {
+                      id: l?.id ?? l?.league_id ?? l?.gid,
                       name: String(l?.name ?? "Unknown"),
                       country: String(l?.category ?? ""),
                       kind: "league",
@@ -441,10 +450,10 @@ export const PageHeader = () => {
 
   const shouldShowDemoPanel = searchShow && searchValue.trim().length > 0;
 
-  const renderDemoSearchPanel = (panelClassName: string) => {
+  const renderDemoSearchPanel = (panelClassName: string, forceLight = false) => {
     if (!shouldShowDemoPanel) return null;
 
-    const isDark = theme === "dark";
+    const isDark = forceLight ? false : theme === "dark";
     const scopeIsSingle = searchScope !== "all";
     const skeletonLogoBgClass = isDark ? "bg-white/10" : "bg-snow-200";
 
@@ -506,32 +515,40 @@ export const PageHeader = () => {
                     setSearchValue(r.name);
                   }}
                 >
-                  <img
-                    src={
-                      r.image ||
-                      (r.kind === "league"
-                        ? "/loading-state/shield.svg"
-                        : "/loading-state/player.svg")
-                    }
-                    alt={r.name}
-                    className={`h-10 w-10 object-cover ${
-                      r.kind === "player" ? "rounded-full" : "rounded-none"
-                    } ${
-                      r.kind === "player"
-                        ? isDark
-                          ? "bg-white/10"
-                          : "bg-snow-200"
-                        : "bg-transparent"
-                    }`}
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      img.onerror = null;
-                      img.src =
-                        r.kind === "league"
+                  {r.kind === "league" && r.id ? (
+                    <GetLeagueLogo
+                      leagueId={r.id}
+                      alt={r.name}
+                      className="h-10 w-10 rounded-none object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={
+                        r.image ||
+                        (r.kind === "league"
                           ? "/loading-state/shield.svg"
-                          : "/loading-state/player.svg";
-                    }}
-                  />
+                          : "/loading-state/player.svg")
+                      }
+                      alt={r.name}
+                      className={`h-10 w-10 object-cover ${
+                        r.kind === "player" ? "rounded-full" : "rounded-none"
+                      } ${
+                        r.kind === "player"
+                          ? isDark
+                            ? "bg-white/10"
+                            : "bg-snow-200"
+                          : "bg-transparent"
+                      }`}
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src =
+                          r.kind === "league"
+                            ? "/loading-state/shield.svg"
+                            : "/loading-state/player.svg";
+                      }}
+                    />
+                  )}
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span
                       className={`truncate text-sm font-semibold ${
@@ -689,34 +706,36 @@ export const PageHeader = () => {
       )}
       {isMobile && searchShow && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm"
-          onClick={() => {
-            setOpenMenu(null);
-            closeSearch();
-          }}
+          className="fixed inset-0 z-[9999] bg-white text-brand-primary"
         >
           <div
-            className="mx-auto mt-10 w-full max-w-lg px-4"
-            onClick={(e) => e.stopPropagation()}
+            className="mx-auto h-full w-full max-w-lg px-4 pb-6 pt-4 overflow-y-auto"
           >
-            <div className="rounded-2xl bg-brand-primary p-4 text-white shadow-2xl">
-              <div className="flex items-start gap-3">
-                <div className="flex-1">{renderSearchInput("text-base")}</div>
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-white/90 hover:bg-white/10"
-                  onClick={() => {
-                    setOpenMenu(null);
-                    closeSearch();
-                  }}
-                  aria-label="Close search"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              {renderSearchScopeButtons("mt-2 flex flex-wrap items-center gap-2")}
-              {renderDemoSearchPanel("mt-2")}
+            <div className="flex items-start gap-3">
+              <div className="flex-1">{renderSearchInput("text-base")}</div>
+              <button
+                type="button"
+                className="rounded-md p-2 text-brand-primary hover:bg-snow-100"
+                onClick={() => {
+                  setOpenMenu(null);
+                  closeSearch();
+                }}
+                aria-label="Close search"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
             </div>
+            {renderSearchScopeButtons("mt-2 flex flex-wrap items-center gap-2")}
+
+            <div className="mt-3">
+              {renderDemoSearchPanel("", true)}
+            </div>
+
+            {!shouldShowDemoPanel ? (
+              <div className="mt-6 text-sm text-neutral-n5">Type to search…</div>
+            ) : null}
+
+            <div className="h-10" />
           </div>
         </div>
       )}

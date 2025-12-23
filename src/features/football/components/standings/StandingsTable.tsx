@@ -7,6 +7,7 @@ export type StandingsRow = {
   teamId?: number;
   logo?: string;
   recentForm?: string;
+  description?: string;
   played: number;
   wins: number;
   draws: number;
@@ -51,9 +52,79 @@ type Props = {
   standingsData?: GoalServeStandingsResponse;
 };
 
+const demoStandingsData: GoalServeStandingsResponse = {
+  standings: {
+    tournament: {
+      team: [
+        {
+          id: "9002",
+          name: "Arsenal",
+          position: "1",
+          recent_form: "WWLWD",
+          description: { value: "Promotion - Champions League (League phase)" },
+          home: { gp: "8", w: "7", d: "1", l: "0", gs: "20", ga: "3" },
+          away: { gp: "9", w: "5", d: "2", l: "2", gs: "11", ga: "7" },
+          total: { p: "39", gd: "21" },
+        },
+        {
+          id: "9259",
+          name: "Manchester City",
+          position: "2",
+          recent_form: "WWWWW",
+          description: { value: "Promotion - Champions League (League phase)" },
+          home: { gp: "9", w: "8", d: "0", l: "1", gs: "25", ga: "6" },
+          away: { gp: "8", w: "4", d: "1", l: "3", gs: "16", ga: "10" },
+          total: { p: "37", gd: "25" },
+        },
+        {
+          id: "9008",
+          name: "Aston Villa",
+          position: "3",
+          recent_form: "WWWWW",
+          description: { value: "Promotion - Champions League (League phase)" },
+          home: { gp: "9", w: "7", d: "1", l: "1", gs: "15", ga: "7" },
+          away: { gp: "8", w: "4", d: "2", l: "2", gs: "12", ga: "11" },
+          total: { p: "36", gd: "9" },
+        },
+        {
+          id: "9092",
+          name: "Chelsea",
+          position: "4",
+          recent_form: "DWDLD",
+          description: { value: "Promotion - Champions League (League phase)" },
+          home: { gp: "8", w: "4", d: "2", l: "2", gs: "12", ga: "7" },
+          away: { gp: "9", w: "4", d: "3", l: "2", gs: "17", ga: "10" },
+          total: { p: "29", gd: "12" },
+        },
+        {
+          id: "9249",
+          name: "Liverpool",
+          position: "5",
+          recent_form: "WWDDW",
+          description: { value: "Promotion - Europa League (League phase)" },
+          home: { gp: "8", w: "5", d: "1", l: "2", gs: "13", ga: "9" },
+          away: { gp: "9", w: "4", d: "1", l: "4", gs: "15", ga: "16" },
+          total: { p: "29", gd: "3" },
+        },
+        {
+          id: "9427",
+          name: "West Ham",
+          position: "18",
+          recent_form: "LLDDL",
+          description: { value: "Relegation - Championship" },
+          home: { gp: "8", w: "2", d: "0", l: "6", gs: "10", ga: "20" },
+          away: { gp: "9", w: "1", d: "4", l: "4", gs: "9", ga: "15" },
+          total: { p: "13", gd: "-16" },
+        },
+      ],
+    },
+  },
+};
+
 export const StandingsTable = ({ rows, standingsData }: Props) => {
   const data = useMemo<StandingsRow[]>(() => {
-    const rawTeams = standingsData?.standings?.tournament?.team;
+    const source = standingsData ?? (!rows ? demoStandingsData : undefined);
+    const rawTeams = source?.standings?.tournament?.team;
     if (Array.isArray(rawTeams) && rawTeams.length) {
       const toInt = (v: unknown) => {
         const n = Number(String(v ?? "0").replace(/[^0-9-]/g, ""));
@@ -85,6 +156,8 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
             team: String(t.name ?? ""),
             teamId: teamId || undefined,
             recentForm: typeof t.recent_form === "string" ? t.recent_form : undefined,
+            description:
+              typeof t.description?.value === "string" ? t.description.value : undefined,
             played: combined.gp,
             wins: combined.w,
             draws: combined.d,
@@ -104,6 +177,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           position: 1,
           team: "Manchester City",
           recentForm: "WLWWD",
+          description: "Promotion - Champions League (League phase)",
           logo: "/assets/icons/Football/Team/Manchester City.png",
           played: 23,
           wins: 19,
@@ -118,6 +192,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           position: 2,
           team: "Arsenal",
           recentForm: "WWWWW",
+          description: "Promotion - Champions League (League phase)",
           logo: "/assets/icons/Football/Team/Arsenal.png",
           played: 23,
           wins: 19,
@@ -132,6 +207,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           position: 3,
           team: "Liverpool",
           recentForm: "WLWWL",
+          description: "Promotion - Champions League (League phase)",
           logo: "/assets/icons/Football/Team/Liverpool.png",
           played: 23,
           wins: 18,
@@ -146,6 +222,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           position: 4,
           team: "Chelsea",
           recentForm: "LWDWW",
+          description: "Promotion - Champions League (League phase)",
           logo: "/assets/icons/Football/Team/Chelsea.png",
           played: 23,
           wins: 17,
@@ -160,6 +237,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           position: 5,
           team: "Tottenham",
           recentForm: "WLWDD",
+          description: "Promotion - Europa League (League phase)",
           logo: "/assets/icons/Football/Team/Tottenham.png",
           played: 23,
           wins: 16,
@@ -334,6 +412,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
         {
           position: 18,
           team: "Leeds",
+          description: "Relegation",
           logo: "/assets/icons/Football/Team/Leeds.png",
           played: 23,
           wins: 3,
@@ -347,6 +426,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
         {
           position: 19,
           team: "Southampton",
+          description: "Relegation",
           logo: "/assets/icons/Football/Team/Southampton.png",
           played: 23,
           wins: 2,
@@ -360,6 +440,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
         {
           position: 20,
           team: "Bournemouth",
+          description: "Relegation",
           logo: "/assets/icons/Football/Team/Bournemouth.png",
           played: 23,
           wins: 1,
@@ -373,6 +454,58 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
       ]
     );
   }, [rows, standingsData]);
+
+  const getZoneMeta = (description?: string) => {
+    const d = (description ?? "").toLowerCase();
+    if (!d.trim()) return null;
+
+    if (d.includes("relegation")) {
+      return { label: description ?? "Relegation", borderClass: "border-l-[3px] border-ui-negative" };
+    }
+
+    if (d.includes("champions league")) {
+      return {
+        label: description ?? "UEFA Champions League",
+        borderClass: "border-l-[3px] border-ui-success",
+      };
+    }
+
+    if (d.includes("europa league")) {
+      return {
+        label: description ?? "UEFA Europa League",
+        borderClass: "border-l-[3px] border-yellow-500",
+      };
+    }
+
+    if (d.includes("conference league")) {
+      return {
+        label: description ?? "UEFA Conference League",
+        borderClass: "border-l-[3px] border-blue-500",
+      };
+    }
+
+    if (d.includes("promotion")) {
+      return { label: description ?? "Promotion", borderClass: "border-l-[3px] border-ui-success" };
+    }
+
+    return { label: description ?? "", borderClass: "border-l-[3px] border-snow-200 dark:border-white/20" };
+  };
+
+  const legendItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: Array<{ label: string; borderClass: string }> = [];
+
+    data.forEach((row) => {
+      const meta = getZoneMeta(row.description);
+      if (!meta) return;
+      const key = meta.label.trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      items.push({ label: meta.label, borderClass: meta.borderClass });
+    });
+
+    return items;
+  }, [data]);
 
   const renderRecentForm = (recentForm?: string) => {
     const form = (typeof recentForm === "string" ? recentForm : "")
@@ -404,16 +537,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
   const renderRows = (rowItems: StandingsRow[], paddingX: string) => (
     <div className="flex flex-col gap-2">
       {rowItems.map((team) => {
-        const isTopFour = team.position <= 4;
-        const isFifth = team.position === 5;
-        const isRelegation = team.position >= 18;
-        const borderClass = isTopFour
-          ? "border-l-[3px] border-ui-success"
-          : isFifth
-            ? "border-l-[3px] border-yellow-500"
-            : isRelegation
-              ? "border-l-[3px] border-ui-negative"
-              : "";
+        const borderClass = getZoneMeta(team.description)?.borderClass ?? "";
 
         return (
           <div
@@ -508,7 +632,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
                 {data.map((team) => (
                   <div
                     key={`mobile-team-${team.position}-${team.team}`}
-                    className="grid grid-cols-[40px_1fr] gap-3 px-4 items-center whitespace-nowrap"
+                    className={`grid grid-cols-[40px_1fr] gap-3 px-4 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""}`}
                   >
                     <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
                       {team.position}
@@ -556,7 +680,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
                   {data.map((team) => (
                     <div
                       key={`mobile-stats-${team.position}-${team.team}`}
-                      className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 items-center whitespace-nowrap"
+                      className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""}`}
                     >
                       <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
                         {team.played}
@@ -638,24 +762,24 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-[3px] h-6 bg-ui-success" />
-            <span className="text-sm text-neutral-n4 dark:text-snow-200">
-              UEFA Champions League
-            </span>
+        {legendItems.length ? (
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+            {legendItems.map((item) => {
+              const colorClass =
+                item.borderClass.split(" ").find((c) => c.startsWith("border-")) ??
+                "border-snow-200";
+
+              return (
+                <div key={item.label} className="flex items-center gap-3">
+                  <div className={`w-[3px] h-6 ${colorClass.replace("border-", "bg-")}`} />
+                  <span className="text-sm text-neutral-n4 dark:text-snow-200">
+                    {item.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-[3px] h-6 bg-yellow-500" />
-            <span className="text-sm text-neutral-n4 dark:text-snow-200">
-              UEFA Europa League
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-[3px] h-6 bg-ui-negative" />
-            <span className="text-sm text-neutral-n4 dark:text-snow-200">Relegation</span>
-          </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );
