@@ -175,10 +175,10 @@ const News = () => {
 
         {/* Rest of the posts */}
         <div className="block-style">
-          <div className="flex mb-3 dark:text-white justify-between">
-            <p className="sz-4 font-medium">All News</p>
-            <div className="flex text-neutral-n4 dark:text-white">
-              <AdjustmentsHorizontalIcon className="w-5 h-5 cursor-pointer" />
+          <div className="flex mb-3 justify-between">
+            <p className="sz-4 font-medium text-neutral-n4 dark:text-white">All News</p>
+            <div className="flex items-center text-neutral-n4 dark:text-white hover:text-brand-secondary transition-colors cursor-pointer">
+              <AdjustmentsHorizontalIcon className="w-5 h-5" />
               <span className="ml-2">Filter</span>
             </div>
           </div>
@@ -190,7 +190,7 @@ const News = () => {
                 <Link
                   key={idx}
                   to={`/news/read/${news._id}`}
-                  className="flex items-center border-b border-snow-100 dark:border-[#1F2937] p-3 gap-3 text-neutral-n4 mb-2 bg-snow-100 hover:bg-gray-200 dark:hover:bg-[#1F2937] rounded transition"
+                  className="flex items-center p-3 gap-3 mb-2 rounded transition-colors border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#161B22] hover:bg-snow-100 dark:hover:bg-[#1F2937] text-neutral-n4"
                 >
                   <img
                     className="image w-40 object-cover bg-center h-full rounded"

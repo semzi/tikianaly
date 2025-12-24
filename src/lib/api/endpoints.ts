@@ -225,6 +225,70 @@ export const getFixtureDetails = async (fixtureId: string | number) => {
   return response.data;
 };
 
+ type FootballLiveFixtureEvent = {
+  eventid: string;
+  type: string;
+  extra_min: string;
+  minute: string;
+  team: string;
+  player: string;
+  playerId: string;
+  assist: string;
+  assistid: string;
+  result: string;
+ };
+
+ type FootballLiveFixtureTeam = {
+  id: string;
+  name: string;
+  goals: string;
+ };
+
+ export type FootballLiveFixture = {
+  _id: string;
+  match_id: string;
+  __v: number;
+  commentary_available: boolean;
+  covered_live: boolean;
+  createdAt: string;
+  date: string;
+  events: FootballLiveFixtureEvent[];
+  extraTimeScore: string;
+  file_group: string;
+  fixture_id: string;
+  fullTimeScore: string;
+  halfTimeScore: string;
+  injury_minute: number;
+  injury_time: number;
+  is_cup: boolean;
+  lastUpdatedAt: string;
+  league_id: string;
+  league_name: string;
+  localteam: FootballLiveFixtureTeam;
+  source: string;
+  static_id: string;
+  status: string;
+  time: number;
+  timer: number;
+  updatedAt: string;
+  venue: unknown;
+  visitorteam: FootballLiveFixtureTeam;
+ };
+
+ type ApiResponse<T> = {
+  success?: boolean;
+  message?: string;
+  responseObject?: T;
+  error?: any;
+ };
+
+ export const getLiveFixtures = async (): Promise<
+  ApiResponse<FootballLiveFixture | FootballLiveFixture[]>
+ > => {
+  const response = await apiClient.get('/api/v1/football/fixture/live');
+  return response.data;
+ };
+
 // Football Favorites Endpoints
 
 /**

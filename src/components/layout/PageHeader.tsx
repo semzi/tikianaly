@@ -408,7 +408,7 @@ export const PageHeader = () => {
   const navigationItems = [
     { label: "News", href: "/news" },
     { label: "Favourite", href: "/favourites" },
-    { label: "About Us", href: "/about" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
   ];
 
   const isNavActive = (href: string) => {
@@ -658,7 +658,7 @@ export const PageHeader = () => {
 
   return (
     <header
-      className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-hidden ${
+      className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-visible ${
         searchShow ? "z-[10000]" : "z-10"
       } ${isMobile ? "py-1" : "py-3"}`}
     >
@@ -757,7 +757,7 @@ export const PageHeader = () => {
                   setSearchShow(true);
                 }}
               />
-              <Cog6ToothIcon className="h-5 w-5" />
+              {/* <Cog6ToothIcon className="h-5 w-5" /> */}
               <button
                 className="bg-transparent transition-colors"
                 onClick={() => setTheme(theme === "dark" ? "" : "dark")}
@@ -790,7 +790,7 @@ export const PageHeader = () => {
                   <UserIcon className="h-4" />
                 </button>
                 {openMenu === "mobile" && (
-                  <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-lg">
+                  <div className="absolute right-0 z-[1000] mt-3 w-64 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-lg">
                     {userProfile ? (
                       <>
                         <div className="flex items-center gap-3">
@@ -814,12 +814,12 @@ export const PageHeader = () => {
                           >
                             Account
                           </Link>
-                          <button
+                          {/* <button
                             className="w-full rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
                             onClick={() => setOpenMenu(null)}
                           >
                             Settings
-                          </button>
+                          </button> */}
                           <button
                             className="w-full rounded-lg bg-ui-negative px-4 py-2 text-sm font-semibold text-white hover:bg-ui-negative/80"
                             onClick={handleLogout}
@@ -888,7 +888,7 @@ export const PageHeader = () => {
                     setSearchShow(true);
                   }}
                 />
-                <Cog6ToothIcon className="h-5" />
+                {/* <Cog6ToothIcon className="h-5" /> */}
                 <button
                   className="bg-transparent transition-colors"
                   onClick={() => setTheme(theme === "dark" ? "" : "dark")}
@@ -921,7 +921,7 @@ export const PageHeader = () => {
                     <UserIcon className="h-5" />
                   </button>
                   {openMenu === "desktop" && (
-                    <div className="absolute z-10000 right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
+                    <div className="absolute z-[1000] right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
                       {userProfile ? (
                         <>
                           <div className="flex items-center gap-4">
@@ -945,12 +945,12 @@ export const PageHeader = () => {
                             >
                               Account
                             </Link>
-                            <button
+                            {/* <button
                               className="w-full rounded-lg border border-snow-200 px-4 py-2 text-sm font-medium hover:bg-brand-primary/5"
                               onClick={() => setOpenMenu(null)}
                             >
                               Settings
-                            </button>
+                            </button> */}
                             <button
                               className="w-full rounded-lg bg-ui-negative px-4 py-2 text-sm font-semibold text-white hover:bg-ui-negative/80"
                               onClick={handleLogout}

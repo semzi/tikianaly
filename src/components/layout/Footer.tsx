@@ -1,17 +1,9 @@
 // import  footerLinks  from '/data/footerLink'
 const footerLinks = [
-  { label: "About Us", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  { label: "Community", href: "https://tikianaly.com" },
+  { label: "Blog", href: "https://blog.tikianaly.com" },
   { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Careers", href: "/careers" },
-  { label: "Blog", href: "/blog" },
-  { label: "Help Center", href: "/help" },
-  { label: "Press", href: "/press" },
-  { label: "Affiliate", href: "/affiliate" },
-  { label: "Sitemap", href: "/sitemap" },
-  { label: "Community", href: "/community" },
-  { label: "Developers", href: "/developers" },
+  { label: "Contact", href: "mailto:info@tikianaly.com" },
 ];
 
 export const FooterComp = () => {
@@ -81,9 +73,7 @@ export const FooterComp = () => {
           </div>
           <div className="flex gap-3">
             <a
-              href="https://play.google.com/store"
-              target="_blank"
-              rel="noopener noreferrer"
+              href=""
             >
               <img
                 src="\assets\icons\play_store.png"
@@ -92,9 +82,7 @@ export const FooterComp = () => {
               />
             </a>
             <a
-              href="https://www.apple.com/app-store/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href=""
             >
               <img
                 src="\assets\icons\apple_store.png"

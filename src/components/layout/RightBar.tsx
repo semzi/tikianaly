@@ -67,7 +67,7 @@ export const RightBar = () => {
                 </p>
                 <div className="flex dark:text-snow-200 gap-2 sz-8 ">
                   <span>{featuredPost.timeAgo || ""}</span>
-                  <span>|</span>
+                  
                   <span>{featuredPost.readTime || ""}</span>
                 </div>
               </Link>

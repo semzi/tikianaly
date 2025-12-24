@@ -515,11 +515,11 @@ export const gameInfo = () => {
           style={{ animation: "float-around-edges 12s linear infinite" }}
         />
         {/* Foreground content */}
-        <div  onClick={() => navigate(-1)} className="relative cursor-pointer px-3 z-[2] grid grid-cols-3 items-center">
-          <div className="flex gap-4">
+        <div className="relative px-3 z-[2] grid grid-cols-3 items-center">
+          <button type="button" onClick={() => navigate(-1)} className="flex gap-4 items-center w-fit cursor-pointer text-left">
             <ArrowLeftIcon className="text-white h-5" />
             <p className="text-white hidden md:block">Back</p>
-          </div>
+          </button>
 
           <div className="bg-brand-secondary md:opacity-100 opacity-0 font-semibold mb-2 text items-center text-white py-1.5 px-4 rounded w-fit mx-auto">
             55:21'

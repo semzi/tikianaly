@@ -26,6 +26,7 @@ import Onboard from "./features/onboarding/pages/onboard";
 import Afcon from "./features/football/pages/afcon";
 import NewsRead from "./features/news/pages/read";
 import ScriptSandbox from "./features/dev/pages/ScriptSandbox";
+import PrivacyPolicy from "./features/legal/pages/privacyPolicy";
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -229,6 +230,21 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <Favourite />
+            </motion.div>
+          }
+        />
+
+        <Route
+          path="/privacy-policy"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <PrivacyPolicy />
             </motion.div>
           }
         />
