@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Cog6ToothIcon,
+  // Cog6ToothIcon,
   MagnifyingGlassIcon,
   ArrowRightIcon,
   XMarkIcon,
