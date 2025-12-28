@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getTeamById } from "@/lib/api/endpoints";
 
 interface GetTeamLogoProps {
   teamId: string | number;
@@ -7,13 +7,19 @@ interface GetTeamLogoProps {
   className?: string;
 }
 
-interface TeamLogoApiItem {
-  id?: number;
-  base64?: string;
+interface TeamApiItem {
+  team_id?: number;
+  image?: string;
+}
+
+interface TeamApiResponse {
+  responseObject?: {
+    item?: TeamApiItem | TeamApiItem[];
+  };
 }
 
 const teamLogoMemoryCache = new Map<string, string>();
-const teamLogoStorageKey = (id: string) => `team_logo_base64_${id}`;
+const teamLogoStorageKey = (id: string) => `team_logo_image_${id}`;
 
 const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -48,43 +54,30 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
       }
 
       try {
-        const url = `/goalserve/api/v1/logotips/soccer/teams?k=13bf8a6da00f4047d69808de0442e200&ids=${id}`;
-        let responseData: unknown;
+        let res: unknown;
         let lastErr: unknown;
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
-            const response = await axios.get(url, {
-              timeout: 15000,
-              signal: controller.signal,
-            });
-            responseData = response.data;
+            if (controller.signal.aborted) return;
+            res = await getTeamById(id);
             lastErr = undefined;
             break;
           } catch (e) {
             lastErr = e;
-            if ((e as any)?.name === "CanceledError" || controller.signal.aborted) throw e;
+            if (controller.signal.aborted) return;
             await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
           }
         }
 
         if (lastErr) throw lastErr;
+        if (controller.signal.aborted) return;
 
-        const raw = responseData as unknown;
-        const parsed: unknown =
-          typeof raw === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(raw);
-                } catch {
-                  return raw;
-                }
-              })()
-            : raw;
+        const item = (res as TeamApiResponse)?.responseObject?.item;
+        const team = Array.isArray(item) ? item[0] : item;
+        const rawImage = team?.image ? String(team.image).trim() : "";
 
-        const data = parsed as TeamLogoApiItem[];
-        const first = Array.isArray(data) ? data[0] : undefined;
-        if (first && typeof first.base64 === "string" && first.base64) {
-          const dataUri = `data:image/png;base64,${first.base64}`;
+        if (rawImage) {
+          const dataUri = rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
           teamLogoMemoryCache.set(id, dataUri);
           try {
             sessionStorage.setItem(teamLogoStorageKey(id), dataUri);
@@ -96,14 +89,14 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
           setLogoUrl(null);
         }
       } catch (err: any) {
-        if (err?.name === "CanceledError" || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
         console.error(`Error fetching logo for teamId ${teamId}:`, err);
         const status = err?.response?.status;
         const statusText = err?.response?.statusText;
         setError(status ? `Failed to load logo (${status}${statusText ? ` ${statusText}` : ""})` : "Failed to load logo");
         setLogoUrl(null);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 

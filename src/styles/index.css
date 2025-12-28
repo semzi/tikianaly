@@ -189,6 +189,16 @@ body {
   .theme-fade{
      @apply  dark:bg-[linear-gradient(to_top,rgb(22,27,34)_30%,rgba(255,255,255,0)_100%)] bg-[linear-gradient(to_top,rgb(242,242,247)_30%,rgba(255,255,255,0)_100%)];
   }
+  .secondary-gradient{
+     @apply  bg-[linear-gradient(to_top,rgb(230,44,35),#ed7a28)] ;
+  }
+}
+
+.gradient-text {
+	background: linear-gradient(180deg, #eaeaec, #bebec0, #828284 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
 }
 
 input[type="checkbox"].checked\:bg-check:checked {

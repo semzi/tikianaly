@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/features/dashboard/components/Category";
@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import { getMatchUiInfo } from "@/lib/matchStatusUi";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -87,16 +88,24 @@ export const dashboard = () => {
   const [fixtures, setFixtures] = useState<any[]>([]);
   const [sseRevision, setSseRevision] = useState(0);
   const liveEventSourceRef = useRef<EventSource | null>(null);
+  const leagueFixturesMapRef = useRef<Map<number, any[]>>(new Map());
+  const flushFixturesTimeoutRef = useRef<number | null>(null);
   const latestSseUpdatesRef = useRef<{
+    byStaticId: Map<string, any>;
     byMatchId: Map<string, any>;
     byFixtureId: Map<string, any>;
-  }>({ byMatchId: new Map(), byFixtureId: new Map() });
+  }>({ byStaticId: new Map(), byMatchId: new Map(), byFixtureId: new Map() });
 
   const isInSseStream = (game: any) => {
+    const staticIdKey = game?.static_id ? String(game.static_id) : "";
     const matchIdKey = game?.match_id ? String(game.match_id) : "";
     const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
-    const { byMatchId, byFixtureId } = latestSseUpdatesRef.current;
-    return (matchIdKey && byMatchId.has(matchIdKey)) || (fixtureIdKey && byFixtureId.has(fixtureIdKey));
+    const { byStaticId, byMatchId, byFixtureId } = latestSseUpdatesRef.current;
+    return (
+      (staticIdKey && byStaticId.has(staticIdKey)) ||
+      (matchIdKey && byMatchId.has(matchIdKey)) ||
+      (fixtureIdKey && byFixtureId.has(fixtureIdKey))
+    );
   };
 
   const getDateModeTimeLabel = (game: any) => {
@@ -151,30 +160,55 @@ export const dashboard = () => {
     };
   }, [toast]);
 
-  const topLeagueIds = [1204, 1399, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1368, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030];
+  const topLeagueIds = useMemo(
+    () => [1204, 1059, 1399, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
+    []
+  );
   // const topLeagueIds = [1399, 1204, 1269 1352];
 
-  const extraLiveLeagueBlocks = (() => {
+  const topLeagueOrder = useMemo(() => {
+    const m = new Map<number, number>();
+    topLeagueIds.forEach((id, idx) => m.set(id, idx));
+    return m;
+  }, [topLeagueIds]);
+
+  const fixturesByLeagueId = useMemo(() => {
+    const m = new Map<number, any>();
+    for (const block of fixtures) {
+      const leagueId = Number(block?.leagueId);
+      if (Number.isFinite(leagueId)) m.set(leagueId, block);
+    }
+    return m;
+  }, [fixtures]);
+
+  const extraLiveLeagueBlocks = useMemo(() => {
     void sseRevision;
     if (fixturesMode !== "all") return [] as Array<{ leagueId: number; fixtures: any[] }>;
     if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[] }>;
 
     const existingMatchIds = new Set<string>();
     const existingFixtureIds = new Set<string>();
+    const existingStaticIds = new Set<string>();
     for (const leagueBlock of fixtures) {
       const games = Array.isArray(leagueBlock?.fixtures) ? leagueBlock.fixtures : [];
       for (const g of games) {
         if (g?.match_id) existingMatchIds.add(String(g.match_id));
         if (g?.fixture_id) existingFixtureIds.add(String(g.fixture_id));
+        if (g?.static_id) existingStaticIds.add(String(g.static_id));
       }
     }
 
-    const sseItems = Array.from(latestSseUpdatesRef.current.byMatchId.values());
+    const sseItems = Array.from(latestSseUpdatesRef.current.byStaticId.values());
     const grouped = new Map<number, any[]>();
     for (const item of sseItems) {
+      const staticIdKey = item?.static_id ? String(item.static_id) : "";
       const matchIdKey = item?.match_id ? String(item.match_id) : "";
       const fixtureIdKey = item?.fixture_id ? String(item.fixture_id) : "";
-      if ((matchIdKey && existingMatchIds.has(matchIdKey)) || (fixtureIdKey && existingFixtureIds.has(fixtureIdKey))) {
+      if (
+        (staticIdKey && existingStaticIds.has(staticIdKey)) ||
+        (matchIdKey && existingMatchIds.has(matchIdKey)) ||
+        (fixtureIdKey && existingFixtureIds.has(fixtureIdKey))
+      ) {
         continue;
       }
 
@@ -188,7 +222,7 @@ export const dashboard = () => {
     return Array.from(grouped.entries())
       .map(([leagueId, fx]) => ({ leagueId, fixtures: fx }))
       .sort((a, b) => a.leagueId - b.leagueId);
-  })();
+  }, [fixtures, fixturesMode, loadingLeagueIds, sseRevision]);
 
   useEffect(() => {
     try {
@@ -203,6 +237,11 @@ export const dashboard = () => {
       try {
         setLoading(true);
         setFixtures([]); // Clear previous fixtures immediately
+        leagueFixturesMapRef.current = new Map();
+        if (flushFixturesTimeoutRef.current !== null) {
+          window.clearTimeout(flushFixturesTimeoutRef.current);
+          flushFixturesTimeoutRef.current = null;
+        }
         if (fixturesMode === "date" || fixturesMode === "all") {
           setLoadingLeagueIds(new Set(topLeagueIds));
         } else {
@@ -210,35 +249,53 @@ export const dashboard = () => {
         }
         const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'); // Use selectedDate, default to today if null
 
-        const upsertLeagueFixtures = (leagueId: number, leagueFixtures: any[]) => {
-          const patchWithLatestSse = (games: any[]) => {
-            const { byMatchId, byFixtureId } = latestSseUpdatesRef.current;
-            if (!byMatchId.size && !byFixtureId.size) return games;
-            return games.map((game: any) => {
-              const matchIdKey = game?.match_id ? String(game.match_id) : "";
-              const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
-              const update =
-                (matchIdKey && byMatchId.get(matchIdKey)) ||
-                (fixtureIdKey && byFixtureId.get(fixtureIdKey));
-              return update ? { ...game, ...update } : game;
-            });
-          };
-
-          setFixtures((prev) => {
-            const next = prev.filter((x) => x.leagueId !== leagueId);
-            const fixturesToInsert =
-              fixturesMode === "date" || fixturesMode === "all" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
-            next.push({ leagueId, fixtures: fixturesToInsert });
-            if (fixturesMode === "date" || fixturesMode === "all") {
-              next.sort(
-                (a, b) =>
-                  topLeagueIds.indexOf(a.leagueId) - topLeagueIds.indexOf(b.leagueId)
-              );
-            } else {
-              next.sort((a, b) => a.leagueId - b.leagueId);
-            }
-            return next;
+        const patchWithLatestSse = (games: any[]) => {
+          const { byStaticId, byMatchId, byFixtureId } = latestSseUpdatesRef.current;
+          if (!byStaticId.size && !byMatchId.size && !byFixtureId.size) return games;
+          return games.map((game: any) => {
+            const staticIdKey = game?.static_id ? String(game.static_id) : "";
+            const matchIdKey = game?.match_id ? String(game.match_id) : "";
+            const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
+            const update =
+              (staticIdKey && byStaticId.get(staticIdKey)) ||
+              (matchIdKey && byMatchId.get(matchIdKey)) ||
+              (fixtureIdKey && byFixtureId.get(fixtureIdKey));
+            return update ? { ...game, ...update } : game;
           });
+        };
+
+        const flushFixturesToState = () => {
+          const blocks = Array.from(leagueFixturesMapRef.current.entries()).map(([leagueId, fx]) => ({
+            leagueId,
+            fixtures: fx,
+          }));
+
+          if (fixturesMode === "date" || fixturesMode === "all") {
+            blocks.sort(
+              (a, b) =>
+                (topLeagueOrder.get(a.leagueId) ?? 999999) -
+                (topLeagueOrder.get(b.leagueId) ?? 999999)
+            );
+          } else {
+            blocks.sort((a, b) => a.leagueId - b.leagueId);
+          }
+
+          setFixtures(blocks);
+        };
+
+        const scheduleFlushFixtures = () => {
+          if (flushFixturesTimeoutRef.current !== null) return;
+          flushFixturesTimeoutRef.current = window.setTimeout(() => {
+            flushFixturesTimeoutRef.current = null;
+            flushFixturesToState();
+          }, 80);
+        };
+
+        const upsertLeagueFixtures = (leagueId: number, leagueFixtures: any[]) => {
+          const fixturesToInsert =
+            fixturesMode === "date" || fixturesMode === "all" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
+          leagueFixturesMapRef.current.set(leagueId, fixturesToInsert);
+          scheduleFlushFixtures();
         };
 
         const markLeagueDone = (leagueId: number) => {
@@ -254,14 +311,17 @@ export const dashboard = () => {
           onUpdate: (liveItems) => {
             setSseRevision((x) => x + 1);
             if (fixturesMode === "live") {
+              const nextByStaticId = new Map<string, any>();
               const nextByMatchId = new Map<string, any>();
               const nextByFixtureId = new Map<string, any>();
               const grouped = new Map<number, any[]>();
               for (const item of liveItems) {
                 const leagueIdNum = Number((item as any)?.league_id);
                 if (!Number.isFinite(leagueIdNum)) continue;
+                const staticId = (item as any)?.static_id;
                 const matchId = (item as any)?.match_id;
                 const fixtureId = (item as any)?.fixture_id;
+                if (staticId) nextByStaticId.set(String(staticId), item);
                 if (matchId) nextByMatchId.set(String(matchId), item);
                 if (fixtureId) nextByFixtureId.set(String(fixtureId), item);
                 const prev = grouped.get(leagueIdNum) || [];
@@ -269,7 +329,7 @@ export const dashboard = () => {
                 grouped.set(leagueIdNum, prev);
               }
 
-              latestSseUpdatesRef.current = { byMatchId: nextByMatchId, byFixtureId: nextByFixtureId };
+              latestSseUpdatesRef.current = { byStaticId: nextByStaticId, byMatchId: nextByMatchId, byFixtureId: nextByFixtureId };
 
               const next = Array.from(grouped.entries())
                 .map(([leagueId, fixtures]) => ({ leagueId, fixtures }))
@@ -282,16 +342,19 @@ export const dashboard = () => {
             }
 
             // fixturesMode === "date" | "all": merge SSE updates into existing date fixtures
+            const updatesByStaticId = new Map<string, any>();
             const updatesByFixtureId = new Map<string, any>();
             const updatesByMatchId = new Map<string, any>();
             for (const item of liveItems) {
+              const staticId = (item as any)?.static_id;
               const fixtureId = (item as any)?.fixture_id;
               const matchId = (item as any)?.match_id;
+              if (staticId) updatesByStaticId.set(String(staticId), item);
               if (fixtureId) updatesByFixtureId.set(String(fixtureId), item);
               if (matchId) updatesByMatchId.set(String(matchId), item);
             }
 
-            latestSseUpdatesRef.current = { byMatchId: updatesByMatchId, byFixtureId: updatesByFixtureId };
+            latestSseUpdatesRef.current = { byStaticId: updatesByStaticId, byMatchId: updatesByMatchId, byFixtureId: updatesByFixtureId };
 
             setFixtures((prev) => {
               if (!prev || prev.length === 0) return prev;
@@ -304,10 +367,12 @@ export const dashboard = () => {
                   : [];
 
                 const mergedFixtures = currentFixtures.map((game: any) => {
+                  const staticIdKey = game?.static_id ? String(game.static_id) : "";
                   const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
                   const matchIdKey = game?.match_id ? String(game.match_id) : "";
 
                   const update =
+                    (staticIdKey && updatesByStaticId.get(staticIdKey)) ||
                     (matchIdKey && updatesByMatchId.get(matchIdKey)) ||
                     (fixtureIdKey && updatesByFixtureId.get(fixtureIdKey));
 
@@ -368,7 +433,7 @@ export const dashboard = () => {
         };
 
         // Limited concurrency to keep the page responsive.
-        const concurrency = 2;
+        const concurrency = 4;
         let idx = 0;
         const workers = Array.from({ length: concurrency }).map(async () => {
           while (idx < topLeagueIds.length) {
@@ -379,6 +444,13 @@ export const dashboard = () => {
         });
 
         await Promise.all(workers);
+
+        // ensure last partial batch is flushed
+        if (flushFixturesTimeoutRef.current !== null) {
+          window.clearTimeout(flushFixturesTimeoutRef.current);
+          flushFixturesTimeoutRef.current = null;
+        }
+        flushFixturesToState();
       } catch (error) {
         console.error("Error fetching fixtures:", error);
       } finally {
@@ -478,7 +550,7 @@ export const dashboard = () => {
                 ? fixtures.map((x) => x.leagueId)
                 : topLeagueIds
               ).map((leagueId, leagueIdx) => {
-                const leagueFixture = fixtures.find((x) => x.leagueId === leagueId);
+                const leagueFixture = fixturesByLeagueId.get(leagueId);
 
                 if (!leagueFixture) {
                   if (!loadingLeagueIds.has(leagueId)) return null;
@@ -526,8 +598,20 @@ export const dashboard = () => {
                       </p>
                     </div>
                     {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                      (() => {
+                        const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                        const statusLabel =
+                          ui.state === "ft"
+                            ? "FT"
+                            : ui.state === "ht"
+                              ? "HT"
+                              : ui.state === "timer"
+                                ? `${ui.minutes}'`
+                                : getDateModeTimeLabel(game);
+
+                        return (
                       <Link
-                        to={`/football/gameinfo/${game.fixture_id}`}
+                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                         key={gameIdx}
                         className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
                           gameIdx === leagueFixture.fixtures.length - 1
@@ -535,7 +619,7 @@ export const dashboard = () => {
                             : ""
                         }`}
                       >
-                        {game.status === "FT" ? (
+                        {ui.state === "ft" ? (
                           <>
                             <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
@@ -551,7 +635,7 @@ export const dashboard = () => {
                               <p>{game.visitorteam.name}</p>
                             </div>
                           </>
-                        ) : game.status === "HT" ? (
+                        ) : ui.state === "ht" ? (
                           <>
                             <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
@@ -567,9 +651,9 @@ export const dashboard = () => {
                               <p>{game.visitorteam.name}</p>
                             </div>
                           </>
-                        ) : Number(game.timer) > 1 ? (
+                        ) : ui.state === "timer" ? (
                           <>
-                            <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{game.timer}"</p>
+                            <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
                               <p>{game.localteam.name}</p>
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
@@ -590,7 +674,7 @@ export const dashboard = () => {
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
                             <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
-                              {game.status === "HT" ? "HT" : game.status === "live" ? "LIVE" : getDateModeTimeLabel(game)}
+                              {statusLabel}
                             </p>
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
@@ -599,6 +683,8 @@ export const dashboard = () => {
                           </>
                         )}
                       </Link>
+                        );
+                      })()
                     ))}
                   </div>
                 );
@@ -621,14 +707,26 @@ export const dashboard = () => {
                     </p>
                   </div>
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                    (() => {
+                      const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                      const statusLabel =
+                        ui.state === "ft"
+                          ? "FT"
+                          : ui.state === "ht"
+                            ? "HT"
+                            : ui.state === "timer"
+                              ? `${ui.minutes}'`
+                              : getDateModeTimeLabel(game);
+
+                      return (
                     <Link
-                      to={`/football/gameinfo/${game.fixture_id}`}
+                      to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                       key={gameIdx}
                       className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
                         gameIdx === leagueFixture.fixtures.length - 1 ? "last:border-b-0  border-b-0" : ""
                       }`}
                     >
-                      {game.status === "HT" ? (
+                      {ui.state === "ht" ? (
                         <>
                           <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
                           <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
@@ -644,9 +742,9 @@ export const dashboard = () => {
                             <p>{game.visitorteam.name}</p>
                           </div>
                         </>
-                      ) : Number(game.timer) > 1 ? (
+                      ) : ui.state === "timer" ? (
                         <>
-                          <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{game.timer}"</p>
+                          <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
                           <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
                             <p>{game.localteam.name}</p>
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
@@ -667,7 +765,7 @@ export const dashboard = () => {
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                           </div>
                           <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
-                            LIVE
+                            {statusLabel}
                           </p>
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
@@ -676,6 +774,8 @@ export const dashboard = () => {
                         </>
                       )}
                     </Link>
+                      );
+                    })()
                   ))}
                 </div>
               ))}
@@ -695,7 +795,7 @@ export const dashboard = () => {
                 return (
                   <div
                     key={leagueId + "-" + leagueIdx}
-                    className="bg-white dark:bg-[#161B2[] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
+                    className="bg-white dark:bg-[#161B22] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
                   >
                     <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 items-center">
                       <Skeleton className="w-8 h-8" />
@@ -747,28 +847,30 @@ export const dashboard = () => {
                     </p>
                   </div>
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                    (() => {
+                      const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                      const statusLabel =
+                        ui.state === "ft"
+                          ? "FT"
+                          : ui.state === "ht"
+                            ? "HT"
+                            : ui.state === "timer"
+                              ? `${ui.minutes}'`
+                              : getDateModeTimeLabel(game);
+
+                      return (
                     <Link
-                      to={`/football/gameinfo/${game.fixture_id}`}
+                      to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                       key={gameIdx}
                       className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                     >
-                      {fixturesMode === "live" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-bold">
-                          {game.status === "HT" ? "HT" : Number(game.timer) > 1 ? `${game.timer}"` : "LIVE"}
-                        </p>
-                      ) : game.status === "FT" ? (
-                        <p className="text-xs text-brand-secondary text-center w-15 px-2 font-medium">FT</p>
-                      ) : game.status === "1st Half" || game.status === "2nd Half" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-bold">{game.timer}"</p>
-                      ) : game.status === "HT" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-bold">HT</p>
-                      ) : game.status === "live" ? (
-                        <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-bold">
-                          {Number(game.timer) > 1 ? `${game.timer}"` : "LIVE"}
-                        </p>
-                      ) : (
-                        <p className="text-xs dark:text-snow-200 text-neutral-n4 text-center w-15 px-2 font-medium">{getDateModeTimeLabel(game)}</p>
-                      )}
+                      <p
+                        className={`text-xs text-center w-15 px-2 font-bold ${
+                          ui.state === "timer" || ui.state === "ht" ? "text-brand-secondary animate-pulse" : "text-brand-secondary"
+                        }`}
+                      >
+                        {statusLabel}
+                      </p>
                       <div className="flex flex-col flex-1 mx-1 gap-0.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
@@ -781,13 +883,9 @@ export const dashboard = () => {
                             <span className="text-xs font-bold dark:text-white text-neutral-n4">
                               {fixturesMode === "live" ? (
                                 <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              ) : game.status === "FT" ? (
+                              ) : ui.state === "ft" ? (
                                 game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
-                              ) : game.status === "1st Half" || game.status === "2nd Half" ? (
-                                <AnimatedScore value={game.localteam?.score ?? 0} />
-                              ) : game.status === "HT" ? (
-                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              ) : game.status === "live" ? (
+                              ) : ui.state === "timer" || ui.state === "ht" ? (
                                 <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
                               ) : (
                                 "-"
@@ -806,13 +904,9 @@ export const dashboard = () => {
                             <span className="text-xs font-bold dark:text-white text-neutral-n4">
                               {fixturesMode === "live" ? (
                                 <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                              ) : game.status === "FT" ? (
+                              ) : ui.state === "ft" ? (
                                 game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
-                              ) : game.status === "1st Half" || game.status === "2nd Half" ? (
-                                <AnimatedScore value={game.visitorteam?.score ?? 0} />
-                              ) : game.status === "HT" ? (
-                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                              ) : game.status === "live" ? (
+                              ) : ui.state === "timer" || ui.state === "ht" ? (
                                 <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
                               ) : (
                                 "-"
@@ -822,6 +916,8 @@ export const dashboard = () => {
                         </div>
                       </div>
                     </Link>
+                      );
+                    })()
                   ))}
                 </div>
               );
@@ -847,13 +943,29 @@ export const dashboard = () => {
                   </p>
                 </div>
                 {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                  (() => {
+                    const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                    const statusLabel =
+                      ui.state === "ft"
+                        ? "FT"
+                        : ui.state === "ht"
+                          ? "HT"
+                          : ui.state === "timer"
+                            ? `${ui.minutes}'`
+                            : getDateModeTimeLabel(game);
+
+                    return (
                   <Link
-                    to={`/football/gameinfo/${game.fixture_id}`}
+                    to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                     key={gameIdx}
                     className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                   >
-                    <p className="text-xs text-brand-secondary animate-pulse text-center w-15 px-2 font-bold">
-                      {game.status === "HT" ? "HT" : Number(game.timer) > 1 ? `${game.timer}"` : "LIVE"}
+                    <p
+                      className={`text-xs text-center w-15 px-2 font-bold ${
+                        ui.state === "timer" || ui.state === "ht" ? "text-brand-secondary animate-pulse" : "text-brand-secondary"
+                      }`}
+                    >
+                      {statusLabel}
                     </p>
                     <div className="flex flex-col flex-1 mx-1 gap-0.5">
                       <div className="flex items-center justify-between">
@@ -884,6 +996,8 @@ export const dashboard = () => {
                       </div>
                     </div>
                   </Link>
+                    );
+                  })()
                 ))}
               </div>
             ))}

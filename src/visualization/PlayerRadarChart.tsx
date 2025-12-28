@@ -2,15 +2,25 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
 } from "recharts";
 
-const PlayerRadarChart = () => {
-  const data = [
+type RadarDatum = {
+  skill: string;
+  value: number;
+};
+
+interface PlayerRadarChartProps {
+  data?: RadarDatum[];
+}
+
+const PlayerRadarChart: React.FC<PlayerRadarChartProps> = ({
+  data = [
     { skill: "Pace", value: 86 },
     { skill: "Shooting", value: 79 },
     { skill: "Passing", value: 82 },
     { skill: "Dribbling", value: 88 },
     { skill: "Defense", value: 60 },
     { skill: "Physical", value: 75 },
-  ];
+  ],
+}) => {
 
   return (
     <div className="w-full h-96 ">

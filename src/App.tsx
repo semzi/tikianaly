@@ -22,6 +22,7 @@ import GameInfo from "./features/football/pages/gameInfo";
 import { setNavigator } from "./lib/router/navigate";
 import { useEffect } from "react";
 import PlayerProfile from "./features/football/pages/playerProfile";
+import TeamProfile from "./features/football/pages/teamProfile";
 import Onboard from "./features/onboarding/pages/onboard";
 import Afcon from "./features/football/pages/afcon";
 import NewsRead from "./features/news/pages/read";
@@ -160,6 +161,49 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <PlayerProfile />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/player/profile/:playerId"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <PlayerProfile />
+            </motion.div>
+          }
+        />
+
+        <Route
+          path="/team/profile"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <TeamProfile />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/team/profile/:teamId"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <TeamProfile />
             </motion.div>
           }
         />

@@ -1,0 +1,165 @@
+{
+            "localteam": {
+              "formation": "4-2-3-1",
+              "player": [
+                {
+                  "formation_pos": "1",
+                  "id": "290445",
+                  "name": "John Victor",
+                  "number": "13",
+                  "pos": "G"
+                },
+                {
+                  "formation_pos": "2",
+                  "id": "646344",
+                  "name": "Nicolò Savona",
+                  "number": "37",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "3",
+                  "id": "440930",
+                  "name": "Nikola Milenković",
+                  "number": "31",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "4",
+                  "id": "829527",
+                  "name": "Murillo",
+                  "number": "5",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "5",
+                  "id": "459370",
+                  "name": "Neco Williams",
+                  "number": "3",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "6",
+                  "id": "414655",
+                  "name": "Elliot Anderson",
+                  "number": "8",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "7",
+                  "id": "477166",
+                  "name": "Nicolás Domínguez",
+                  "number": "16",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "8",
+                  "id": "669554",
+                  "name": "Omari Hutchinson",
+                  "number": "21",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "9",
+                  "id": "454457",
+                  "name": "Morgan Gibbs-White",
+                  "number": "10",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "10",
+                  "id": "455314",
+                  "name": "Callum Hudson-Odoi",
+                  "number": "7",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "11",
+                  "id": "593040",
+                  "name": "Igor Jesus",
+                  "number": "19",
+                  "pos": "F"
+                }
+              ]
+            },
+            "visitorteam": {
+              "formation": "4-3-2-1",
+              "player": [
+                {
+                  "formation_pos": "1",
+                  "id": "384539",
+                  "name": "Gianluigi Donnarumma",
+                  "number": "25",
+                  "pos": "G"
+                },
+                {
+                  "formation_pos": "2",
+                  "id": "564554",
+                  "name": "Matheus Nunes",
+                  "number": "27",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "3",
+                  "id": "290253",
+                  "name": "Rúben Dias",
+                  "number": "3",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "4",
+                  "id": "579285",
+                  "name": "Joško Gvardiol",
+                  "number": "24",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "5",
+                  "id": "679796",
+                  "name": "Nico O'Reilly",
+                  "number": "33",
+                  "pos": "D"
+                },
+                {
+                  "formation_pos": "6",
+                  "id": "298753",
+                  "name": "Bernardo Silva",
+                  "number": "20",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "7",
+                  "id": "571788",
+                  "name": "Nico González",
+                  "number": "14",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "8",
+                  "id": "497090",
+                  "name": "Tijjani Reijnders",
+                  "number": "4",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "9",
+                  "id": "559939",
+                  "name": "Rayan Cherki",
+                  "number": "10",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "10",
+                  "id": "453102",
+                  "name": "Phil Foden",
+                  "number": "47",
+                  "pos": "M"
+                },
+                {
+                  "formation_pos": "11",
+                  "id": "441484",
+                  "name": "Erling Haaland",
+                  "number": "9",
+                  "pos": "F"
+                }
+              ]
+            },

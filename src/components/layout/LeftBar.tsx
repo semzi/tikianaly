@@ -126,36 +126,87 @@ export const Leftbar = () => {
   const [leagues, setLeagues] = useState<LeagueItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const hasFetchedRef = useRef(false);
+  const fetchRunIdRef = useRef(0);
 
   useEffect(() => {
-    // Prevent double calls (especially in React StrictMode)
-    if (hasFetchedRef.current) return;
-    
-    const fetchLeagues = async () => {
-      hasFetchedRef.current = true;
+    fetchRunIdRef.current += 1;
+    const runId = fetchRunIdRef.current;
+    let cancelled = false;
+
+    const mapLeague = (league: any): LeagueItem | null => {
+      const id = league?.leagueId ?? league?.id;
+      if (!id || !league?.name) return null;
+      return {
+        name: league.name,
+        icon: league.logo || league.image_path || "/assets/icons/league-placeholder.png",
+        id,
+        category: league.category,
+      };
+    };
+
+    const upsertLeagues = (items: LeagueItem[]) => {
+      setLeagues((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        const next = [...prev];
+        for (const l of items) {
+          if (!seen.has(l.id)) {
+            seen.add(l.id);
+            next.push(l);
+          }
+        }
+        return next;
+      });
+    };
+
+    const fetchAllPages = async () => {
+      const limit = 100;
+
       try {
         setLoading(true);
-        const response = await getAllLeagues(1, 100);
-        
-        if (response?.success && response?.responseObject?.items) {
-          // Transform API response to match component structure
-          const transformedLeagues: LeagueItem[] = response.responseObject.items.map((league: any) => ({
-            name: league.name,
-            icon: league.logo || league.image_path || '/assets/icons/league-placeholder.png',
-            id: league.leagueId ?? league.id,
-            category: league.category,
-          }));
-          setLeagues(transformedLeagues);
+
+        const first = await getAllLeagues(1, limit);
+        const firstItemsRaw = first?.responseObject?.items;
+        const firstMapped = Array.isArray(firstItemsRaw)
+          ? (firstItemsRaw.map(mapLeague).filter(Boolean) as LeagueItem[])
+          : [];
+
+        if (cancelled || fetchRunIdRef.current !== runId) return;
+
+        setLeagues(firstMapped);
+        setLoading(false);
+
+        const totalPages = first?.responseObject?.totalPages;
+        let page = 1;
+        let hasMore =
+          typeof totalPages === "number" ? page < totalPages : firstMapped.length === limit;
+
+        while (!cancelled && hasMore) {
+          page += 1;
+          const res = await getAllLeagues(page, limit);
+          const raw = res?.responseObject?.items;
+          const mapped = Array.isArray(raw)
+            ? (raw.map(mapLeague).filter(Boolean) as LeagueItem[])
+            : [];
+
+          if (cancelled || fetchRunIdRef.current !== runId) return;
+          if (mapped.length > 0) upsertLeagues(mapped);
+
+          const pages = res?.responseObject?.totalPages;
+          hasMore = typeof pages === "number" ? page < pages : mapped.length === limit;
+
+          await new Promise((r) => setTimeout(r, 75));
         }
       } catch (error) {
         console.error("Error fetching leagues:", error);
-      } finally {
-        setLoading(false);
+        if (!cancelled && fetchRunIdRef.current === runId) setLoading(false);
       }
     };
 
-    fetchLeagues();
+    fetchAllPages();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

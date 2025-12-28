@@ -50,6 +50,7 @@ export type DashboardLiveFixture = Pick<
   LiveStreamFixture,
   | "match_id"
   | "fixture_id"
+  | "static_id"
   | "league_id"
   | "league_name"
   | "status"
