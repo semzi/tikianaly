@@ -247,6 +247,70 @@ const displayTransferFee = (price?: string): string => {
   return p || "-";
 };
 
+ const Skeleton = ({ className = "" }: { className?: string }) => (
+   <div
+     className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+     style={{ minHeight: "1em" }}
+   />
+ );
+
+ const TeamProfileSkeleton = ({ tab }: { tab: string }) => {
+   const StatCard = () => (
+     <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+       <Skeleton className="h-3 w-20 mb-2" />
+       <Skeleton className="h-5 w-12" />
+     </div>
+   );
+
+   return (
+     <div className="my-8 sz-8 flex-col-reverse flex gap-y-7 md:flex-row md:gap-7">
+       <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
+         <Skeleton className="h-4 w-28" />
+         <Skeleton className="h-20 w-full" />
+         <Skeleton className="h-20 w-full" />
+       </div>
+
+       <div className="flex flex-col gap-5 flex-5">
+         <div className="block-style">
+           <Skeleton className="h-5 w-48 mb-4" />
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+             <StatCard />
+             <StatCard />
+             <StatCard />
+             <StatCard />
+           </div>
+         </div>
+
+         {tab === "squad" ? (
+           <div className="block-style">
+             <Skeleton className="h-5 w-28 mb-4" />
+             <div className="space-y-3">
+               {Array.from({ length: 8 }).map((_, i) => (
+                 <div key={i} className="flex items-center gap-3">
+                   <Skeleton className="h-8 w-8 rounded-full" />
+                   <Skeleton className="h-4 w-48" />
+                   <Skeleton className="h-4 w-10 ml-auto" />
+                 </div>
+               ))}
+             </div>
+           </div>
+         ) : (
+           <>
+             <div className="block-style">
+               <Skeleton className="h-5 w-40 mb-4" />
+               <Skeleton className="h-64 w-full" />
+             </div>
+             <div className="block-style">
+               <Skeleton className="h-5 w-40 mb-4" />
+               <Skeleton className="h-40 w-full" />
+             </div>
+           </>
+         )}
+       </div>
+     </div>
+   );
+ };
+
 const positionRank = (pos?: string): number => {
   const p = String(pos ?? "").toUpperCase();
   if (p === "G" || p === "GK") return 1;
@@ -677,9 +741,7 @@ const TeamProfile = () => {
       </div>
 
       <div className="page-padding-x">
-        {loading && (
-          <div className="my-4 block-style p-3 rounded theme-text">Loading team...</div>
-        )}
+        {loading && !team && !error && <TeamProfileSkeleton tab={activeTab} />}
 
         {error && (
           <div className="my-4 block-style border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 p-3 rounded">
@@ -692,6 +754,9 @@ const TeamProfile = () => {
             Open this page with a team id, e.g. <span className="font-semibold">/team/profile/9287</span> or <span className="font-semibold">/team/profile?id=9287</span>.
           </div>
         )}
+
+        {!loading && (
+          <>
 
         {/* OVERVIEW */}
         {activeTab === "overview" && (
@@ -1182,6 +1247,9 @@ const TeamProfile = () => {
               </div>
             </div>
           </div>
+        )}
+
+          </>
         )}
       </div>
 

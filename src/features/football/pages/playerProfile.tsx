@@ -30,6 +30,105 @@ import {
   YAxis,
 } from "recharts";
 
+ const Skeleton = ({ className = "" }: { className?: string }) => (
+   <div
+     className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+     style={{ minHeight: "1em" }}
+   />
+ );
+
+ const PlayerProfileSkeleton = ({ tab }: { tab: string }) => {
+   return (
+     <>
+       <div className="my-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+         <div className="flex items-center gap-2">
+           <Skeleton className="h-4 w-16" />
+           <Skeleton className="h-10 w-36" />
+         </div>
+         <div className="flex gap-2 flex-wrap">
+           <div className="bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 rounded px-3 py-2">
+             <Skeleton className="h-3 w-16 mb-2" />
+             <Skeleton className="h-5 w-14" />
+           </div>
+           <div className="bg-ui-success/10 border border-ui-success/20 rounded px-3 py-2">
+             <Skeleton className="h-3 w-12 mb-2" />
+             <Skeleton className="h-5 w-10" />
+           </div>
+           <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded px-3 py-2">
+             <Skeleton className="h-3 w-14 mb-2" />
+             <Skeleton className="h-5 w-12" />
+           </div>
+           <div className="bg-orange-500/10 border border-orange-500/20 rounded px-3 py-2">
+             <Skeleton className="h-3 w-10 mb-2" />
+             <Skeleton className="h-5 w-10" />
+           </div>
+         </div>
+       </div>
+
+       <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
+         <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
+           <Skeleton className="h-4 w-28" />
+           <Skeleton className="h-20 w-full" />
+           <Skeleton className="h-20 w-full" />
+         </div>
+
+         <div className="flex flex-col gap-5 flex-5">
+           {tab === "matches" ? (
+             <div className="block-style">
+               <Skeleton className="h-5 w-40 mb-4" />
+               <div className="space-y-3">
+                 {Array.from({ length: 6 }).map((_, i) => (
+                   <div key={i} className="flex items-center gap-3">
+                     <Skeleton className="h-10 w-10 rounded-full" />
+                     <div className="flex-1">
+                       <Skeleton className="h-4 w-48 mb-2" />
+                       <Skeleton className="h-3 w-32" />
+                     </div>
+                     <Skeleton className="h-6 w-16" />
+                   </div>
+                 ))}
+               </div>
+             </div>
+           ) : (
+             <>
+               <div className="block-style space-y-3">
+                 <Skeleton className="h-5 w-48" />
+                 <Skeleton className="h-14 w-full" />
+               </div>
+
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                   <Skeleton className="h-3 w-20 mb-2" />
+                   <Skeleton className="h-5 w-12" />
+                 </div>
+                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                   <Skeleton className="h-3 w-20 mb-2" />
+                   <Skeleton className="h-5 w-12" />
+                 </div>
+                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                   <Skeleton className="h-3 w-20 mb-2" />
+                   <Skeleton className="h-5 w-12" />
+                 </div>
+                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                   <Skeleton className="h-3 w-20 mb-2" />
+                   <Skeleton className="h-5 w-12" />
+                 </div>
+               </div>
+
+               <div className="block-style">
+                 <Skeleton className="h-5 w-44 mb-4" />
+                 <Skeleton className="h-64 w-full" />
+               </div>
+             </>
+           )}
+         </div>
+       </div>
+
+       <div className="h-8" />
+     </>
+   );
+ };
+
 const playerProfile = () => {
   const tabs = [
     { id: "profile", label: "Profile" },
@@ -778,11 +877,7 @@ const playerProfile = () => {
       {/* ----------------- navigation content end --------------- */}
 
       <div className="page-padding-x">
-        {loading && (
-          <div className="my-4 block-style p-3 rounded theme-text">
-            Loading player...
-          </div>
-        )}
+        {loading && !player && !error && <PlayerProfileSkeleton tab={activeTab} />}
 
         {error && (
           <div className="my-4 block-style border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 p-3 rounded">
@@ -796,7 +891,7 @@ const playerProfile = () => {
           </div>
         )}
 
-        {playerId && (
+        {!loading && playerId && (
           <div className="my-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="relative">
               <div className="flex items-center gap-2 theme-text">

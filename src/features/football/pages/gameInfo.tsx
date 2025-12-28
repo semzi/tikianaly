@@ -1511,6 +1511,9 @@ export const gameInfo = () => {
                       if (eventType === "halftime") {
                         return <img src="./icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
                       }
+                      if (eventType === "var") {
+                        return <img src="./icons/var.svg" className="w-4 theme-icon" alt="" />;
+                      }
                       return <div className="w-4 h-5 bg-snow-200 dark:bg-neutral-n4" />;
                     })();
 
