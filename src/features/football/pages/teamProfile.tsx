@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Helmet } from "react-helmet";
 
 type TeamTransferRow = {
   id?: string;
@@ -247,69 +248,69 @@ const displayTransferFee = (price?: string): string => {
   return p || "-";
 };
 
- const Skeleton = ({ className = "" }: { className?: string }) => (
-   <div
-     className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
-     style={{ minHeight: "1em" }}
-   />
- );
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+    style={{ minHeight: "1em" }}
+  />
+);
 
- const TeamProfileSkeleton = ({ tab }: { tab: string }) => {
-   const StatCard = () => (
-     <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-       <Skeleton className="h-3 w-20 mb-2" />
-       <Skeleton className="h-5 w-12" />
-     </div>
-   );
+const TeamProfileSkeleton = ({ tab }: { tab: string }) => {
+  const StatCard = () => (
+    <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+      <Skeleton className="h-3 w-20 mb-2" />
+      <Skeleton className="h-5 w-12" />
+    </div>
+  );
 
-   return (
-     <div className="my-8 sz-8 flex-col-reverse flex gap-y-7 md:flex-row md:gap-7">
-       <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
-         <Skeleton className="h-4 w-28" />
-         <Skeleton className="h-20 w-full" />
-         <Skeleton className="h-20 w-full" />
-       </div>
+  return (
+    <div className="my-8 sz-8 flex-col-reverse flex gap-y-7 md:flex-row md:gap-7">
+      <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
 
-       <div className="flex flex-col gap-5 flex-5">
-         <div className="block-style">
-           <Skeleton className="h-5 w-48 mb-4" />
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-             <StatCard />
-             <StatCard />
-             <StatCard />
-             <StatCard />
-           </div>
-         </div>
+      <div className="flex flex-col gap-5 flex-5">
+        <div className="block-style">
+          <Skeleton className="h-5 w-48 mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard />
+            <StatCard />
+            <StatCard />
+            <StatCard />
+          </div>
+        </div>
 
-         {tab === "squad" ? (
-           <div className="block-style">
-             <Skeleton className="h-5 w-28 mb-4" />
-             <div className="space-y-3">
-               {Array.from({ length: 8 }).map((_, i) => (
-                 <div key={i} className="flex items-center gap-3">
-                   <Skeleton className="h-8 w-8 rounded-full" />
-                   <Skeleton className="h-4 w-48" />
-                   <Skeleton className="h-4 w-10 ml-auto" />
-                 </div>
-               ))}
-             </div>
-           </div>
-         ) : (
-           <>
-             <div className="block-style">
-               <Skeleton className="h-5 w-40 mb-4" />
-               <Skeleton className="h-64 w-full" />
-             </div>
-             <div className="block-style">
-               <Skeleton className="h-5 w-40 mb-4" />
-               <Skeleton className="h-40 w-full" />
-             </div>
-           </>
-         )}
-       </div>
-     </div>
-   );
- };
+        {tab === "squad" ? (
+          <div className="block-style">
+            <Skeleton className="h-5 w-28 mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-10 ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="block-style">
+              <Skeleton className="h-5 w-40 mb-4" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+            <div className="block-style">
+              <Skeleton className="h-5 w-40 mb-4" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const positionRank = (pos?: string): number => {
   const p = String(pos ?? "").toUpperCase();
@@ -395,6 +396,14 @@ const TeamProfile = () => {
   }, [teamId]);
 
   const teamName = String(team?.name ?? "Team");
+
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}${window.location.search}`
+    : "";
+  const shareImage = "/logo.webp";
+  const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
+  const pageTitle = `${teamName} | Team Profile | TikiAnaly`;
+  const pageDescription = `Squad, transfers, venue and stats for ${teamName}.`;
 
   // const teamImageUrl = useMemo(() => {
   //   if (!team?.image) return undefined;
@@ -616,6 +625,20 @@ const TeamProfile = () => {
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+        {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={shareImageUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={shareImageUrl} />
+      </Helmet>
       <PageHeader />
 
       {/* Header */}

@@ -21,6 +21,7 @@ import { useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getPlayerById } from "@/lib/api/endpoints";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import { Helmet } from "react-helmet";
 import {
   Line,
   LineChart,
@@ -30,12 +31,12 @@ import {
   YAxis,
 } from "recharts";
 
- const Skeleton = ({ className = "" }: { className?: string }) => (
-   <div
-     className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
-     style={{ minHeight: "1em" }}
-   />
- );
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+    style={{ minHeight: "1em" }}
+  />
+);
 
  const PlayerProfileSkeleton = ({ tab }: { tab: string }) => {
    return (
@@ -567,6 +568,14 @@ const playerProfile = () => {
     return full || "Player";
   }, [player]);
 
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}${window.location.search}`
+    : "";
+  const shareImage = "/logo.webp";
+  const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
+  const pageTitle = `${playerDisplayName} | Player Profile | TikiAnaly`;
+  const pageDescription = `Stats, matches and career details for ${playerDisplayName}.`;
+
   const playerImageUrl = useMemo(() => {
     if (!player?.image) return undefined;
     const raw = String(player.image);
@@ -619,6 +628,20 @@ const playerProfile = () => {
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+        {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={shareImageUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={shareImageUrl} />
+      </Helmet>
       <PageHeader />
       <div className="secondary-gradient relative z-0">
         <div

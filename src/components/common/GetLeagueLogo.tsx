@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getLeagueById } from "@/lib/api/endpoints";
 
 interface GetLeagueLogoProps {
   leagueId: string | number;
@@ -7,13 +7,22 @@ interface GetLeagueLogoProps {
   className?: string;
 }
 
-interface LeagueLogoApiItem {
+const leagueLogoMemoryCache = new Map<string, string>();
+const leagueLogoStorageKey = (id: string) => `league_logo_image_${id}`;
+
+interface LeagueApiItem {
   id?: number;
-  base64?: string;
+  league_id?: number;
+  image?: string;
+  logo?: string;
+  image_path?: string;
 }
 
-const leagueLogoMemoryCache = new Map<string, string>();
-const leagueLogoStorageKey = (id: string) => `league_logo_base64_${id}`;
+interface LeagueApiResponse {
+  responseObject?: {
+    item?: LeagueApiItem | LeagueApiItem[];
+  };
+}
 
 const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className }) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -48,43 +57,36 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className 
       }
 
       try {
-        const url = `/goalserve/api/v1/logotips/soccer/leagues?k=13bf8a6da00f4047d69808de0442e200&ids=${id}`;
-        let responseData: unknown;
+        let res: unknown;
         let lastErr: unknown;
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
-            const response = await axios.get(url, {
-              timeout: 15000,
-              signal: controller.signal,
-            });
-            responseData = response.data;
+            if (controller.signal.aborted) return;
+            res = await getLeagueById(id);
             lastErr = undefined;
             break;
           } catch (e) {
             lastErr = e;
-            if ((e as any)?.name === "CanceledError" || controller.signal.aborted) throw e;
+            if (controller.signal.aborted) return;
             await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
           }
         }
 
         if (lastErr) throw lastErr;
+        if (controller.signal.aborted) return;
 
-        const raw = responseData as unknown;
-        const parsed: unknown =
-          typeof raw === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(raw);
-                } catch {
-                  return raw;
-                }
-              })()
-            : raw;
+        const item = (res as LeagueApiResponse)?.responseObject?.item;
+        const league = Array.isArray(item) ? item[0] : item;
 
-        const data = parsed as LeagueLogoApiItem[];
-        const first = Array.isArray(data) ? data[0] : undefined;
-        if (first && typeof first.base64 === "string" && first.base64) {
-          const dataUri = `data:image/png;base64,${first.base64}`;
+        const rawImage = String(
+          (league as any)?.image ??
+            (league as any)?.logo ??
+            (league as any)?.image_path ??
+            ""
+        ).trim();
+
+        if (rawImage) {
+          const dataUri = rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
           leagueLogoMemoryCache.set(id, dataUri);
           try {
             sessionStorage.setItem(leagueLogoStorageKey(id), dataUri);
@@ -96,14 +98,14 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className 
           setLogoUrl(null);
         }
       } catch (err: any) {
-        if (err?.name === "CanceledError" || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
         console.error(`Error fetching logo for leagueId ${leagueId}:`, err);
         const status = err?.response?.status;
         const statusText = err?.response?.statusText;
         setError(status ? `Failed to load logo (${status}${statusText ? ` ${statusText}` : ""})` : "Failed to load logo");
         setLogoUrl(null);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
@@ -123,17 +125,17 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({ leagueId, alt, className 
   if (loading) {
     return (
       <div
-        className={`animate-pulse bg-gray-300 rounded-full ${className ?? ""}`}
+        className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`}
         style={{ minWidth: "20px", minHeight: "20px" }}
       />
     );
   }
 
   if (error || !logoUrl) {
-    return <img src={"/loading-state/shield.svg"} alt={`${alt} - No Logo`} className={className} />;
+    return <img src={"/loading-state/shield.svg"} alt={`${alt} - No Logo`} className={`object-contain ${className ?? ""}`} />;
   }
 
-  return <img src={logoUrl} alt={alt} className={className} />;
+  return <img src={logoUrl} alt={alt} className={`object-contain ${className ?? ""}`} />;
 };
 
 export default GetLeagueLogo;

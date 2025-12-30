@@ -26,6 +26,7 @@ import {
 } from "@/lib/api/livestream";
 import FeedbackPanel from "@/components/common/FeedbackPanel";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
+import { Helmet } from "react-helmet";
 
 const events = [
   {
@@ -36,383 +37,7 @@ const events = [
   }
 ];
 
-
-const HeadToHeadSection = ({
-  homeTeam,
-  awayTeam,
-}: {
-  homeTeam?: any;
-  awayTeam?: any;
-}) => {
-  const homeTeamName = homeTeam?.name ?? "";
-  const awayTeamName = awayTeam?.name ?? "";
-  const homeTeamId = homeTeam?.id;
-  const awayTeamId = awayTeam?.id;
-
-  const [selectedTeamSide, setSelectedTeamSide] = useState<"home" | "away">("home");
-  const selectedTeamName = selectedTeamSide === "home" ? homeTeamName : awayTeamName;
-
-  const recentMatches = [
-    { date: "Aug 4, 2025", league: "Premier League", team1: homeTeamName, team1Id: homeTeamId, score: "1-3", team2: awayTeamName, team2Id: awayTeamId },
-    { date: "Jun 20, 2025", league: "Premier League", team1: awayTeamName, team1Id: awayTeamId, score: "1-3", team2: homeTeamName, team2Id: homeTeamId },
-    { date: "Mar 14, 2025", league: "Premier League", team1: homeTeamName, team1Id: homeTeamId, score: "1-1", team2: awayTeamName, team2Id: awayTeamId },
-    { date: "Jan 24, 2025", league: "Premier League", team1: homeTeamName, team1Id: homeTeamId, score: "1-3", team2: awayTeamName, team2Id: awayTeamId },
-    { date: "Nov 10, 2024", league: "Premier League", team1: awayTeamName, team1Id: awayTeamId, score: "1-3", team2: homeTeamName, team2Id: homeTeamId },
-  ];
-
-  return (
-    <div className="my-8 space-y-8">
-      {/* Last 5 Matches */}
-      <div className="block-style">
-        <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200 mb-6">Last 5 matches</h3>
-        <div className="space-y-4">
-          {recentMatches.map((match, index) => (
-            <div key={index} className="flex flex-col gap-2 pb-4 dark:border-[#1F2937] last:border-0 last:pb-0">
-              <div className="text-sm text-neutral-n5 dark:text-snow-200">
-                {match.league} • {match.date}
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {match.team1Id ? (
-                    <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  )}
-                  <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">{match.team1}</span>
-                </div>
-                <div className="px-4 py-1.5 bg-snow-100 dark:bg-[#161B22] rounded-lg border border-snow-200 dark:border-[#1F2937]">
-                  <span className="font-semibold text-sm text-neutral-n4 dark:text-snow-200">{match.score}</span>
-                </div>
-                <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
-                  <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-right">{match.team2}</span>
-                  {match.team2Id ? (
-                    <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Total Results */}
-      <div className="block-style">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200">Total Results</h3>
-          <span className="text-sm text-neutral-n5 dark:text-snow-200">18 Matches</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Manchester City Stats */}
-          <div className="flex flex-col items-center">
-            {homeTeamId ? (
-              <GetTeamLogo teamId={homeTeamId} alt={homeTeamName} className="w-16 h-16 rounded-full object-cover mb-3" />
-            ) : (
-              <img src={'/loading-state/shield.svg'} alt={homeTeamName} className="w-16 h-16 rounded-full object-cover mb-3" />
-            )}
-            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 mb-4">{homeTeamName}</span>
-            <div className="flex flex-wrap gap-2 justify-center mb-2">
-              <div className="px-3 py-1.5 bg-snow-100 dark:bg-[#161B22] rounded-lg border border-snow-200 dark:border-[#1F2937]">
-                <span className="text-sm font-medium text-neutral-n4 dark:text-snow-200">12 Wins</span>
-              </div>
-              <div className="px-3 py-1.5 bg-snow-100 dark:bg-[#161B22] rounded-lg border border-snow-200 dark:border-[#1F2937]">
-                <span className="text-sm font-medium text-neutral-n4 dark:text-snow-200">3 Draws</span>
-              </div>
-              <div className="px-3 py-1.5 bg-snow-100 dark:bg-[#161B22] rounded-lg border border-snow-200 dark:border-[#1F2937]">
-                <span className="text-sm font-medium text-neutral-n4 dark:text-snow-200">3 Losses</span>
-              </div>
-            </div>
-            <span className="text-sm text-neutral-n5 dark:text-snow-200">12 wins (67%)</span>
-          </div>
-
-          {/* Arsenal Stats */}
-          <div className="flex flex-col items-center">
-            {awayTeamId ? (
-              <GetTeamLogo teamId={awayTeamId} alt={awayTeamName} className="w-16 h-16 rounded-full object-cover mb-3" />
-            ) : (
-              <img src={'/loading-state/shield.svg'} alt={awayTeamName} className="w-16 h-16 rounded-full object-cover mb-3" />
-            )}
-            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 mb-4">{awayTeamName}</span>
-            <div className="flex flex-col gap-2 items-center">
-              <span className="text-sm text-neutral-n5 dark:text-snow-200">3 draws (17%)</span>
-              <span className="text-sm text-neutral-n5 dark:text-snow-200">3 wins (17%)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bar Chart */}
-        <div className="w-full h-5 bg-snow-100 dark:bg-[#161B22] rounded-lg overflow-hidden flex">
-          <div className="h-full bg-brand-primary flex items-center justify-center" style={{ width: "67%" }}>
-            <span className="text-xs font-semibold text-white">67%</span>
-          </div>
-          <div className="h-full bg-neutral-n4 dark:bg-snow-200 flex items-center justify-center" style={{ width: "17%" }}>
-            <span className="text-xs font-semibold text-neutral-n4 dark:text-snow-200">17%</span>
-          </div>
-          <div className="h-full bg-orange-500 flex items-center justify-center" style={{ width: "17%" }}>
-            <span className="text-xs font-semibold text-white">17%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Form */}
-      <div className="block-style">
-        <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200 mb-4">Recent form</h3>
-        
-        {/* Team Selection Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setSelectedTeamSide("home")}
-            className={`px-3 sm:px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-              selectedTeamSide === "home"
-                ? "bg-brand-primary text-white"
-                : "bg-white dark:bg-[#161B22] text-neutral-n5 dark:text-snow-200 border border-snow-200 dark:border-[#1F2937]"
-            }`}
-          >
-            {homeTeamName}
-          </button>
-          <button
-            onClick={() => setSelectedTeamSide("away")}
-            className={`px-3 sm:px-4 flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-              selectedTeamSide === "away"
-                ? "bg-brand-primary text-white"
-                : "bg-white dark:bg-[#161B22] text-neutral-n5 dark:text-snow-200 border border-snow-200 dark:border-[#1F2937]"
-            }`}
-          >
-            {awayTeamName}
-          </button>
-        </div>
-
-        {/* Match List */}
-        <div className="space-y-6 sm:space-y-8">
-          {recentMatches.map((match, index) => {
-            const selectedTeamIsTeam1 = match.team1 === selectedTeamName;
-            const [team1Score, team2Score] = match.score.split("-").map(Number);
-            
-            // Determine result from selected team's perspective
-            let resultFromSelectedTeam: "win" | "loss" | "draw";
-            if (team1Score === team2Score) {
-              resultFromSelectedTeam = "draw";
-            } else if (selectedTeamIsTeam1) {
-              resultFromSelectedTeam = team1Score > team2Score ? "win" : "loss";
-            } else {
-              resultFromSelectedTeam = team2Score > team1Score ? "win" : "loss";
-            }
-            
-            let resultColor = "";
-            if (resultFromSelectedTeam === "draw") {
-              resultColor = "bg-snow-100 dark:bg-[#161B22] border-snow-200 dark:border-[#1F2937] text-neutral-n4 dark:text-snow-200";
-            } else if (resultFromSelectedTeam === "win") {
-              resultColor = "bg-ui-success text-white border-ui-success";
-            } else {
-              resultColor = "bg-ui-negative text-white border-ui-negative";
-            }
-
-            return (
-              <div
-                key={index}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-              >
-                <div className="text-sm text-neutral-n5 dark:text-snow-200 sm:min-w-[160px]">
-                  <span className="font-medium text-sm text-black dark:text-snow-200">{match.league}</span>
-                  <span className="sm:hidden"> · </span>
-                  <span className="sm:hidden">{match.date}</span>
-                  <div className="hidden sm:block">{match.date}</div>
-                </div>
-
-                <div className="flex w-full sm:flex-1 sm:items-center">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                  {selectedTeamIsTeam1 ? (
-                    <>
-                      {match.team1Id ? (
-                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      )}
-                      <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">{match.team1}</span>
-                    </>
-                  ) : (
-                    <>
-                      {match.team2Id ? (
-                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      )}
-                      <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">{match.team2}</span>
-                    </>
-                  )}
-
-                  </div>
-
-                  <div className="mx-2 sm:mx-4 flex-shrink-0">
-                    <div className={`px-3 sm:px-4 py-1.5 rounded-lg border font-semibold text-sm ${resultColor}`}>
-                      {match.score}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-end">
-                  {selectedTeamIsTeam1 ? (
-                    <>
-                      <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-right">{match.team2}</span>
-                      {match.team2Id ? (
-                        <GetTeamLogo teamId={match.team2Id} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team2} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-right">{match.team1}</span>
-                      {match.team1Id ? (
-                        <GetTeamLogo teamId={match.team1Id} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <img src={'/loading-state/shield.svg'} alt={match.team1} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
-                      )}
-                    </>
-                  )}
-                </div>
-
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Statistics over 8 matches */}
-      <div className="block-style">
-        <h3 className="text-lg font-semibold text-neutral-n4 dark:text-snow-200 mb-4">Statistics over 8 matches</h3>
-        <div className="w-full h-12 bg-brand-primary/10 dark:bg-brand-primary/20 rounded-lg flex items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            {homeTeamId ? (
-              <GetTeamLogo teamId={homeTeamId} alt={homeTeamName} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <img src={'/loading-state/shield.svg'} alt={homeTeamName} className="w-8 h-8 rounded-full object-cover" />
-            )}
-            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200">{homeTeamName}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200">{awayTeamName}</span>
-            {awayTeamId ? (
-              <GetTeamLogo teamId={awayTeamId} alt={awayTeamName} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <img src={'/loading-state/shield.svg'} alt={awayTeamName} className="w-8 h-8 rounded-full object-cover" />
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col mt-5 gap-4">
-              <p className="flex-1 md:hidden text-center theme-text flex items-center justify-center">
-                  Ball Possession
-                </p>
-              <div className="flex w-full h-9 overflow-hidden rounded-3xl">
-                <p className="flex-64 md:flex-2 h-full pl-6 text-left text-white bg-brand-primary flex items-center">
-                  64%
-                </p>
-                <p className="flex-1 hidden md:flex h-full text-center theme-text  items-center justify-center">
-                  Ball Possession
-                </p>
-                <p className="flex-36 md:flex-2 h-full pr-6 text-right bg-brand-secondary flex items-center justify-end">
-                  36%
-                </p>
-              </div>
-
-              {[
-                {
-                  label: "Total Shots",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "theme-text",
-                  awayClass: "bg-brand-secondary",
-                },
-                {
-                  label: "Shots On Goal",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "text-white bg-brand-primary",
-                  awayClass: "",
-                },
-                {
-                  label: "Total Passes",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "",
-                  awayClass: "bg-brand-secondary",
-                },
-                {
-                  label: "Pass Accuracy",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "",
-                  awayClass: "bg-brand-secondary",
-                },
-                {
-                  label: "Yellow Cards",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "text-white bg-brand-primary",
-                  awayClass: "",
-                },
-                {
-                  label: "Red Cards",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "",
-                  awayClass: "",
-                },
-                {
-                  label: "Corners",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "text-white bg-brand-primary",
-                  awayClass: "bg-brand-secondary",
-                },
-                {
-                  label: "Fouls",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "text-white bg-brand-primary",
-                  awayClass: "",
-                },
-                {
-                  label: "Offsides",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "",
-                  awayClass: "bg-brand-secondary",
-                },
-                {
-                  label: "Saves",
-                  home: "64%",
-                  away: "36%",
-                  homeClass: "",
-                  awayClass: "bg-brand-secondary",
-                },
-              ].map((stat, idx) => (
-                <div
-                  key={`${stat.label}-${idx}`}
-                  className="flex h-9 justify-between"
-                >
-                  <p
-                    className={`h-full px-3 rounded text-center flex items-center ${stat.homeClass}`}
-                  >
-                    {stat.home}
-                  </p>
-                  <p className="h-full text-center theme-text flex items-center justify-center">
-                    {stat.label}
-                  </p>
-                  <p
-                    className={`h-full px-3 rounded text-center flex items-center justify-end ${stat.awayClass}`}
-                  >
-                    {stat.away}
-                  </p>
-                </div>
-              ))}
-            </div>
-      </div>
-    </div>
-  );
-};
+// ... (rest of the code remains the same)
 
 export const gameInfo = () => {
   const tabs = [
@@ -483,6 +108,20 @@ export const gameInfo = () => {
   const displayAwayTeamId = (displayFixture as any)?.visitorteam?.id;
   const displayHomeTeamName = String((displayFixture as any)?.localteam?.name ?? "");
   const displayAwayTeamName = String((displayFixture as any)?.visitorteam?.name ?? "");
+
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}${window.location.search}`
+    : "";
+  const shareImage = "/logo.webp";
+  const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
+  const matchTitleCore = (() => {
+    const home = displayHomeTeamName.trim();
+    const away = displayAwayTeamName.trim();
+    if (home && away) return `${home} vs ${away}`;
+    return "Match";
+  })();
+  const pageTitle = `${matchTitleCore} | Game Info | TikiAnaly`;
+  const pageDescription = `Live score, lineups, stats and timeline for ${matchTitleCore}.`;
   const displayHomeScore = String(
     (liveFixture as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.score ?? ""
   ).trim();
@@ -752,6 +391,20 @@ export const gameInfo = () => {
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+        {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={shareImageUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={shareImageUrl} />
+      </Helmet>
       <PageHeader />
       <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
         <div
@@ -1406,9 +1059,9 @@ export const gameInfo = () => {
 
         {/* -------------------------------------------------------headtohead-------------------------------------------------------- */}
 
-        {activeTab === "headtohead" && (
+        {/* {activeTab === "headtohead" && (
           <HeadToHeadSection homeTeam={fixtureDetails?.localteam} awayTeam={fixtureDetails?.visitorteam} />
-        )}
+        )} */}
 
         {/* -------------------------------------------------------headtohead end-------------------------------------------------------- */}
 
@@ -1512,7 +1165,7 @@ export const gameInfo = () => {
                         return <img src="./icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
                       }
                       if (eventType === "var") {
-                        return <img src="./icons/var.svg" className="w-4 theme-icon" alt="" />;
+                        return <img src="./icons/VAR.svg" className="w-4 theme-icon" alt="" />;
                       }
                       return <div className="w-4 h-5 bg-snow-200 dark:bg-neutral-n4" />;
                     })();
