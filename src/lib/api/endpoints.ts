@@ -188,6 +188,10 @@ export const getLeagueById = async (leagueId: string | number) => {
   const response = await apiClient.get(`/api/v1/football/leagues/id/${leagueId}`);
   return response.data;
 };
+export const getStandingsByLeagueId = async (leagueId: string | number) => {
+  const response = await apiClient.get(`/api/v1/football/standing/league?leagueId=${leagueId}`);
+  return response.data;
+};
 
 // Football Fixtures Endpoints
 
@@ -221,6 +225,13 @@ export const getFixturesByLeague = async (
 export const getFixtureDetails = async (fixtureId: string | number) => {
   const response = await apiClient.get(
     `/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`
+  );
+  return response.data;
+};
+
+export const getMatchInfo = async (matchId: string | number) => {
+  const response = await apiClient.get(
+    `/api/v1/football/match/match-info?matchId=${encodeURIComponent(String(matchId))}`
   );
   return response.data;
 };

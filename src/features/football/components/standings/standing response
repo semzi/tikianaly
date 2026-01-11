@@ -1,0 +1,702 @@
+{
+  "success": true,
+  "message": "Standing by League Id fetched successfully.",
+  "responseObject": {
+    "item": [
+      {
+        "_id": "695eb4ee7a06755f3ae25f56",
+        "league_id": 1204,
+        "season": "2025/2026",
+        "country": "England",
+        "is_current": true,
+        "league_name": "Premier League",
+        "round": 0,
+        "stage_id": 12041081,
+        "standings": [
+          {
+            "team_id": 9002,
+            "team_name": "Arsenal",
+            "position": 1,
+            "overall": {
+              "played": 21,
+              "wins": 15,
+              "draws": 4,
+              "losses": 2,
+              "goals_for": 40,
+              "goals_against": 14
+            },
+            "home": {
+              "played": 11,
+              "wins": 9,
+              "draws": 2,
+              "losses": 0,
+              "goals_for": 26,
+              "goals_against": 5
+            },
+            "away": {
+              "played": 10,
+              "wins": 6,
+              "draws": 2,
+              "losses": 2,
+              "goals_for": 14,
+              "goals_against": 9
+            },
+            "goal_difference": 26,
+            "points": 49,
+            "recent_form": "DWWWW",
+            "status": "same",
+            "description": "Promotion - Champions League (League phase)"
+          },
+          {
+            "team_id": 9259,
+            "team_name": "Manchester City",
+            "position": 2,
+            "overall": {
+              "played": 21,
+              "wins": 13,
+              "draws": 4,
+              "losses": 4,
+              "goals_for": 45,
+              "goals_against": 19
+            },
+            "home": {
+              "played": 11,
+              "wins": 8,
+              "draws": 2,
+              "losses": 1,
+              "goals_for": 27,
+              "goals_against": 8
+            },
+            "away": {
+              "played": 10,
+              "wins": 5,
+              "draws": 2,
+              "losses": 3,
+              "goals_for": 18,
+              "goals_against": 11
+            },
+            "goal_difference": 26,
+            "points": 43,
+            "recent_form": "DDDWW",
+            "status": "same",
+            "description": "Promotion - Champions League (League phase)"
+          },
+          {
+            "team_id": 9008,
+            "team_name": "Aston Villa",
+            "position": 3,
+            "overall": {
+              "played": 21,
+              "wins": 13,
+              "draws": 4,
+              "losses": 4,
+              "goals_for": 33,
+              "goals_against": 24
+            },
+            "home": {
+              "played": 10,
+              "wins": 8,
+              "draws": 1,
+              "losses": 1,
+              "goals_for": 18,
+              "goals_against": 8
+            },
+            "away": {
+              "played": 11,
+              "wins": 5,
+              "draws": 3,
+              "losses": 3,
+              "goals_for": 15,
+              "goals_against": 16
+            },
+            "goal_difference": 9,
+            "points": 43,
+            "recent_form": "DWLWW",
+            "status": "same",
+            "description": "Promotion - Champions League (League phase)"
+          },
+          {
+            "team_id": 9249,
+            "team_name": "Liverpool",
+            "position": 4,
+            "overall": {
+              "played": 21,
+              "wins": 10,
+              "draws": 5,
+              "losses": 6,
+              "goals_for": 32,
+              "goals_against": 28
+            },
+            "home": {
+              "played": 10,
+              "wins": 6,
+              "draws": 2,
+              "losses": 2,
+              "goals_for": 15,
+              "goals_against": 10
+            },
+            "away": {
+              "played": 11,
+              "wins": 4,
+              "draws": 3,
+              "losses": 4,
+              "goals_for": 17,
+              "goals_against": 18
+            },
+            "goal_difference": 4,
+            "points": 35,
+            "recent_form": "DDDWW",
+            "status": "same",
+            "description": "Promotion - Champions League (League phase)"
+          },
+          {
+            "team_id": 9059,
+            "team_name": "Brentford",
+            "position": 5,
+            "overall": {
+              "played": 21,
+              "wins": 10,
+              "draws": 3,
+              "losses": 8,
+              "goals_for": 35,
+              "goals_against": 28
+            },
+            "home": {
+              "played": 11,
+              "wins": 7,
+              "draws": 3,
+              "losses": 1,
+              "goals_for": 23,
+              "goals_against": 10
+            },
+            "away": {
+              "played": 10,
+              "wins": 3,
+              "draws": 0,
+              "losses": 7,
+              "goals_for": 12,
+              "goals_against": 18
+            },
+            "goal_difference": 7,
+            "points": 33,
+            "recent_form": "WWDWW",
+            "status": "same",
+            "description": "Promotion - Europa League (League phase)"
+          },
+          {
+            "team_id": 9287,
+            "team_name": "Newcastle",
+            "position": 6,
+            "overall": {
+              "played": 21,
+              "wins": 9,
+              "draws": 5,
+              "losses": 7,
+              "goals_for": 32,
+              "goals_against": 27
+            },
+            "home": {
+              "played": 11,
+              "wins": 7,
+              "draws": 2,
+              "losses": 2,
+              "goals_for": 22,
+              "goals_against": 15
+            },
+            "away": {
+              "played": 10,
+              "wins": 2,
+              "draws": 3,
+              "losses": 5,
+              "goals_for": 10,
+              "goals_against": 12
+            },
+            "goal_difference": 5,
+            "points": 32,
+            "recent_form": "WWWLD",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9260,
+            "team_name": "Manchester Utd",
+            "position": 7,
+            "overall": {
+              "played": 21,
+              "wins": 8,
+              "draws": 8,
+              "losses": 5,
+              "goals_for": 36,
+              "goals_against": 32
+            },
+            "home": {
+              "played": 10,
+              "wins": 5,
+              "draws": 3,
+              "losses": 2,
+              "goals_for": 18,
+              "goals_against": 13
+            },
+            "away": {
+              "played": 11,
+              "wins": 3,
+              "draws": 5,
+              "losses": 3,
+              "goals_for": 18,
+              "goals_against": 19
+            },
+            "goal_difference": 4,
+            "points": 32,
+            "recent_form": "DDDWL",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9092,
+            "team_name": "Chelsea",
+            "position": 8,
+            "overall": {
+              "played": 21,
+              "wins": 8,
+              "draws": 7,
+              "losses": 6,
+              "goals_for": 34,
+              "goals_against": 24
+            },
+            "home": {
+              "played": 10,
+              "wins": 4,
+              "draws": 3,
+              "losses": 3,
+              "goals_for": 15,
+              "goals_against": 11
+            },
+            "away": {
+              "played": 11,
+              "wins": 4,
+              "draws": 4,
+              "losses": 3,
+              "goals_for": 19,
+              "goals_against": 13
+            },
+            "goal_difference": 10,
+            "points": 31,
+            "recent_form": "LDDLD",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9175,
+            "team_name": "Fulham",
+            "position": 9,
+            "overall": {
+              "played": 21,
+              "wins": 9,
+              "draws": 4,
+              "losses": 8,
+              "goals_for": 30,
+              "goals_against": 30
+            },
+            "home": {
+              "played": 11,
+              "wins": 6,
+              "draws": 2,
+              "losses": 3,
+              "goals_for": 19,
+              "goals_against": 13
+            },
+            "away": {
+              "played": 10,
+              "wins": 3,
+              "draws": 2,
+              "losses": 5,
+              "goals_for": 11,
+              "goals_against": 17
+            },
+            "goal_difference": 0,
+            "points": 31,
+            "recent_form": "WDDWW",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9384,
+            "team_name": "Sunderland",
+            "position": 10,
+            "overall": {
+              "played": 21,
+              "wins": 7,
+              "draws": 9,
+              "losses": 5,
+              "goals_for": 21,
+              "goals_against": 22
+            },
+            "home": {
+              "played": 10,
+              "wins": 5,
+              "draws": 5,
+              "losses": 0,
+              "goals_for": 16,
+              "goals_against": 8
+            },
+            "away": {
+              "played": 11,
+              "wins": 2,
+              "draws": 4,
+              "losses": 5,
+              "goals_for": 5,
+              "goals_against": 14
+            },
+            "goal_difference": -1,
+            "points": 30,
+            "recent_form": "LDDDD",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9065,
+            "team_name": "Brighton",
+            "position": 11,
+            "overall": {
+              "played": 21,
+              "wins": 7,
+              "draws": 8,
+              "losses": 6,
+              "goals_for": 31,
+              "goals_against": 28
+            },
+            "home": {
+              "played": 10,
+              "wins": 5,
+              "draws": 4,
+              "losses": 1,
+              "goals_for": 18,
+              "goals_against": 11
+            },
+            "away": {
+              "played": 11,
+              "wins": 2,
+              "draws": 4,
+              "losses": 5,
+              "goals_for": 13,
+              "goals_against": 17
+            },
+            "goal_difference": 3,
+            "points": 29,
+            "recent_form": "DWDLD",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9158,
+            "team_name": "Everton",
+            "position": 12,
+            "overall": {
+              "played": 21,
+              "wins": 8,
+              "draws": 5,
+              "losses": 8,
+              "goals_for": 23,
+              "goals_against": 25
+            },
+            "home": {
+              "played": 11,
+              "wins": 4,
+              "draws": 3,
+              "losses": 4,
+              "goals_for": 14,
+              "goals_against": 15
+            },
+            "away": {
+              "played": 10,
+              "wins": 4,
+              "draws": 2,
+              "losses": 4,
+              "goals_for": 9,
+              "goals_against": 10
+            },
+            "goal_difference": -2,
+            "points": 29,
+            "recent_form": "DLWDL",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9127,
+            "team_name": "Crystal Palace",
+            "position": 13,
+            "overall": {
+              "played": 21,
+              "wins": 7,
+              "draws": 7,
+              "losses": 7,
+              "goals_for": 22,
+              "goals_against": 23
+            },
+            "home": {
+              "played": 11,
+              "wins": 2,
+              "draws": 6,
+              "losses": 3,
+              "goals_for": 10,
+              "goals_against": 12
+            },
+            "away": {
+              "played": 10,
+              "wins": 5,
+              "draws": 1,
+              "losses": 4,
+              "goals_for": 12,
+              "goals_against": 11
+            },
+            "goal_difference": -1,
+            "points": 28,
+            "recent_form": "DLDLL",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9406,
+            "team_name": "Tottenham",
+            "position": 14,
+            "overall": {
+              "played": 21,
+              "wins": 7,
+              "draws": 6,
+              "losses": 8,
+              "goals_for": 30,
+              "goals_against": 27
+            },
+            "home": {
+              "played": 10,
+              "wins": 2,
+              "draws": 3,
+              "losses": 5,
+              "goals_for": 12,
+              "goals_against": 12
+            },
+            "away": {
+              "played": 11,
+              "wins": 5,
+              "draws": 3,
+              "losses": 3,
+              "goals_for": 18,
+              "goals_against": 15
+            },
+            "goal_difference": 3,
+            "points": 27,
+            "recent_form": "LDDWL",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9053,
+            "team_name": "Bournemouth",
+            "position": 15,
+            "overall": {
+              "played": 21,
+              "wins": 6,
+              "draws": 8,
+              "losses": 7,
+              "goals_for": 34,
+              "goals_against": 40
+            },
+            "home": {
+              "played": 11,
+              "wins": 5,
+              "draws": 4,
+              "losses": 2,
+              "goals_for": 16,
+              "goals_against": 11
+            },
+            "away": {
+              "played": 10,
+              "wins": 1,
+              "draws": 4,
+              "losses": 5,
+              "goals_for": 18,
+              "goals_against": 29
+            },
+            "goal_difference": -6,
+            "points": 26,
+            "recent_form": "WLDLD",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9238,
+            "team_name": "Leeds",
+            "position": 16,
+            "overall": {
+              "played": 21,
+              "wins": 5,
+              "draws": 7,
+              "losses": 9,
+              "goals_for": 29,
+              "goals_against": 37
+            },
+            "home": {
+              "played": 10,
+              "wins": 4,
+              "draws": 4,
+              "losses": 2,
+              "goals_for": 18,
+              "goals_against": 13
+            },
+            "away": {
+              "played": 11,
+              "wins": 1,
+              "draws": 3,
+              "losses": 7,
+              "goals_for": 11,
+              "goals_against": 24
+            },
+            "goal_difference": -8,
+            "points": 22,
+            "recent_form": "LDDDW",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9297,
+            "team_name": "Nottingham",
+            "position": 17,
+            "overall": {
+              "played": 21,
+              "wins": 6,
+              "draws": 3,
+              "losses": 12,
+              "goals_for": 21,
+              "goals_against": 34
+            },
+            "home": {
+              "played": 10,
+              "wins": 3,
+              "draws": 1,
+              "losses": 6,
+              "goals_for": 12,
+              "goals_against": 17
+            },
+            "away": {
+              "played": 11,
+              "wins": 3,
+              "draws": 2,
+              "losses": 6,
+              "goals_for": 9,
+              "goals_against": 17
+            },
+            "goal_difference": -13,
+            "points": 21,
+            "recent_form": "WLLLL",
+            "status": "same",
+            "description": ""
+          },
+          {
+            "team_id": 9427,
+            "team_name": "West Ham",
+            "position": 18,
+            "overall": {
+              "played": 21,
+              "wins": 3,
+              "draws": 5,
+              "losses": 13,
+              "goals_for": 22,
+              "goals_against": 43
+            },
+            "home": {
+              "played": 11,
+              "wins": 2,
+              "draws": 1,
+              "losses": 8,
+              "goals_for": 13,
+              "goals_against": 25
+            },
+            "away": {
+              "played": 10,
+              "wins": 1,
+              "draws": 4,
+              "losses": 5,
+              "goals_for": 9,
+              "goals_against": 18
+            },
+            "goal_difference": -21,
+            "points": 14,
+            "recent_form": "LLDLL",
+            "status": "same",
+            "description": "Relegation - Championship"
+          },
+          {
+            "team_id": 9072,
+            "team_name": "Burnley",
+            "position": 19,
+            "overall": {
+              "played": 21,
+              "wins": 3,
+              "draws": 4,
+              "losses": 14,
+              "goals_for": 22,
+              "goals_against": 41
+            },
+            "home": {
+              "played": 11,
+              "wins": 2,
+              "draws": 3,
+              "losses": 6,
+              "goals_for": 10,
+              "goals_against": 15
+            },
+            "away": {
+              "played": 10,
+              "wins": 1,
+              "draws": 1,
+              "losses": 8,
+              "goals_for": 12,
+              "goals_against": 26
+            },
+            "goal_difference": -19,
+            "points": 13,
+            "recent_form": "DLLDD",
+            "status": "same",
+            "description": "Relegation - Championship"
+          },
+          {
+            "team_id": 9446,
+            "team_name": "Wolves",
+            "position": 20,
+            "overall": {
+              "played": 21,
+              "wins": 1,
+              "draws": 4,
+              "losses": 16,
+              "goals_for": 15,
+              "goals_against": 41
+            },
+            "home": {
+              "played": 10,
+              "wins": 1,
+              "draws": 1,
+              "losses": 8,
+              "goals_for": 10,
+              "goals_against": 23
+            },
+            "away": {
+              "played": 11,
+              "wins": 0,
+              "draws": 3,
+              "losses": 8,
+              "goals_for": 5,
+              "goals_against": 18
+            },
+            "goal_difference": -26,
+            "points": 7,
+            "recent_form": "DWDLL",
+            "status": "same",
+            "description": "Relegation - Championship"
+          }
+        ],
+        "updated_at": "2026-01-10T12:02:11.085Z"
+      }
+    ]
+  },
+  "statusCode": 200
+}

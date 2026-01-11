@@ -161,7 +161,7 @@ export const dashboard = () => {
   }, [toast]);
 
   const topLeagueIds = useMemo(
-    () => [1204, 1059, 1399, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
+    () => [1204, 1059, 1399, 1198, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
     []
   );
   // const topLeagueIds = [1399, 1204, 1269 1352];
@@ -600,6 +600,49 @@ export const dashboard = () => {
                     {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                       (() => {
                         const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                        const events = Array.isArray(game?.events) ? game.events : [];
+                        const normalizeTeamKey = (raw: unknown) => {
+                          const t = String(raw ?? "").trim().toLowerCase();
+                          if (!t) return "";
+                          if (t.includes("local") || t.includes("home")) return "localteam";
+                          if (t.includes("visitor") || t.includes("away")) return "visitorteam";
+                          return t;
+                        };
+                        const countEventType = (teamKey: "localteam" | "visitorteam", types: string[]) => {
+                          const set = new Set(types.map((x) => String(x).toLowerCase()));
+                          return events.reduce((acc: number, ev: any) => {
+                            const evType = String(ev?.type ?? "").trim().toLowerCase();
+                            const evTeam = normalizeTeamKey(ev?.team);
+                            if (evTeam === teamKey && set.has(evType)) return acc + 1;
+                            return acc;
+                          }, 0);
+                        };
+                        const homeRedCards = countEventType("localteam", ["redcard"]);
+                        const awayRedCards = countEventType("visitorteam", ["redcard"]);
+                        const homeStreams = countEventType("localteam", ["sream", "stream"]);
+                        const awayStreams = countEventType("visitorteam", ["sream", "stream"]);
+
+                        const IndicatorCard = ({
+                          count,
+                          variant,
+                        }: {
+                          count: number;
+                          variant: "red" | "stream";
+                        }) => {
+                          if (!count) return null;
+                          const base = variant === "red" ? "bg-red-600 text-white" : "bg-sky-600 text-white";
+                          const size =
+                            variant === "red"
+                              ? "h-4 w-3"
+                              : "h-4 min-w-4 px-1 rounded-sm";
+                          return (
+                            <span
+                              className={`inline-flex items-center justify-center ${size} text-[10px] font-bold leading-none ${base}`}
+                            >
+                              {variant === "red" ? (count > 1 ? count : null) : count > 1 ? count : "S"}
+                            </span>
+                          );
+                        };
                         const statusLabel =
                           ui.state === "ft"
                             ? "FT"
@@ -623,7 +666,9 @@ export const dashboard = () => {
                           <>
                             <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                              <IndicatorCard count={homeRedCards} variant="red" />
                               <p>{game.localteam.name}</p>
+                              <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
                             <div className="flex-2/11 flex  justify-between">
@@ -632,14 +677,18 @@ export const dashboard = () => {
                             </div>
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                              <IndicatorCard count={awayStreams} variant="stream" />
                               <p>{game.visitorteam.name}</p>
+                              <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
                         ) : ui.state === "ht" ? (
                           <>
                             <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                              <IndicatorCard count={homeRedCards} variant="red" />
                               <p>{game.localteam.name}</p>
+                              <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
                             <div className="flex-2/11 flex  justify-between">
@@ -648,14 +697,18 @@ export const dashboard = () => {
                             </div>
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                              <IndicatorCard count={awayStreams} variant="stream" />
                               <p>{game.visitorteam.name}</p>
+                              <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
                         ) : ui.state === "timer" ? (
                           <>
                             <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                              <IndicatorCard count={homeRedCards} variant="red" />
                               <p>{game.localteam.name}</p>
+                              <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
                             <div className="flex-2/11 flex  justify-between">
@@ -664,13 +717,17 @@ export const dashboard = () => {
                             </div>
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                              <IndicatorCard count={awayStreams} variant="stream" />
                               <p>{game.visitorteam.name}</p>
+                              <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
+                              <IndicatorCard count={homeRedCards} variant="red" />
                               <p>{game.localteam.name}</p>
+                              <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
                             <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
@@ -678,7 +735,9 @@ export const dashboard = () => {
                             </p>
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                              <IndicatorCard count={awayStreams} variant="stream" />
                               <p>{game.visitorteam.name}</p>
+                              <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
                         )}
@@ -709,6 +768,49 @@ export const dashboard = () => {
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                      const events = Array.isArray(game?.events) ? game.events : [];
+                      const normalizeTeamKey = (raw: unknown) => {
+                        const t = String(raw ?? "").trim().toLowerCase();
+                        if (!t) return "";
+                        if (t.includes("local") || t.includes("home")) return "localteam";
+                        if (t.includes("visitor") || t.includes("away")) return "visitorteam";
+                        return t;
+                      };
+                      const countEventType = (teamKey: "localteam" | "visitorteam", types: string[]) => {
+                        const set = new Set(types.map((x) => String(x).toLowerCase()));
+                        return events.reduce((acc: number, ev: any) => {
+                          const evType = String(ev?.type ?? "").trim().toLowerCase();
+                          const evTeam = normalizeTeamKey(ev?.team);
+                          if (evTeam === teamKey && set.has(evType)) return acc + 1;
+                          return acc;
+                        }, 0);
+                      };
+                      const homeRedCards = countEventType("localteam", ["redcard"]);
+                      const awayRedCards = countEventType("visitorteam", ["redcard"]);
+                      const homeStreams = countEventType("localteam", ["sream", "stream"]);
+                      const awayStreams = countEventType("visitorteam", ["sream", "stream"]);
+
+                      const IndicatorCard = ({
+                        count,
+                        variant,
+                      }: {
+                        count: number;
+                        variant: "red" | "stream";
+                      }) => {
+                        if (!count) return null;
+                        const base = variant === "red" ? "bg-red-600 text-white" : "bg-sky-600 text-white";
+                        const size =
+                          variant === "red"
+                            ? "h-3 w-2"
+                            : "h-4 min-w-4 px-1 rounded-sm";
+                        return (
+                          <span
+                            className={`inline-flex items-center justify-center ${size} text-[10px] font-bold leading-none ${base}`}
+                          >
+                            {variant === "red" ? (count > 1 ? count : null) : count > 1 ? count : "S"}
+                          </span>
+                        );
+                      };
                       const statusLabel =
                         ui.state === "ft"
                           ? "FT"
@@ -730,7 +832,9 @@ export const dashboard = () => {
                         <>
                           <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
                           <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                            <IndicatorCard count={homeRedCards} variant="red" />
                             <p>{game.localteam.name}</p>
+                            <IndicatorCard count={homeStreams} variant="stream" />
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                           </div>
                           <div className="flex-2/11 flex  justify-between">
@@ -739,14 +843,18 @@ export const dashboard = () => {
                           </div>
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                            <IndicatorCard count={awayStreams} variant="stream" />
                             <p>{game.visitorteam.name}</p>
+                            <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
                       ) : ui.state === "timer" ? (
                         <>
                           <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
                           <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                            <IndicatorCard count={homeRedCards} variant="red" />
                             <p>{game.localteam.name}</p>
+                            <IndicatorCard count={homeStreams} variant="stream" />
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                           </div>
                           <div className="flex-2/11 flex  justify-between">
@@ -755,13 +863,17 @@ export const dashboard = () => {
                           </div>
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                            <IndicatorCard count={awayStreams} variant="stream" />
                             <p>{game.visitorteam.name}</p>
+                            <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
+                            <IndicatorCard count={homeRedCards} variant="red" />
                             <p>{game.localteam.name}</p>
+                            <IndicatorCard count={homeStreams} variant="stream" />
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                           </div>
                           <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
@@ -769,7 +881,9 @@ export const dashboard = () => {
                           </p>
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                            <IndicatorCard count={awayStreams} variant="stream" />
                             <p>{game.visitorteam.name}</p>
+                            <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
                       )}
@@ -849,6 +963,46 @@ export const dashboard = () => {
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                      const events = Array.isArray(game?.events) ? game.events : [];
+                      const normalizeTeamKey = (raw: unknown) => {
+                        const t = String(raw ?? "").trim().toLowerCase();
+                        if (!t) return "";
+                        if (t.includes("local") || t.includes("home")) return "localteam";
+                        if (t.includes("visitor") || t.includes("away")) return "visitorteam";
+                        return t;
+                      };
+                      const countEventType = (teamKey: "localteam" | "visitorteam", types: string[]) => {
+                        const set = new Set(types.map((x) => String(x).toLowerCase()));
+                        return events.reduce((acc: number, ev: any) => {
+                          const evType = String(ev?.type ?? "").trim().toLowerCase();
+                          const evTeam = normalizeTeamKey(ev?.team);
+                          if (evTeam === teamKey && set.has(evType)) return acc + 1;
+                          return acc;
+                        }, 0);
+                      };
+                      const homeRedCards = countEventType("localteam", ["redcard"]);
+                      const awayRedCards = countEventType("visitorteam", ["redcard"]);
+                      const homeStreams = countEventType("localteam", ["sream", "stream"]);
+                      const awayStreams = countEventType("visitorteam", ["sream", "stream"]);
+
+                      const IndicatorCard = ({
+                        count,
+                        variant,
+                      }: {
+                        count: number;
+                        variant: "red" | "stream";
+                      }) => {
+                        if (!count) return null;
+                        const base = variant === "red" ? "bg-red-600 text-white" : "bg-sky-600 text-white";
+                        const size = variant === "red" ? "h-3 w-2" : "";
+                        return (
+                          <span
+                            className={`inline-flex items-center justify-center ${size} text-[10px] font-bold leading-none ${base}`}
+                          >
+                            {variant === "red" ? (count > 1 ? count : null) : count > 1 ? count : "S"}
+                          </span>
+                        );
+                      };
                       const statusLabel =
                         ui.state === "ft"
                           ? "FT"
@@ -874,16 +1028,20 @@ export const dashboard = () => {
                       <div className="flex flex-col flex-1 mx-1 gap-0.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                              {game.localteam.name}
-                            </span>
-                          </div>
-                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                              {fixturesMode === "live" ? (
-                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              ) : ui.state === "ft" ? (
+                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
+                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                            {game.localteam.name}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <IndicatorCard count={homeRedCards} variant="red" />
+                            <IndicatorCard count={homeStreams} variant="stream" />
+                          </span>
+                        </div>
+                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                            {fixturesMode === "live" ? (
+                              <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                            ) : ui.state === "ft" ? (
                                 game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
                               ) : ui.state === "timer" || ui.state === "ht" ? (
                                 <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
@@ -895,16 +1053,20 @@ export const dashboard = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                              {game.visitorteam.name}
-                            </span>
-                          </div>
-                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                              {fixturesMode === "live" ? (
-                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                              ) : ui.state === "ft" ? (
+                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
+                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                            {game.visitorteam.name}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <IndicatorCard count={awayRedCards} variant="red" />
+                            <IndicatorCard count={awayStreams} variant="stream" />
+                          </span>
+                        </div>
+                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                            {fixturesMode === "live" ? (
+                              <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                            ) : ui.state === "ft" ? (
                                 game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
                               ) : ui.state === "timer" || ui.state === "ht" ? (
                                 <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
@@ -945,6 +1107,49 @@ export const dashboard = () => {
                 {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                   (() => {
                     const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                    const events = Array.isArray(game?.events) ? game.events : [];
+                    const normalizeTeamKey = (raw: unknown) => {
+                      const t = String(raw ?? "").trim().toLowerCase();
+                      if (!t) return "";
+                      if (t.includes("local") || t.includes("home")) return "localteam";
+                      if (t.includes("visitor") || t.includes("away")) return "visitorteam";
+                      return t;
+                    };
+                    const countEventType = (teamKey: "localteam" | "visitorteam", types: string[]) => {
+                      const set = new Set(types.map((x) => String(x).toLowerCase()));
+                      return events.reduce((acc: number, ev: any) => {
+                        const evType = String(ev?.type ?? "").trim().toLowerCase();
+                        const evTeam = normalizeTeamKey(ev?.team);
+                        if (evTeam === teamKey && set.has(evType)) return acc + 1;
+                        return acc;
+                      }, 0);
+                    };
+                    const homeRedCards = countEventType("localteam", ["redcard"]);
+                    const awayRedCards = countEventType("visitorteam", ["redcard"]);
+                    const homeStreams = countEventType("localteam", ["sream", "stream"]);
+                    const awayStreams = countEventType("visitorteam", ["sream", "stream"]);
+
+                    const IndicatorCard = ({
+                      count,
+                      variant,
+                    }: {
+                      count: number;
+                      variant: "red" | "stream";
+                    }) => {
+                      if (!count) return null;
+                      const base = variant === "red" ? "bg-red-600 text-white" : "bg-sky-600 text-white";
+                      const size =
+                        variant === "red"
+                          ? "h-4 w-3"
+                          : "h-4 min-w-4 px-1 rounded-sm";
+                      return (
+                        <span
+                          className={`inline-flex items-center justify-center ${size} text-[10px] font-bold leading-none ${base}`}
+                        >
+                          {variant === "red" ? (count > 1 ? count : null) : count > 1 ? count : "S"}
+                        </span>
+                      );
+                    };
                     const statusLabel =
                       ui.state === "ft"
                         ? "FT"
@@ -970,29 +1175,37 @@ export const dashboard = () => {
                     <div className="flex flex-col flex-1 mx-1 gap-0.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                            {game.localteam.name}
-                          </span>
-                        </div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                            <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                          </span>
-                        </div>
+                        <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
+                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                          {game.localteam.name}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <IndicatorCard count={homeRedCards} variant="red" />
+                          <IndicatorCard count={homeStreams} variant="stream" />
+                        </span>
+                      </div>
+                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                          <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                        </span>
+                      </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                            {game.visitorteam.name}
-                          </span>
-                        </div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                            <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                          </span>
-                        </div>
+                        <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
+                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                          {game.visitorteam.name}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <IndicatorCard count={awayRedCards} variant="red" />
+                          <IndicatorCard count={awayStreams} variant="stream" />
+                        </span>
+                      </div>
+                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                          <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                        </span>
+                      </div>
                       </div>
                     </div>
                   </Link>

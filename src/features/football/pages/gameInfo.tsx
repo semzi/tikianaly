@@ -4,27 +4,29 @@ import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowLeftIcon,
   BellAlertIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   ShareIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Form/FormButton";
 import { navigate } from "@/lib/router/navigate";
-import { getFixtureDetails } from "@/lib/api/endpoints";
+import { getFixtureDetails, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { useLocation, useParams } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetVenueImage from "@/components/common/GetVenueImage";
 import LineupBuilder from "@/features/football/components/lineupBuilder";
-import FeatureComingSoon from "@/components/common/FeatureComingSoon";
+import MatchStatisticsPanel from "@/features/football/components/MatchStatisticsPanel";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import TeamComparison from "@/features/football/components/TeamComparison";
+import PlayerStatsBottomSheet from "@/features/football/components/player/PlayerStatsBottomSheet";
 import {
   closeLiveStream,
   createFootballLiveStream,
   type LiveStreamEvent,
   type LiveStreamFixture,
 } from "@/lib/api/livestream";
-import FeedbackPanel from "@/components/common/FeedbackPanel";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { Helmet } from "react-helmet";
 
@@ -57,10 +59,26 @@ export const gameInfo = () => {
     return tabs.find((tab) => tab.id === hash) ? hash : "overview";
   };
 
+  const hasExplicitHashTab = (() => {
+    if (typeof window === "undefined") return false;
+    const hash = window.location.hash.replace("#", "");
+    return !!tabs.find((tab) => tab.id === hash);
+  })();
+
   const [activeTab, setActiveTab] = useState(getTabFromHash);
   const [fixtureDetails, setFixtureDetails] = useState<any>(null);
+  const [matchInfo, setMatchInfo] = useState<any>(null);
   const [liveFixture, setLiveFixture] = useState<LiveStreamFixture | null>(null);
   const [liveEvents, setLiveEvents] = useState<LiveStreamEvent[]>([]);
+  const [, setStandingsData] = useState<any>(null);
+  const [homeRecentForm, setHomeRecentForm] = useState<Array<"W" | "D" | "L">>([]);
+  const [awayRecentForm, setAwayRecentForm] = useState<Array<"W" | "D" | "L">>([]);
+  const [isPlayerSheetOpen, setIsPlayerSheetOpen] = useState(false);
+  const [playerSheetName, setPlayerSheetName] = useState<string>("");
+  const [playerSheetId, setPlayerSheetId] = useState<string>("");
+  const [playerSheetImage, setPlayerSheetImage] = useState<string>("");
+  const [playerSheetStats, setPlayerSheetStats] = useState<Array<{ label: string; value: string }>>([]);
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const { fixtureId: matchKey } = useParams<{ fixtureId: string }>();
   const location = useLocation();
   const fixtureIdForRest = (() => {
@@ -72,6 +90,21 @@ export const gameInfo = () => {
       return String(matchKey ?? "").trim();
     }
   })();
+
+  useEffect(() => {
+    const fetchMatchInfo = async () => {
+      if (!fixtureIdForRest) return;
+      try {
+        const res = await getMatchInfo(fixtureIdForRest);
+        const item0 = (res as any)?.responseObject?.item?.[0];
+        setMatchInfo(item0 ?? (res as any)?.responseObject ?? res);
+      } catch (error) {
+        console.error("Error fetching match info:", error);
+      }
+    };
+
+    fetchMatchInfo();
+  }, [fixtureIdForRest]);
 
   const formatLiveMinute = (ev: LiveStreamEvent) => {
     const base = String(ev.minute ?? "").trim();
@@ -135,6 +168,156 @@ export const gameInfo = () => {
     (fixtureDetails as any)?.leagueId ??
     (fixtureDetails as any)?.league?.id;
 
+  const playerAvatarStorageKey = (id: string) => `player_avatar_base64_${id}`;
+
+  const getCachedPlayerAvatar = (playerId?: string): string | null => {
+    const id = String(playerId ?? "").trim();
+    if (!id) return null;
+    try {
+      const cached = sessionStorage.getItem(playerAvatarStorageKey(id));
+      return cached || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const cachePlayerAvatar = (playerId: string, dataUrl: string) => {
+    const id = String(playerId ?? "").trim();
+    if (!id || !dataUrl) return;
+    try {
+      sessionStorage.setItem(playerAvatarStorageKey(id), dataUrl);
+    } catch {
+      // ignore
+    }
+  };
+
+  const resolveMatchPlayerStats = (opts: { playerId?: string; playerName?: string }) => {
+    const playerId = String(opts.playerId ?? "").trim();
+    const playerName = String(opts.playerName ?? "").trim();
+    const toKey = (s: string) => s.trim().toLowerCase();
+
+    const bucketHome = fixtureDetails?.player_stats?.home;
+    const bucketAway = fixtureDetails?.player_stats?.away;
+    const all = [
+      ...(Array.isArray(bucketHome) ? bucketHome : []),
+      ...(Array.isArray(bucketAway) ? bucketAway : []),
+    ] as any[];
+
+    const found =
+      (playerId ? all.find((p) => String(p?.id ?? "").trim() === playerId) : undefined) ??
+      (playerName ? all.find((p) => toKey(String(p?.name ?? "")) === toKey(playerName)) : undefined) ??
+      null;
+
+    if (!found) return [] as Array<{ label: string; value: string }>;
+
+    const add = (label: string, value: unknown) => {
+      const v = String(value ?? "").trim();
+      if (!v) return null;
+      if (v === "0" || v === "0.0") return null;
+      return { label, value: v };
+    };
+
+    return [
+      add("Rating", found?.rating),
+      add("Minutes", found?.minutes_played),
+      add("Goals", found?.goals),
+      add("Assists", found?.assists),
+      add("Offsides", found?.offsides),
+      add("Fouls drawn", found?.fouls_drawn),
+      add("Fouls committed", found?.fouls_commited),
+
+      add("Shots", found?.shots_total),
+      add("Shots on target", found?.shots_on_goal),
+      add("Hit woodwork", found?.hit_woodwork),
+      add("Big chances created", found?.big_chance_created),
+      add("Big chances missed", found?.big_chance_missed),
+
+      add("Passes", found?.passes),
+      add("Pass accuracy", found?.passes_acc),
+      add("Key passes", found?.keyPasses),
+
+      add("Total crosses", found?.total_crosses),
+      add("Accurate crosses", found?.acc_crosses),
+
+      add("Duels", found?.duelsTotal),
+      add("Duels won", found?.duelsWon),
+      add("Aerials won", found?.aerials_won),
+
+      add("Dribble attempts", found?.dribbleAttempts),
+      add("Dribbles completed", found?.dribbleSucc),
+      add("Dribbled past", found?.dribbledPast),
+      add("Dispossessed", found?.dispossesed),
+
+      add("Tackles", found?.tackles),
+      add("Interceptions", found?.interceptions),
+      add("Blocks", found?.blocks),
+      add("Clearances", found?.clearances),
+      add("Clearance off line", found?.clearance_offine),
+      add("Last man tackle", found?.lastman_tackle),
+
+      add("Saves", found?.saves),
+      add("Punches", found?.punches),
+      add("Saves inside box", found?.savesInsideBox),
+      add("Good high claim", found?.good_high_claim),
+
+      add("Error led to goal", found?.error_lead_to_goal),
+
+      add("Penalties scored", found?.pen_score),
+      add("Penalties missed", found?.pen_miss),
+      add("Penalties saved", found?.pen_save),
+      add("Penalty committed", found?.pen_committed),
+      add("Penalty won", found?.pen_won),
+
+      add("Yellow cards", found?.yellowcards),
+      add("Red cards", found?.redcards),
+    ].filter(Boolean) as Array<{ label: string; value: string }>;
+  };
+
+  const openPlayerSheet = async (opts: { playerId?: string; playerName?: string }) => {
+    const id = String(opts.playerId ?? "").trim();
+    const name = String(opts.playerName ?? "").trim();
+    const title = name || "Player";
+
+    setPlayerSheetName(title);
+    setPlayerSheetId(id);
+    setPlayerSheetStats(resolveMatchPlayerStats({ playerId: id, playerName: name }));
+    setIsPlayerSheetOpen(true);
+
+    if (!id) {
+      setPlayerSheetImage("");
+      return;
+    }
+
+    const cached = getCachedPlayerAvatar(id);
+    if (cached) {
+      setPlayerSheetImage(cached);
+      return;
+    }
+
+    try {
+      const res: any = await getPlayerById(id);
+      const raw = res?.responseObject?.item?.image;
+      if (!raw) return;
+      const s = String(raw);
+      const dataUrl = s.startsWith("data:image") ? s : `data:image/png;base64,${s}`;
+      cachePlayerAvatar(id, dataUrl);
+      setPlayerSheetImage(dataUrl);
+    } catch {
+      // ignore
+    }
+  };
+
+  const closePlayerSheet = () => {
+    setIsPlayerSheetOpen(false);
+  };
+
+  const handleViewPlayerProfile = () => {
+    const id = String(playerSheetId ?? "").trim();
+    if (!id) return;
+    closePlayerSheet();
+    navigate(`/football/player/${id}`);
+  };
+
   const FormDots = ({ results, align }: { results: Array<"W" | "D" | "L">; align?: "left" | "right" }) => {
     const justify = align === "right" ? "justify-end" : "justify-start";
     const color = (r: "W" | "D" | "L") => {
@@ -149,8 +332,55 @@ export const gameInfo = () => {
     );
   };
 
-  const homeRecentForm: Array<"W" | "D" | "L"> = ["W", "D", "W", "L", "W"];
-  const awayRecentForm: Array<"W" | "D" | "L"> = ["L", "W", "D", "L", "D"];
+  useEffect(() => {
+    const leagueId = String(displayLeagueId ?? "").trim();
+    if (!leagueId) {
+      setStandingsData(null);
+      setHomeRecentForm([]);
+      setAwayRecentForm([]);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const parseForm = (raw: unknown): Array<"W" | "D" | "L"> => {
+      const str = String(raw ?? "").toUpperCase().replace(/[^WDL]/g, "");
+      const items = str.slice(0, 5).split("") as Array<"W" | "D" | "L">;
+      while (items.length < 5) items.push("D");
+      return items;
+    };
+
+    const run = async () => {
+      try {
+        const res = await getStandingsByLeagueId(leagueId);
+        if (isCancelled) return;
+        setStandingsData(res);
+
+        const standings = res?.responseObject?.item?.[0]?.standings;
+        const homeIdNum = Number(displayHomeTeamId);
+        const awayIdNum = Number(displayAwayTeamId);
+        const homeRow = Array.isArray(standings) && Number.isFinite(homeIdNum)
+          ? standings.find((s: any) => Number(s?.team_id) === homeIdNum)
+          : undefined;
+        const awayRow = Array.isArray(standings) && Number.isFinite(awayIdNum)
+          ? standings.find((s: any) => Number(s?.team_id) === awayIdNum)
+          : undefined;
+
+        setHomeRecentForm(parseForm(homeRow?.recent_form));
+        setAwayRecentForm(parseForm(awayRow?.recent_form));
+      } catch {
+        if (isCancelled) return;
+        setStandingsData(null);
+        setHomeRecentForm([]);
+        setAwayRecentForm([]);
+      }
+    };
+
+    run();
+    return () => {
+      isCancelled = true;
+    };
+  }, [displayLeagueId, displayHomeTeamId, displayAwayTeamId]);
 
   const resolveTimelineEvents = () => {
     const hasSseFixture = !!liveFixture;
@@ -171,6 +401,311 @@ export const gameInfo = () => {
     status: (liveFixture as any)?.status ?? (fixtureDetails as any)?.status,
     timer: (liveFixture as any)?.timer ?? (fixtureDetails as any)?.timer,
   });
+
+  useEffect(() => {
+    if (hasExplicitHashTab) return;
+    if (typeof window === "undefined") return;
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) return;
+    const isLiveOrPlayed = ui.state === "timer" || ui.state === "ht" || ui.state === "ft";
+    if (!isLiveOrPlayed) return;
+    setActiveTab("timeline");
+    const newUrl = `${window.location.pathname}${window.location.search}#timeline`;
+    window.history.replaceState(null, "", newUrl);
+  }, [hasExplicitHashTab, ui.state]);
+
+  const TimelinePanel = ({ mode }: { mode: "desktop" | "full" }) => {
+    const maxItems = 8;
+    const shouldCollapse = mode === "desktop" && !isTimelineExpanded;
+    const visibleTimeline = shouldCollapse
+      ? timelineWithRunningScore.slice(-maxItems)
+      : timelineWithRunningScore;
+    const showExpand = mode === "desktop" && timelineWithRunningScore.length > maxItems;
+
+    return (
+      <div className="block p-0 block-style">
+        <div className="px-4 py-3 border-b border-snow-200 dark:border-snow-100/10">
+          <p className="theme-text font-bold text-center text-sm md:text-base">Timeline</p>
+        </div>
+        <div className={`${shouldCollapse ? "max-h-[420px] overflow-hidden" : ""}`}>
+          <div className="flex divide-snow-200 dark:divide-snow-100/10 divide-y divide-y-reverse flex-col-reverse">
+            {visibleTimeline.length === 0 ? (
+              <div className="px-4 py-8">
+                <p className="theme-text text-center">Nothing to show here</p>
+              </div>
+            ) : (
+              visibleTimeline.map(({ ev, runningScore }) => {
+            const isHalfTime = (ev as any)?.type === "halftime";
+            const eventType = String((ev as any)?.type ?? "").toLowerCase();
+            const isGoal = eventType === "goal";
+            const isLocal = String((ev as any)?.team) === "localteam";
+            const isVisitor = String((ev as any)?.team) === "visitorteam";
+            const minuteLabel = isHalfTime ? "HT" : formatLiveMinute(ev);
+
+            const scoreText = normalizeScoreText((ev as any)?.result);
+            const centerScore = isHalfTime ? halfTimeScoreText : (scoreText || runningScore);
+            const playerLabel = String((ev as any)?.player ?? "").toLowerCase();
+            const isPenaltyGoal = eventType === "goal" && playerLabel.includes("(pen.)");
+
+            const iconEl = (() => {
+              if (eventType === "goal") {
+                return isPenaltyGoal ? (
+                  <img src="/icons/goal-scored.svg" className="w-4 theme-icon" alt="" />
+                ) : (
+                  <img src="/icons/football-line-1.svg" className="w-4 theme-icon" alt="" />
+                );
+              }
+              if (eventType === "yellowcard") return <div className="w-4 h-5 bg-ui-pending" />;
+              if (eventType === "yellowred") return <div className="w-4 h-5 bg-ui-negative" />;
+              if (eventType === "redcard") return <div className="w-4 h-5 bg-ui-negative" />;
+              if (eventType === "subst") {
+                return (
+                  <div className="relative w-5 h-5">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="absolute top-0 left-0 w-3 h-3"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 20V5"
+                        stroke="#16A34A"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7 10L12 5L17 10"
+                        stroke="#16A34A"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="absolute bottom-0 right-0 w-3 h-3"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 4V19"
+                        stroke="#DC2626"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7 14L12 19L17 14"
+                        stroke="#DC2626"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+              if (eventType === "pen miss") {
+                return <img src="/icons/goal-missed.svg" className="w-5 theme-icon" alt="" />;
+              }
+              if (eventType === "halftime") {
+                return <img src="./icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
+              }
+              if (eventType === "var") {
+                return <img src="./icons/VAR.svg" className="w-4 theme-icon" alt="" />;
+              }
+              return <div className="w-4 h-5 bg-snow-200 dark:bg-neutral-n4" />;
+            })();
+
+            if (isHalfTime) {
+              return (
+                <div key={`ht-${halfTimeScoreText}`} className="flex px-4 py-3 bg-snow-100 dark:bg-neutral-n4 items-center">
+                  <p className="flex-1/11 text-neutral-m6 text-[11px] md:text-sm">{minuteLabel}</p>
+                  <div className="flex items-center flex-4/11 justify-end gap-4">
+                    <div className="flex text-right flex-col">
+                      <p className="theme-text text-[11px] md:text-sm">Half Time</p>
+                    </div>
+                    <div className="block">{iconEl}</div>
+                  </div>
+                  <p className="theme-text font-bold text-center flex-2/11 text-[11px] md:text-sm">{halfTimeScoreText}</p>
+                  <span className="flex-4/11"></span>
+                </div>
+              );
+            }
+
+            if (isLocal) {
+              return (
+                <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
+                  {isGoal ? (
+                    <div
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
+                        GOOOAAAALLL!!!
+                      </span>
+                    </div>
+                  ) : null}
+                  <p className="flex-1/11 text-neutral-m6 text-[11px] md:text-sm">{minuteLabel}</p>
+                  <div className="flex items-center flex-4/11 justify-end gap-4">
+                    <div className="flex flex-col text-right">
+                      <p
+                        className="theme-text cursor-pointer text-[11px] md:text-sm"
+                        onClick={() =>
+                          openPlayerSheet({
+                            playerId: String((ev as any)?.playerId ?? "").trim() || undefined,
+                            playerName: String((ev as any)?.player ?? "").trim() || undefined,
+                          })
+                        }
+                      >
+                        {(ev as any)?.player || ""}
+                      </p>
+                      {(ev as any)?.assist ? (
+                        <p
+                          className="text-neutral-m6 cursor-pointer text-[11px] md:text-xs"
+                          onClick={() =>
+                            openPlayerSheet({
+                              playerId: String((ev as any)?.assistid ?? "").trim() || undefined,
+                              playerName: String((ev as any)?.assist ?? "").trim() || undefined,
+                            })
+                          }
+                        >
+                          {(ev as any)?.assist}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="block">{iconEl}</div>
+                  </div>
+                  <p className="theme-text font-bold text-center flex-2/11 text-[11px] md:text-sm">{centerScore}</p>
+                  <span className="flex-4/11"></span>
+                </div>
+              );
+            }
+
+            if (isVisitor) {
+              return (
+                <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
+                  {isGoal ? (
+                    <div
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
+                        GOOOAAAALLL!!!
+                      </span>
+                    </div>
+                  ) : null}
+                  <p className="flex-1/11 text-neutral-m6 text-[11px] md:text-sm">{minuteLabel}</p>
+                  <span className="flex-4/11"></span>
+                  <p className="theme-text font-bold text-center flex-2/11 text-[11px] md:text-sm">{centerScore}</p>
+                  <div className="flex items-center flex-4/11 justify-start gap-4">
+                    <div className="block">{iconEl}</div>
+                    <div className="flex flex-col">
+                      <p
+                        className="theme-text cursor-pointer text-[11px] md:text-sm"
+                        onClick={() =>
+                          openPlayerSheet({
+                            playerId: String((ev as any)?.playerId ?? "").trim() || undefined,
+                            playerName: String((ev as any)?.player ?? "").trim() || undefined,
+                          })
+                        }
+                      >
+                        {(ev as any)?.player || ""}
+                      </p>
+                      {(ev as any)?.assist ? (
+                        <p
+                          className="text-neutral-m6 cursor-pointer text-[11px] md:text-xs"
+                          onClick={() =>
+                            openPlayerSheet({
+                              playerId: String((ev as any)?.assistid ?? "").trim() || undefined,
+                              playerName: String((ev as any)?.assist ?? "").trim() || undefined,
+                            })
+                          }
+                        >
+                          {(ev as any)?.assist}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
+                {isGoal ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
+                      GOOOAAAALLL!!!
+                    </span>
+                  </div>
+                ) : null}
+                <p className="flex-1/11 text-neutral-m6 text-[11px] md:text-sm">{minuteLabel}</p>
+                <span className="flex-4/11"></span>
+                <p className="theme-text font-bold text-center flex-2/11 text-[11px] md:text-sm">{centerScore}</p>
+                <div className="flex items-center flex-4/11 justify-start gap-4">
+                  <div className="block">{iconEl}</div>
+                  <div className="flex flex-col">
+                    <p
+                      className="theme-text cursor-pointer text-[11px] md:text-sm"
+                      onClick={() =>
+                        openPlayerSheet({
+                          playerId: String((ev as any)?.playerId ?? "").trim() || undefined,
+                          playerName: String((ev as any)?.player ?? "").trim() || undefined,
+                        })
+                      }
+                    >
+                      {(ev as any)?.player || ""}
+                    </p>
+                    {(ev as any)?.assist ? (
+                      <p
+                        className="text-neutral-m6 cursor-pointer text-[11px] md:text-xs"
+                        onClick={() =>
+                          openPlayerSheet({
+                            playerId: String((ev as any)?.assistid ?? "").trim() || undefined,
+                            playerName: String((ev as any)?.assist ?? "").trim() || undefined,
+                          })
+                        }
+                      >
+                        {(ev as any)?.assist}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+              })
+            )}
+          </div>
+        </div>
+        {showExpand ? (
+          <div className="px-4 py-3 border-t border-snow-200 dark:border-snow-100/10">
+            <button
+              type="button"
+              onClick={() => setIsTimelineExpanded((v) => !v)}
+              className="w-full h-10 rounded-xl bg-brand-secondary !text-white font-semibold flex items-center justify-center gap-2"
+            >
+              {isTimelineExpanded ? (
+                <>
+                  <ChevronUpIcon className="w-5 h-5" />
+                  <span>Collapse</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDownIcon className="w-5 h-5" />
+                  <span>Expand</span>
+                </>
+              )}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   const upcomingTimeLabel = String(
     (liveFixture as any)?.time ??
@@ -509,7 +1044,11 @@ export const gameInfo = () => {
                 <div className="md:flex gap-3 hidden items-start justify-end mt-1">
                   <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
                     {getGroupedGoalsByTeam("localteam").map((goal, index: number) => (
-                      <p key={`${goal.player}-${index}`}>
+                      <p
+                        key={`${goal.player}-${index}`}
+                        className="cursor-pointer"
+                        onClick={() => openPlayerSheet({ playerName: goal.player })}
+                      >
                         {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
                       </p>
                     ))}
@@ -551,7 +1090,11 @@ export const gameInfo = () => {
               />
               <StaggerChildren className="flex font-light sz-8 flex-col text-left">
                 {getGroupedGoalsByTeam("visitorteam").map((goal, index: number) => (
-                  <p key={`${goal.player}-${index}`}>
+                  <p
+                    key={`${goal.player}-${index}`}
+                    className="cursor-pointer"
+                    onClick={() => openPlayerSheet({ playerName: goal.player })}
+                  >
                     {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
                   </p>
                 ))}
@@ -568,7 +1111,11 @@ export const gameInfo = () => {
             <div className="flex flex-1 gap-3 items-start justify-end mt-1">
               <StaggerChildren className="flex font-light text-[12px] flex-col text-right">
                 {getGroupedGoalsByTeam("localteam").map((goal, index: number) => (
-                  <p key={`${goal.player}-${index}`}>
+                  <p
+                    key={`${goal.player}-${index}`}
+                    className="cursor-pointer"
+                    onClick={() => openPlayerSheet({ playerName: goal.player })}
+                  >
                     {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
                   </p>
                 ))}
@@ -587,7 +1134,11 @@ export const gameInfo = () => {
               />
               <StaggerChildren className="flex font-light text-[12px] flex-col text-left">
                 {getGroupedGoalsByTeam("visitorteam").map((goal, index: number) => (
-                  <p key={`${goal.player}-${index}`}>
+                  <p
+                    key={`${goal.player}-${index}`}
+                    className="cursor-pointer"
+                    onClick={() => openPlayerSheet({ playerName: goal.player })}
+                  >
                     {goal.player} {goal.minutes.map((m) => `${m}'`).join(", ")}
                   </p>
                 ))}
@@ -623,6 +1174,8 @@ export const gameInfo = () => {
               key={tab.id}
               onClick={(e) => handleTabClick(tab.id, e)}
               className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
+                tab.id === "timeline" ? "md:hidden" : "" 
+              } ${
                 activeTab === tab.id
                   ? "text-orange-500 font-medium"
                   : "text-gray-600 dark:text-neutral-n3 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
@@ -639,13 +1192,10 @@ export const gameInfo = () => {
         {activeTab === "overview" && (
           <div className="flex  mt-6 mb-20 flex-col gap-10">
             <div className="sz-8 flex flex-col md:flex-row gap-7">
-              <div className="grid grid-cols-1 md:grid-cols-2 justify-between flex-5 gap-4 block-style">
-                <GetVenueImage
-                  teamId={fixtureDetails?.localteam?.id}
-                  alt={`${fixtureDetails?.localteam?.name ?? ""} venue`}
-                  className="w-full h-full max-h-[260px] object-cover rounded"
-                />
-
+              <div className="hidden md:block flex-4">
+                <TimelinePanel mode="desktop" />
+              </div>
+              <div className="flex flex-col justify-between flex-5 gap-4 block-style">
                 <StaggerChildren className="flex gap-1 flex-col">
                   <div className="flex items-center gap-2">
                     <img
@@ -714,6 +1264,22 @@ export const gameInfo = () => {
 
                   <div className="flex items-center gap-2">
                     <img
+                      src="/icons/location.svg"
+                      className="w-5 h-5 theme-icon"
+                      alt=""
+                    />
+                    <div className="flex flex-col">
+                      <p className="text-neutral-m6">Location:</p>
+                      <p className="theme-text">
+                        {fixtureDetails?.venue_address 
+                          ? fixtureDetails.venue_address
+                          : fixtureDetails?.venue_city || "--"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <img
                       src="/icons/soccer-field-1.svg"
                       className="w-5 h-5 theme-icon"
                       alt=""
@@ -741,91 +1307,13 @@ export const gameInfo = () => {
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <img
-                      src="/icons/location.svg"
-                      className="w-5 h-5 theme-icon"
-                      alt=""
-                    />
-                    <div className="flex flex-col">
-                      <p className="text-neutral-m6">Location:</p>
-                      <p className="theme-text">
-                        {fixtureDetails?.venue_address 
-                          ? fixtureDetails.venue_address
-                          : fixtureDetails?.venue_city || "--"}
-                      </p>
-                    </div>
-                  </div>
                 </StaggerChildren>
-              </div>
 
-              <div className="flex flex-2 gap-2 flex-col block-style">
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/icons/calendar-line-1.svg"
-                    className=" w-4 theme-icon"
-                    alt=""
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Date:</p>
-                    <p className="theme-text">
-                      {fixtureDetails?.date 
-                        ? new Date(fixtureDetails.date).toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : "--"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <GetLeagueLogo leagueId={displayLeagueId} alt={String(fixtureDetails?.league_name ?? "League")} className="w-5 h-5 object-contain" />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Competition:</p>
-                    <p className="theme-text">
-                      {fixtureDetails?.league_name 
-                        ? `${fixtureDetails.league_name}${fixtureDetails?.country ? `, ${fixtureDetails.country}` : ""}${fixtureDetails?.round ? `, ${fixtureDetails.round}` : ""}`
-                        : "--"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/icons/Whistle.svg"
-                    className=" w-4 theme-icon"
-                    alt=""
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Referee:</p>
-                    <p className="theme-text">
-                      {fixtureDetails?.referee?.name ?? "--"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/icons/team-line-1.svg"
-                    className="w-5 h-5 theme-icon"
-                    alt=""
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-neutral-m6">Attendance:</p>
-                    <p className="theme-text">
-                      {fixtureDetails?.attendance 
-                        ? fixtureDetails.attendance.toLocaleString()
-                        : "--"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* If you want to show Attendance twice, keep this, or remove if redundant */}
+                <GetVenueImage
+                  teamId={fixtureDetails?.localteam?.id}
+                  alt={`${fixtureDetails?.localteam?.name ?? ""} venue`}
+                  className="w-full h-full max-h-[260px] object-cover rounded"
+                />
               </div>
             </div>
 
@@ -880,7 +1368,7 @@ export const gameInfo = () => {
                     <p className="font-semibold theme-text mb-3">
                       {event.title}
                     </p>
-                    <p className="text-xs md:text-sm dark:text-snow-200 text-neutral-n3 mb-2">
+                    <p className="text-xs md:text-base dark:text-snow-200 text-neutral-n3 mb-2">
                       {event.text}
                     </p>
                     <div className="py-4 block-style items-center flex justify-between">
@@ -906,12 +1394,22 @@ export const gameInfo = () => {
         {/* -----------------------------------------------line up------------------------------------------------------- */}
 
         {activeTab === "lineup" && (
+         <div className="my-8">
           <LineupBuilder
+            lineup={matchInfo?.lineup ?? (fixtureDetails as any)?.lineup}
+            substitutions={matchInfo?.substitutions ?? (fixtureDetails as any)?.substitutions}
+            coaches={matchInfo?.coaches ?? (fixtureDetails as any)?.coaches}
+            playerStats={matchInfo?.player_stats}
+            summary={matchInfo?.summary}
+            homeFormation={matchInfo?.teams?.home?.formation}
+            awayFormation={matchInfo?.teams?.away?.formation}
             localteam={fixtureDetails?.lineups?.localteam}
             visitorteam={fixtureDetails?.lineups?.visitorteam}
-            homeTeamName={fixtureDetails?.localteam?.name}
-            awayTeamName={fixtureDetails?.visitorteam?.name}
+            onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
+            homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+            awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
           />
+          </div>
         )}
 
         {/* ----------------------------------------------------line up end------------------------------------------------------- */}
@@ -919,140 +1417,13 @@ export const gameInfo = () => {
         {/* -------------------------------------------------------statistics-------------------------------------------------- */}
 
         {activeTab === "statistics" && (
-        <div className="my-8">
-        <FeatureComingSoon />
-        </div>
-        //   <div className="block my-8">
-        //     <p className="sz-3">Match Statistics</p>
-        //     <div className="w-full flex text-sm bg-brand-p4 mb-7 py-2 px-5 justify-between">
-        //       <div className="flex gap-3 items-center">
-        //         <p className="sz-6">Manchester City</p>
-        //         <img
-        //           src="/assets/icons/Football/Team/Manchester City.png"
-        //           alt=""
-        //           className="h-10"
-        //         />
-        //       </div>
-
-        //       <div className="flex gap-3 items-center">
-        //         <img
-        //           src="/assets/icons/Football/Team/Arsenal.png"
-        //           alt=""
-        //           className="h-10"
-        //         />
-        //         <p className="sz-6">Arsenal</p>
-        //       </div>
-        //     </div>
-
-        //     <div className="flex flex-col gap-4">
-        //       <p className="flex-1 md:hidden text-center theme-text flex items-center justify-center">
-        //           Ball Possession
-        //         </p>
-        //       <div className="flex w-full h-9 overflow-hidden rounded-3xl">
-        //         <p className="flex-64 md:flex-2 h-full pl-6 text-left text-white bg-brand-primary flex items-center">
-        //           64%
-        //         </p>
-        //         <p className="flex-1 hidden md:flex h-full text-center theme-text  items-center justify-center">
-        //           Ball Possession
-        //         </p>
-        //         <p className="flex-36 md:flex-2 h-full pr-6 text-right bg-brand-secondary flex items-center justify-end">
-        //           36%
-        //         </p>
-        //       </div>
-
-        //       {[
-        //         {
-        //           label: "Total Shots",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "theme-text",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //         {
-        //           label: "Shots On Goal",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "text-white bg-brand-primary",
-        //           awayClass: "",
-        //         },
-        //         {
-        //           label: "Total Passes",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //         {
-        //           label: "Pass Accuracy",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //         {
-        //           label: "Yellow Cards",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "text-white bg-brand-primary",
-        //           awayClass: "",
-        //         },
-        //         {
-        //           label: "Red Cards",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "",
-        //           awayClass: "",
-        //         },
-        //         {
-        //           label: "Corners",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "text-white bg-brand-primary",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //         {
-        //           label: "Fouls",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "text-white bg-brand-primary",
-        //           awayClass: "",
-        //         },
-        //         {
-        //           label: "Offsides",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //         {
-        //           label: "Saves",
-        //           home: "64%",
-        //           away: "36%",
-        //           homeClass: "",
-        //           awayClass: "bg-brand-secondary",
-        //         },
-        //       ].map((stat, idx) => (
-        //         <div
-        //           key={`${stat.label}-${idx}`}
-        //           className="flex h-9 justify-between"
-        //         >
-        //           <p
-        //             className={`h-full px-3 rounded text-center flex items-center ${stat.homeClass}`}
-        //           >
-        //             {stat.home}
-        //           </p>
-        //           <p className="h-full text-center theme-text flex items-center justify-center">
-        //             {stat.label}
-        //           </p>
-        //           <p
-        //             className={`h-full px-3 rounded text-center flex items-center justify-end ${stat.awayClass}`}
-        //           >
-        //             {stat.away}
-        //           </p>
-        //         </div>
-        //       ))}
-        //     </div>
-        //   </div>
+          <div className="my-8">
+            <MatchStatisticsPanel
+              stats={matchInfo?.stats}
+              homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+              awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
+            />
+          </div>
         )}
 
         {/* -------------------------------------------------------statistics emd-------------------------------------------------- */}
@@ -1068,7 +1439,11 @@ export const gameInfo = () => {
         {/* -------------------------------------------------------standings-------------------------------------------------------- */}
         {activeTab === "standings" && (
           <div className="my-8">
-            <StandingsTable />
+            <StandingsTable
+              leagueId={displayLeagueId}
+              localteamId={displayHomeTeamId}
+              visitorteamId={displayAwayTeamId}
+            />
           </div>
         )}
         {/* -------------------------------------------------------standings end-------------------------------------------------------- */}
@@ -1076,203 +1451,21 @@ export const gameInfo = () => {
         {/* --------------------------------------------------------timeline--------------------------------------------------------------- */}
 
         {activeTab === "timeline" && (
-          <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <div className="flex flex-2 gap-3 flex-col edge-lighting block-style relative">
-              <FeedbackPanel />
-            </div>
-
-            {/* ----------------- */}
-
-            <div className="block p-0 flex-5 block-style">
-              <div className="flex divide-snow-200 dark:divide-snow-100/10 divide-y divide-y-reverse flex-col-reverse">
-                {timelineWithRunningScore.length === 0 ? (
-                  <div className="px-4 py-8">
-                    <p className="theme-text text-center">Nothing to show here</p>
-                  </div>
-                ) : (
-                  timelineWithRunningScore.map(({ ev, runningScore }) => {
-                    const isHalfTime = (ev as any)?.type === "halftime";
-                    const eventType = String((ev as any)?.type ?? "").toLowerCase();
-                    const isGoal = eventType === "goal";
-                    const isLocal = String((ev as any)?.team) === "localteam";
-                    const isVisitor = String((ev as any)?.team) === "visitorteam";
-                    const minuteLabel = isHalfTime ? "HT" : formatLiveMinute(ev);
-
-                    const scoreText = normalizeScoreText((ev as any)?.result);
-                    const centerScore = isHalfTime ? halfTimeScoreText : (scoreText || runningScore);
-
-                    const iconEl = (() => {
-                      if (eventType === "goal") {
-                        return (
-                          <img src="/icons/football-line-1.svg" className="w-4 theme-icon" alt="" />
-                        );
-                      }
-                      if (eventType === "yellowcard") return <div className="w-4 h-5 bg-ui-pending" />;
-                      if (eventType === "yellowred") return <div className="w-4 h-5 bg-ui-negative" />;
-                      if (eventType === "redcard") return <div className="w-4 h-5 bg-ui-negative" />;
-                      if (eventType === "subst") {
-                        return (
-                          <div className="relative w-5 h-5">
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="absolute top-0 left-0 w-3 h-3"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M12 20V5"
-                                stroke="#16A34A"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M7 10L12 5L17 10"
-                                stroke="#16A34A"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="absolute bottom-0 right-0 w-3 h-3"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M12 4V19"
-                                stroke="#DC2626"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M7 14L12 19L17 14"
-                                stroke="#DC2626"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </div>
-                        );
-                      }
-                      if (eventType === "pen miss") {
-                        return <img src="/icons/goal-missed.svg" className="w-5 theme-icon" alt="" />;
-                      }
-                      if (eventType === "halftime") {
-                        return <img src="./icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
-                      }
-                      if (eventType === "var") {
-                        return <img src="./icons/VAR.svg" className="w-4 theme-icon" alt="" />;
-                      }
-                      return <div className="w-4 h-5 bg-snow-200 dark:bg-neutral-n4" />;
-                    })();
-
-                    if (isHalfTime) {
-                      return (
-                        <div key={`ht-${halfTimeScoreText}`} className="flex px-4 py-3 bg-snow-100 dark:bg-neutral-n4 items-center">
-                          <p className="flex-1/11 text-neutral-m6">{minuteLabel}</p>
-                          <div className="flex items-center flex-4/11 justify-end gap-4">
-                            <div className="flex text-right flex-col">
-                              <p className="theme-text">Half Time</p>
-                            </div>
-                            <div className="block">{iconEl}</div>
-                          </div>
-                          <p className="theme-text font-bold text-center flex-2/11">{halfTimeScoreText}</p>
-                          <span className="flex-4/11"></span>
-                        </div>
-                      );
-                    }
-
-                    if (isLocal) {
-                      return (
-                        <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
-                          {isGoal ? (
-                            <div
-                              className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
-                              aria-hidden="true"
-                            >
-                              <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
-                                GOOOAAAALLL!!!
-                              </span>
-                            </div>
-                          ) : null}
-                          <p className="flex-1/11 text-neutral-m6">{minuteLabel}</p>
-                          <div className="flex items-center flex-4/11 justify-end gap-4">
-                            <div className="flex flex-col text-right">
-                              <p className="theme-text">{(ev as any)?.player || ""}</p>
-                              {(ev as any)?.assist ? <p className="text-neutral-m6">{(ev as any)?.assist}</p> : null}
-                            </div>
-                            <div className="block">{iconEl}</div>
-                          </div>
-                          <p className="theme-text font-bold text-center flex-2/11">{centerScore}</p>
-                          <span className="flex-4/11"></span>
-                        </div>
-                      );
-                    }
-
-                    if (isVisitor) {
-                      return (
-                        <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
-                          {isGoal ? (
-                            <div
-                              className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
-                              aria-hidden="true"
-                            >
-                              <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
-                                GOOOAAAALLL!!!
-                              </span>
-                            </div>
-                          ) : null}
-                          <p className="flex-1/11 text-neutral-m6">{minuteLabel}</p>
-                          <span className="flex-4/11"></span>
-                          <p className="theme-text font-bold text-center flex-2/11">{centerScore}</p>
-                          <div className="flex items-center flex-4/11 justify-start gap-4">
-                            <div className="block">{iconEl}</div>
-                            <div className="flex flex-col">
-                              <p className="theme-text">{(ev as any)?.player || ""}</p>
-                              {(ev as any)?.assist ? <p className="text-neutral-m6">{(ev as any)?.assist}</p> : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={String((ev as any)?.eventid ?? Math.random())} className="relative flex px-4 py-3 items-center">
-                        {isGoal ? (
-                          <div
-                            className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
-                            aria-hidden="true"
-                          >
-                            <span className="text-[64px] md:text-[120px] font-extrabold uppercase tracking-widest text-snow-200 opacity-8 animate-goal-scroll whitespace-nowrap">
-                              GOOOAAAALLL!!!
-                            </span>
-                          </div>
-                        ) : null}
-                        <p className="flex-1/11 text-neutral-m6">{minuteLabel}</p>
-                        <span className="flex-4/11"></span>
-                        <p className="theme-text font-bold text-center flex-2/11">{centerScore}</p>
-                        <div className="flex items-center flex-4/11 justify-start gap-4">
-                          <div className="block">{iconEl}</div>
-                          <div className="flex flex-col">
-                            <p className="theme-text">{(ev as any)?.player || ""}</p>
-                            {(ev as any)?.assist ? <p className="text-neutral-m6">{(ev as any)?.assist}</p> : null}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+          <div className="my-8">
+            <TimelinePanel mode="desktop" />
           </div>
         )}
 
         {/* --------------------------------------------------------timeline end--------------------------------------------------------------- */}
       </div>
+      <PlayerStatsBottomSheet
+        open={isPlayerSheetOpen}
+        onClose={closePlayerSheet}
+        onViewProfile={playerSheetId ? handleViewPlayerProfile : undefined}
+        playerName={playerSheetName}
+        playerImageUrl={playerSheetImage}
+        stats={playerSheetStats}
+      />
       <FooterComp />
     </div>
   );

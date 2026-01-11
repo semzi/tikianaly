@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import { getStandingsByLeagueId } from "@/lib/api/endpoints";
 
 export type StandingsRow = {
   position: number;
@@ -47,413 +48,125 @@ export type GoalServeStandingsResponse = {
   };
 };
 
+type LeagueStandingRow = {
+  team_id?: number;
+  team_name?: string;
+  position?: number;
+  overall?: {
+    played?: number;
+    wins?: number;
+    draws?: number;
+    losses?: number;
+    goals_for?: number;
+    goals_against?: number;
+  };
+  goal_difference?: number;
+  points?: number;
+  recent_form?: string;
+  description?: string;
+};
+
+type StandingsByLeagueResponse = {
+  success?: boolean;
+  message?: string;
+  responseObject?: {
+    item?: Array<{
+      league_id?: number;
+      standings?: LeagueStandingRow[];
+    }>;
+  };
+};
+
 type Props = {
   rows?: StandingsRow[];
   standingsData?: GoalServeStandingsResponse;
+  leagueId?: string | number;
+  localteamId?: string | number;
+  visitorteamId?: string | number;
 };
 
-const demoStandingsData: GoalServeStandingsResponse = {
-  standings: {
-    tournament: {
-      team: [
-        {
-          id: "9002",
-          name: "Arsenal",
-          position: "1",
-          recent_form: "WWLWD",
-          description: { value: "Promotion - Champions League (League phase)" },
-          home: { gp: "8", w: "7", d: "1", l: "0", gs: "20", ga: "3" },
-          away: { gp: "9", w: "5", d: "2", l: "2", gs: "11", ga: "7" },
-          total: { p: "39", gd: "21" },
-        },
-        {
-          id: "9259",
-          name: "Manchester City",
-          position: "2",
-          recent_form: "WWWWW",
-          description: { value: "Promotion - Champions League (League phase)" },
-          home: { gp: "9", w: "8", d: "0", l: "1", gs: "25", ga: "6" },
-          away: { gp: "8", w: "4", d: "1", l: "3", gs: "16", ga: "10" },
-          total: { p: "37", gd: "25" },
-        },
-        {
-          id: "9008",
-          name: "Aston Villa",
-          position: "3",
-          recent_form: "WWWWW",
-          description: { value: "Promotion - Champions League (League phase)" },
-          home: { gp: "9", w: "7", d: "1", l: "1", gs: "15", ga: "7" },
-          away: { gp: "8", w: "4", d: "2", l: "2", gs: "12", ga: "11" },
-          total: { p: "36", gd: "9" },
-        },
-        {
-          id: "9092",
-          name: "Chelsea",
-          position: "4",
-          recent_form: "DWDLD",
-          description: { value: "Promotion - Champions League (League phase)" },
-          home: { gp: "8", w: "4", d: "2", l: "2", gs: "12", ga: "7" },
-          away: { gp: "9", w: "4", d: "3", l: "2", gs: "17", ga: "10" },
-          total: { p: "29", gd: "12" },
-        },
-        {
-          id: "9249",
-          name: "Liverpool",
-          position: "5",
-          recent_form: "WWDDW",
-          description: { value: "Promotion - Europa League (League phase)" },
-          home: { gp: "8", w: "5", d: "1", l: "2", gs: "13", ga: "9" },
-          away: { gp: "9", w: "4", d: "1", l: "4", gs: "15", ga: "16" },
-          total: { p: "29", gd: "3" },
-        },
-        {
-          id: "9427",
-          name: "West Ham",
-          position: "18",
-          recent_form: "LLDDL",
-          description: { value: "Relegation - Championship" },
-          home: { gp: "8", w: "2", d: "0", l: "6", gs: "10", ga: "20" },
-          away: { gp: "9", w: "1", d: "4", l: "4", gs: "9", ga: "15" },
-          total: { p: "13", gd: "-16" },
-        },
-      ],
-    },
-  },
-};
+export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) => {
+  const [apiData, setApiData] = useState<StandingsByLeagueResponse | null>(null);
+  const [apiError, setApiError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
-export const StandingsTable = ({ rows, standingsData }: Props) => {
+  useEffect(() => {
+    const id = String(leagueId ?? "").trim();
+    if (!id) return;
+
+    let isCancelled = false;
+
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
+        const res = (await getStandingsByLeagueId(id)) as StandingsByLeagueResponse;
+        if (isCancelled) return;
+        setApiData(res);
+      } catch (e) {
+        if (isCancelled) return;
+        setApiError("Failed to load standings");
+        setApiData(null);
+      } finally {
+        if (isCancelled) return;
+        setIsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      isCancelled = true;
+    };
+  }, [leagueId]);
+
   const data = useMemo<StandingsRow[]>(() => {
-    const source = standingsData ?? (!rows ? demoStandingsData : undefined);
-    const rawTeams = source?.standings?.tournament?.team;
-    if (Array.isArray(rawTeams) && rawTeams.length) {
-      const toInt = (v: unknown) => {
-        const n = Number(String(v ?? "0").replace(/[^0-9-]/g, ""));
+    const apiStandings = apiData?.responseObject?.item?.[0]?.standings;
+    if (Array.isArray(apiStandings) && apiStandings.length) {
+      const toNum = (v: unknown) => {
+        const n = Number(v);
         return Number.isFinite(n) ? n : 0;
       };
 
-      const sumSide = (
-        sideA?: GoalServeTeamSideStats,
-        sideB?: GoalServeTeamSideStats
-      ) => {
-        const gp = toInt(sideA?.gp) + toInt(sideB?.gp);
-        const w = toInt(sideA?.w) + toInt(sideB?.w);
-        const d = toInt(sideA?.d) + toInt(sideB?.d);
-        const l = toInt(sideA?.l) + toInt(sideB?.l);
-        const gs = toInt(sideA?.gs) + toInt(sideB?.gs);
-        const ga = toInt(sideA?.ga) + toInt(sideB?.ga);
-        return { gp, w, d, l, gs, ga };
-      };
-
-      return rawTeams
+      return apiStandings
         .map((t) => {
-          const combined = sumSide(t.home, t.away);
-          const teamId = toInt(t.id);
-          const points = toInt(t.total?.p);
-          const goalDiff = combined.gs - combined.ga;
+          const overall = t.overall ?? {};
+          const goalsFor = toNum(overall.goals_for);
+          const goalsAgainst = toNum(overall.goals_against);
+          const goalDiff = Number.isFinite(Number(t.goal_difference))
+            ? Number(t.goal_difference)
+            : goalsFor - goalsAgainst;
 
           return {
-            position: toInt(t.position),
-            team: String(t.name ?? ""),
-            teamId: teamId || undefined,
+            position: toNum(t.position),
+            team: String(t.team_name ?? ""),
+            teamId: Number.isFinite(Number(t.team_id)) ? Number(t.team_id) : undefined,
             recentForm: typeof t.recent_form === "string" ? t.recent_form : undefined,
-            description:
-              typeof t.description?.value === "string" ? t.description.value : undefined,
-            played: combined.gp,
-            wins: combined.w,
-            draws: combined.d,
-            losses: combined.l,
-            goalsFor: combined.gs,
-            goalsAgainst: combined.ga,
+            description: typeof t.description === "string" ? t.description : undefined,
+            played: toNum(overall.played),
+            wins: toNum(overall.wins),
+            draws: toNum(overall.draws),
+            losses: toNum(overall.losses),
+            goalsFor,
+            goalsAgainst,
             goalDiff,
-            points,
+            points: toNum(t.points),
           } satisfies StandingsRow;
         })
+        .filter((r) => r.team.trim())
         .sort((a, b) => a.position - b.position);
     }
+    return [];
+  }, [apiData]);
 
-    return (
-      rows ?? [
-        {
-          position: 1,
-          team: "Manchester City",
-          recentForm: "WLWWD",
-          description: "Promotion - Champions League (League phase)",
-          logo: "/assets/icons/Football/Team/Manchester City.png",
-          played: 23,
-          wins: 19,
-          draws: 2,
-          losses: 2,
-          goalsFor: 58,
-          goalsAgainst: 34,
-          goalDiff: 23,
-          points: 58,
-        },
-        {
-          position: 2,
-          team: "Arsenal",
-          recentForm: "WWWWW",
-          description: "Promotion - Champions League (League phase)",
-          logo: "/assets/icons/Football/Team/Arsenal.png",
-          played: 23,
-          wins: 19,
-          draws: 2,
-          losses: 2,
-          goalsFor: 58,
-          goalsAgainst: 34,
-          goalDiff: 23,
-          points: 58,
-        },
-        {
-          position: 3,
-          team: "Liverpool",
-          recentForm: "WLWWL",
-          description: "Promotion - Champions League (League phase)",
-          logo: "/assets/icons/Football/Team/Liverpool.png",
-          played: 23,
-          wins: 18,
-          draws: 3,
-          losses: 2,
-          goalsFor: 55,
-          goalsAgainst: 32,
-          goalDiff: 23,
-          points: 57,
-        },
-        {
-          position: 4,
-          team: "Chelsea",
-          recentForm: "LWDWW",
-          description: "Promotion - Champions League (League phase)",
-          logo: "/assets/icons/Football/Team/Chelsea.png",
-          played: 23,
-          wins: 17,
-          draws: 4,
-          losses: 2,
-          goalsFor: 52,
-          goalsAgainst: 30,
-          goalDiff: 22,
-          points: 55,
-        },
-        {
-          position: 5,
-          team: "Tottenham",
-          recentForm: "WLWDD",
-          description: "Promotion - Europa League (League phase)",
-          logo: "/assets/icons/Football/Team/Tottenham.png",
-          played: 23,
-          wins: 16,
-          draws: 3,
-          losses: 4,
-          goalsFor: 50,
-          goalsAgainst: 28,
-          goalDiff: 22,
-          points: 51,
-        },
-        {
-          position: 6,
-          team: "Manchester United",
-          recentForm: "DWLWW",
-          logo: "/assets/icons/Football/Team/Manchester United.png",
-          played: 23,
-          wins: 15,
-          draws: 4,
-          losses: 4,
-          goalsFor: 48,
-          goalsAgainst: 26,
-          goalDiff: 22,
-          points: 49,
-        },
-        {
-          position: 7,
-          team: "Newcastle",
-          recentForm: "DLWWW",
-          logo: "/assets/icons/Football/Team/Newcastle.png",
-          played: 23,
-          wins: 14,
-          draws: 5,
-          losses: 4,
-          goalsFor: 46,
-          goalsAgainst: 24,
-          goalDiff: 22,
-          points: 47,
-        },
-        {
-          position: 8,
-          team: "Brighton",
-          recentForm: "WLDWL",
-          logo: "/assets/icons/Football/Team/Brighton.png",
-          played: 23,
-          wins: 13,
-          draws: 5,
-          losses: 5,
-          goalsFor: 44,
-          goalsAgainst: 22,
-          goalDiff: 22,
-          points: 44,
-        },
-        {
-          position: 9,
-          team: "West Ham",
-          recentForm: "LLWWW",
-          logo: "/assets/icons/Football/Team/West Ham.png",
-          played: 23,
-          wins: 12,
-          draws: 6,
-          losses: 5,
-          goalsFor: 42,
-          goalsAgainst: 20,
-          goalDiff: 22,
-          points: 42,
-        },
-        {
-          position: 10,
-          team: "Aston Villa",
-          recentForm: "WWLLW",
-          logo: "/assets/icons/Football/Team/Aston Villa.png",
-          played: 23,
-          wins: 11,
-          draws: 6,
-          losses: 6,
-          goalsFor: 40,
-          goalsAgainst: 18,
-          goalDiff: 22,
-          points: 39,
-        },
-        {
-          position: 11,
-          team: "Crystal Palace",
-          logo: "/assets/icons/Football/Team/Crystal Palace.png",
-          played: 23,
-          wins: 10,
-          draws: 7,
-          losses: 6,
-          goalsFor: 38,
-          goalsAgainst: 16,
-          goalDiff: 22,
-          points: 37,
-        },
-        {
-          position: 12,
-          team: "Fulham",
-          logo: "/assets/icons/Football/Team/Fulham.png",
-          played: 23,
-          wins: 9,
-          draws: 7,
-          losses: 7,
-          goalsFor: 36,
-          goalsAgainst: 14,
-          goalDiff: 22,
-          points: 34,
-        },
-        {
-          position: 13,
-          team: "Wolves",
-          logo: "/assets/icons/Football/Team/Wolves.png",
-          played: 23,
-          wins: 8,
-          draws: 8,
-          losses: 7,
-          goalsFor: 34,
-          goalsAgainst: 12,
-          goalDiff: 22,
-          points: 32,
-        },
-        {
-          position: 14,
-          team: "Everton",
-          logo: "/assets/icons/Football/Team/Everton.png",
-          played: 23,
-          wins: 7,
-          draws: 8,
-          losses: 8,
-          goalsFor: 32,
-          goalsAgainst: 10,
-          goalDiff: 22,
-          points: 29,
-        },
-        {
-          position: 15,
-          team: "Brentford",
-          logo: "/assets/icons/Football/Team/Brentford.png",
-          played: 23,
-          wins: 6,
-          draws: 9,
-          losses: 8,
-          goalsFor: 30,
-          goalsAgainst: 8,
-          goalDiff: 22,
-          points: 27,
-        },
-        {
-          position: 16,
-          team: "Nottingham Forest",
-          logo: "/assets/icons/Football/Team/Nottingham Forest.png",
-          played: 23,
-          wins: 5,
-          draws: 9,
-          losses: 9,
-          goalsFor: 28,
-          goalsAgainst: 6,
-          goalDiff: 22,
-          points: 24,
-        },
-        {
-          position: 17,
-          team: "Leicester",
-          logo: "/assets/icons/Football/Team/Leicester.png",
-          played: 23,
-          wins: 4,
-          draws: 10,
-          losses: 9,
-          goalsFor: 26,
-          goalsAgainst: 4,
-          goalDiff: 22,
-          points: 22,
-        },
-        {
-          position: 18,
-          team: "Leeds",
-          description: "Relegation",
-          logo: "/assets/icons/Football/Team/Leeds.png",
-          played: 23,
-          wins: 3,
-          draws: 10,
-          losses: 10,
-          goalsFor: 24,
-          goalsAgainst: 2,
-          goalDiff: 22,
-          points: 19,
-        },
-        {
-          position: 19,
-          team: "Southampton",
-          description: "Relegation",
-          logo: "/assets/icons/Football/Team/Southampton.png",
-          played: 23,
-          wins: 2,
-          draws: 11,
-          losses: 10,
-          goalsFor: 22,
-          goalsAgainst: 0,
-          goalDiff: 22,
-          points: 17,
-        },
-        {
-          position: 20,
-          team: "Bournemouth",
-          description: "Relegation",
-          logo: "/assets/icons/Football/Team/Bournemouth.png",
-          played: 23,
-          wins: 1,
-          draws: 11,
-          losses: 11,
-          goalsFor: 20,
-          goalsAgainst: -2,
-          goalDiff: 22,
-          points: 14,
-        },
-      ]
-    );
-  }, [rows, standingsData]);
+  const getHighlightBgClass = (teamId?: number) => {
+    if (!teamId) return "";
+    const homeIdNum = Number(localteamId);
+    const awayIdNum = Number(visitorteamId);
+
+    if (Number.isFinite(homeIdNum) && teamId === homeIdNum) return "bg-brand-secondary/10";
+    if (Number.isFinite(awayIdNum) && teamId === awayIdNum) return "bg-brand-primary/10";
+    return "";
+  };
 
   const getZoneMeta = (description?: string) => {
     const d = (description ?? "").toLowerCase();
@@ -538,11 +251,12 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
     <div className="flex flex-col gap-2">
       {rowItems.map((team) => {
         const borderClass = getZoneMeta(team.description)?.borderClass ?? "";
+        const highlightBg = getHighlightBgClass(team.teamId);
 
         return (
           <div
             key={`${team.position}-${team.team}`}
-            className={`grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 ${paddingX} items-center relative whitespace-nowrap ${borderClass}`}
+            className={`grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 ${paddingX} items-center relative whitespace-nowrap ${borderClass} ${highlightBg}`}
           >
             <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
               {team.position}
@@ -601,6 +315,15 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
 
   return (
     <div className="my-8">
+      {apiError ? (
+        <div className="mb-4 text-sm text-ui-negative">{apiError}</div>
+      ) : null}
+      {isLoading ? (
+        <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">Loading standings...</div>
+      ) : null}
+      {!isLoading && !apiError && data.length === 0 ? (
+        <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">Standing not found</div>
+      ) : null}
       <div className="hidden lg:block block-style overflow-x-auto">
         <div className="min-w-full">
           <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
@@ -624,15 +347,15 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
         <div className="block-style">
           <div className="flex">
             <div className="w-[220px] shrink-0">
-              <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-3 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+              <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
                 <div className="text-center">#</div>
                 <div>Team</div>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-0">
                 {data.map((team) => (
                   <div
                     key={`mobile-team-${team.position}-${team.team}`}
-                    className={`grid grid-cols-[40px_1fr] gap-3 px-4 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""}`}
+                    className={`grid grid-cols-[40px_1fr] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
                   >
                     <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
                       {team.position}
@@ -665,7 +388,7 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
 
             <div className="flex-1 overflow-x-auto hide-scrollbar">
               <div className="min-w-[680px]">
-                <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-3 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
                   <div className="text-center">P</div>
                   <div className="text-center">W</div>
                   <div className="text-center">D</div>
@@ -676,11 +399,11 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
                   <div className="text-center">PTS</div>
                   <div className="text-center">Form</div>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-0">
                   {data.map((team) => (
                     <div
                       key={`mobile-stats-${team.position}-${team.team}`}
-                      className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""}`}
+                      className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
                     >
                       <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
                         {team.played}
@@ -766,13 +489,22 @@ export const StandingsTable = ({ rows, standingsData }: Props) => {
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             {legendItems.map((item) => {
               const colorClass =
-                item.borderClass.split(" ").find((c) => c.startsWith("border-")) ??
-                "border-snow-200";
+                item.borderClass
+                  .split(" ")
+                  .find(
+                    (c) =>
+                      c.startsWith("border-") &&
+                      !c.startsWith("border-l") &&
+                      !c.startsWith("border-r") &&
+                      !c.startsWith("border-t") &&
+                      !c.startsWith("border-b")
+                  ) ?? "border-snow-200";
+              const textColorClass = colorClass.replace("border-", "text-");
 
               return (
                 <div key={item.label} className="flex items-center gap-3">
                   <div className={`w-[3px] h-6 ${colorClass.replace("border-", "bg-")}`} />
-                  <span className="text-sm text-neutral-n4 dark:text-snow-200">
+                  <span className={`text-sm ${textColorClass}`}>
                     {item.label}
                   </span>
                 </div>

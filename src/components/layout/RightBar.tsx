@@ -42,7 +42,7 @@ export const RightBar = () => {
         <ul className="block-style edge-lighting">
           <>
             <p className="font-[500] flex items-center dark:text-snow-200 text-[#23272A]">
-              Latest News <img src="/fire.gif" className="w-5 ml-auto" alt="" />
+              Latest News
             </p>
 
             {loading ? (
