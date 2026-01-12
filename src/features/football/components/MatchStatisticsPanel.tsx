@@ -26,10 +26,15 @@ const toInt = (v: unknown) => {
 };
 
 const getByMode = (obj: any, baseKey: string, mode: Mode) => {
-  if (!obj) return "";
-  if (mode === "total") return String(obj?.[baseKey] ?? "");
-  if (mode === "h1") return String(obj?.[`${baseKey}_h1`] ?? "");
-  return String(obj?.[`${baseKey}_h2`] ?? "");
+  if (!obj) return "0";
+  const read = (key: string) => {
+    const raw = obj?.[key];
+    const s = String(raw ?? "").trim();
+    return s ? s : "0";
+  };
+  if (mode === "total") return read(baseKey);
+  if (mode === "h1") return read(`${baseKey}_h1`);
+  return read(`${baseKey}_h2`);
 };
 
 export default function MatchStatisticsPanel({
@@ -53,19 +58,123 @@ export default function MatchStatisticsPanel({
   const pctAway = totalPoss > 0 ? 100 - pctHome : 0;
 
   const rows = useMemo(
-    () => [
-      { label: "Total Shots", home: getByMode(home?.shots, "total", mode), away: getByMode(away?.shots, "total", mode) },
-      { label: "Shots On Goal", home: getByMode(home?.shots, "ongoal", mode), away: getByMode(away?.shots, "ongoal", mode) },
-      { label: "Shots Off Goal", home: getByMode(home?.shots, "offgoal", mode), away: getByMode(away?.shots, "offgoal", mode) },
-      { label: "Corners", home: getByMode(home?.corners, "total", mode), away: getByMode(away?.corners, "total", mode) },
-      { label: "Fouls", home: getByMode(home?.fouls, "total", mode), away: getByMode(away?.fouls, "total", mode) },
-      { label: "Offsides", home: getByMode(home?.offsides, "total", mode), away: getByMode(away?.offsides, "total", mode) },
-      { label: "Yellow Cards", home: getByMode(home?.yellowcards, "total", mode), away: getByMode(away?.yellowcards, "total", mode) },
-      { label: "Red Cards", home: getByMode(home?.redcards, "total", mode), away: getByMode(away?.redcards, "total", mode) },
-      { label: "Saves", home: getByMode(home?.saves, "total", mode), away: getByMode(away?.saves, "total", mode) },
-      { label: "Total Passes", home: getByMode(home?.passes, "total", mode), away: getByMode(away?.passes, "total", mode) },
-      { label: "Expected Goals", home: getByMode(home?.expected_goals, "total", mode), away: getByMode(away?.expected_goals, "total", mode) },
-    ],
+    () => {
+      const onGoalHome = toInt(getByMode(home?.shots, "ongoal", mode));
+      const onGoalAway = toInt(getByMode(away?.shots, "ongoal", mode));
+      const savesHome = toInt(getByMode(home?.saves, "total", mode));
+      const savesAway = toInt(getByMode(away?.saves, "total", mode));
+      const underPressureHome = onGoalAway > onGoalHome;
+      const underPressureAway = onGoalHome > onGoalAway;
+
+      const decide = (
+        homeVal: number,
+        awayVal: number,
+        favorable: "higher" | "lower" | "neutral"
+      ): "home" | "away" | "none" => {
+        if (favorable === "neutral") return "none";
+        if (homeVal === awayVal) return "none";
+        if (favorable === "higher") return homeVal > awayVal ? "home" : "away";
+        return homeVal < awayVal ? "home" : "away";
+      };
+
+      const shotsTotalHome = toInt(getByMode(home?.shots, "total", mode));
+      const shotsTotalAway = toInt(getByMode(away?.shots, "total", mode));
+      const offGoalHome = toInt(getByMode(home?.shots, "offgoal", mode));
+      const offGoalAway = toInt(getByMode(away?.shots, "offgoal", mode));
+      const cornersHome = toInt(getByMode(home?.corners, "total", mode));
+      const cornersAway = toInt(getByMode(away?.corners, "total", mode));
+      const foulsHome = toInt(getByMode(home?.fouls, "total", mode));
+      const foulsAway = toInt(getByMode(away?.fouls, "total", mode));
+      const offsidesHome = toInt(getByMode(home?.offsides, "total", mode));
+      const offsidesAway = toInt(getByMode(away?.offsides, "total", mode));
+      const yellowHome = toInt(getByMode(home?.yellowcards, "total", mode));
+      const yellowAway = toInt(getByMode(away?.yellowcards, "total", mode));
+      const redHome = toInt(getByMode(home?.redcards, "total", mode));
+      const redAway = toInt(getByMode(away?.redcards, "total", mode));
+      const passesHome = toInt(getByMode(home?.passes, "total", mode));
+      const passesAway = toInt(getByMode(away?.passes, "total", mode));
+      const xgHome = toInt(getByMode(home?.expected_goals, "total", mode));
+      const xgAway = toInt(getByMode(away?.expected_goals, "total", mode));
+
+      const offGoalCompetitive = Math.abs(onGoalHome - onGoalAway) <= 1;
+      const offGoalWinner = offGoalCompetitive ? decide(offGoalHome, offGoalAway, "higher") : "none";
+
+      const savesWinner = (() => {
+        if (savesHome === savesAway) return "none" as const;
+        if (savesHome > savesAway && underPressureHome) return "home" as const;
+        if (savesAway > savesHome && underPressureAway) return "away" as const;
+        return "none" as const;
+      })();
+
+      return [
+        {
+          label: "Total Shots",
+          home: getByMode(home?.shots, "total", mode),
+          away: getByMode(away?.shots, "total", mode),
+          winner: decide(shotsTotalHome, shotsTotalAway, "higher"),
+        },
+        {
+          label: "Shots On Goal",
+          home: getByMode(home?.shots, "ongoal", mode),
+          away: getByMode(away?.shots, "ongoal", mode),
+          winner: decide(onGoalHome, onGoalAway, "higher"),
+        },
+        {
+          label: "Shots Off Goal",
+          home: getByMode(home?.shots, "offgoal", mode),
+          away: getByMode(away?.shots, "offgoal", mode),
+          winner: offGoalWinner,
+        },
+        {
+          label: "Corners",
+          home: getByMode(home?.corners, "total", mode),
+          away: getByMode(away?.corners, "total", mode),
+          winner: decide(cornersHome, cornersAway, "higher"),
+        },
+        {
+          label: "Fouls",
+          home: getByMode(home?.fouls, "total", mode),
+          away: getByMode(away?.fouls, "total", mode),
+          winner: decide(foulsHome, foulsAway, "lower"),
+        },
+        {
+          label: "Offsides",
+          home: getByMode(home?.offsides, "total", mode),
+          away: getByMode(away?.offsides, "total", mode),
+          winner: decide(offsidesHome, offsidesAway, "lower"),
+        },
+        {
+          label: "Yellow Cards",
+          home: getByMode(home?.yellowcards, "total", mode),
+          away: getByMode(away?.yellowcards, "total", mode),
+          winner: decide(yellowHome, yellowAway, "lower"),
+        },
+        {
+          label: "Red Cards",
+          home: getByMode(home?.redcards, "total", mode),
+          away: getByMode(away?.redcards, "total", mode),
+          winner: decide(redHome, redAway, "lower"),
+        },
+        {
+          label: "Saves",
+          home: getByMode(home?.saves, "total", mode),
+          away: getByMode(away?.saves, "total", mode),
+          winner: savesWinner,
+        },
+        {
+          label: "Total Passes",
+          home: getByMode(home?.passes, "total", mode),
+          away: getByMode(away?.passes, "total", mode),
+          winner: decide(passesHome, passesAway, "higher"),
+        },
+        {
+          label: "Expected Goals",
+          home: getByMode(home?.expected_goals, "total", mode),
+          away: getByMode(away?.expected_goals, "total", mode),
+          winner: decide(xgHome, xgAway, "higher"),
+        },
+      ];
+    },
     [home, away, mode]
   );
 
@@ -84,7 +193,7 @@ export default function MatchStatisticsPanel({
   return (
     <div className="block my-8">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="sz-3">Match Statistics</p>
+        <p className="sz-3 theme-text">Match Statistics</p>
         <div className="flex items-center gap-2">
           <ToggleBtn id="total" label="Total" />
           <ToggleBtn id="h1" label="1st Half" />
@@ -121,9 +230,19 @@ export default function MatchStatisticsPanel({
 
         {rows.map((r, idx) => (
           <div key={`${r.label}-${idx}`} className="flex h-9 justify-between">
-            <p className="h-full px-3 rounded text-center flex items-center theme-text">{r.home}</p>
+            <p
+              className={`h-full px-3 rounded text-center flex items-center ${
+                r.winner === "home" ? "bg-brand-secondary text-white" : "theme-text"
+              }`}
+            >
+              {r.home}
+            </p>
             <p className="h-full text-center theme-text flex items-center justify-center">{r.label}</p>
-            <p className="h-full px-3 rounded text-center flex items-center justify-end bg-brand-secondary text-white">
+            <p
+              className={`h-full px-3 rounded text-center flex items-center justify-end ${
+                r.winner === "away" ? "bg-brand-secondary text-white" : "theme-text"
+              }`}
+            >
               {r.away}
             </p>
           </div>

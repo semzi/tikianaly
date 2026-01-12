@@ -8,7 +8,7 @@ import {
   ChevronUpIcon,
   ShareIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Form/FormButton";
 import { navigate } from "@/lib/router/navigate";
 import { getFixtureDetails, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
@@ -78,6 +78,8 @@ export const gameInfo = () => {
   const [playerSheetId, setPlayerSheetId] = useState<string>("");
   const [playerSheetImage, setPlayerSheetImage] = useState<string>("");
   const [playerSheetStats, setPlayerSheetStats] = useState<Array<{ label: string; value: string }>>([]);
+  const [topRatedPlayerImage, setTopRatedPlayerImage] = useState<string>("");
+  const [topRatedPlayerNumber, setTopRatedPlayerNumber] = useState<string>("");
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const { fixtureId: matchKey } = useParams<{ fixtureId: string }>();
   const location = useLocation();
@@ -105,6 +107,19 @@ export const gameInfo = () => {
 
     fetchMatchInfo();
   }, [fixtureIdForRest]);
+
+  const toInt = (v: unknown) => {
+    const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const ratingBadgeClass = (rating: number) => {
+    if (!Number.isFinite(rating)) return "bg-white/90 text-black";
+    if (rating < 6) return "bg-red-600 text-white";
+    if (rating < 7) return "bg-yellow-400 text-black";
+    if (rating < 8) return "bg-green-600 text-white";
+    return "bg-blue-600 text-white";
+  };
 
   const formatLiveMinute = (ev: LiveStreamEvent) => {
     const base = String(ev.minute ?? "").trim();
@@ -155,11 +170,24 @@ export const gameInfo = () => {
   })();
   const pageTitle = `${matchTitleCore} | Game Info | TikiAnaly`;
   const pageDescription = `Live score, lineups, stats and timeline for ${matchTitleCore}.`;
+
+  const isFullTimeMatchInfo = String(matchInfo?.match?.status ?? "").trim().toLowerCase() === "full-time";
+
+  const displayStatusText = String(
+    isFullTimeMatchInfo
+      ? (matchInfo as any)?.match?.status
+      : (displayFixture as any)?.status ?? ""
+  );
+
   const displayHomeScore = String(
-    (liveFixture as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.score ?? ""
+    isFullTimeMatchInfo
+      ? (matchInfo as any)?.teams?.home?.score?.goals
+      : (liveFixture as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.score ?? ""
   ).trim();
   const displayAwayScore = String(
-    (liveFixture as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.score ?? ""
+    isFullTimeMatchInfo
+      ? (matchInfo as any)?.teams?.away?.score?.goals
+      : (liveFixture as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.score ?? ""
   ).trim();
 
   const displayLeagueId =
@@ -181,6 +209,53 @@ export const gameInfo = () => {
     }
   };
 
+  const topRatedPlayer = useMemo(() => {
+    const bucketHome = fixtureDetails?.player_stats?.home ?? matchInfo?.player_stats?.home;
+    const bucketAway = fixtureDetails?.player_stats?.away ?? matchInfo?.player_stats?.away;
+    const all = [
+      ...(Array.isArray(bucketHome) ? bucketHome : []),
+      ...(Array.isArray(bucketAway) ? bucketAway : []),
+    ] as any[];
+
+    let best: any = null;
+    let bestRating = -Infinity;
+    for (const p of all) {
+      const rating = Number(String(p?.rating ?? "").replace(/[^0-9.]/g, ""));
+      if (!Number.isFinite(rating)) continue;
+      if (rating > bestRating) {
+        bestRating = rating;
+        best = p;
+      }
+    }
+
+    if (!best) return null;
+
+    const id = String(best?.id ?? "").trim();
+    const cachedImg = id ? getCachedPlayerAvatar(id) : null;
+
+    const numberRaw =
+      best?.number ??
+      best?.shirt_number ??
+      best?.shirtNumber ??
+      best?.shirt_no ??
+      best?.shirtNo ??
+      best?.player_number ??
+      best?.jersey_number;
+    const numberText = String(numberRaw ?? "").trim();
+
+    return {
+      id,
+      name: String(best?.name ?? "").trim(),
+      number: numberText,
+      rating: bestRating,
+      goals: toInt(best?.goals),
+      assists: toInt(best?.assists),
+      duels: toInt(best?.duelsTotal ?? best?.duels ?? best?.duels_total),
+      passAcc: String(best?.passes_acc ?? best?.pass_accuracy ?? best?.passesAcc ?? "").trim(),
+      image: cachedImg,
+    };
+  }, [fixtureDetails, matchInfo]);
+
   const cachePlayerAvatar = (playerId: string, dataUrl: string) => {
     const id = String(playerId ?? "").trim();
     if (!id || !dataUrl) return;
@@ -190,6 +265,58 @@ export const gameInfo = () => {
       // ignore
     }
   };
+
+  useEffect(() => {
+    const id = String(topRatedPlayer?.id ?? "").trim();
+    if (!id) {
+      setTopRatedPlayerImage("");
+      setTopRatedPlayerNumber("");
+      return;
+    }
+
+    const cached = getCachedPlayerAvatar(id);
+    if (cached) {
+      setTopRatedPlayerImage(cached);
+    }
+
+    if (topRatedPlayer?.number) setTopRatedPlayerNumber("");
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res: any = await getPlayerById(id);
+        const item = res?.responseObject?.item;
+
+        const numberRaw =
+          item?.number ??
+          item?.shirt_number ??
+          item?.shirtNumber ??
+          item?.shirt_no ??
+          item?.shirtNo ??
+          item?.player_number ??
+          item?.jersey_number;
+        const num = String(numberRaw ?? "").trim();
+        if (!cancelled && !topRatedPlayer?.number) setTopRatedPlayerNumber(num);
+
+        const raw = item?.image;
+        if (raw && !cancelled) {
+          const s = String(raw);
+          const dataUrl = s.startsWith("data:image") ? s : `data:image/png;base64,${s}`;
+          cachePlayerAvatar(id, dataUrl);
+          setTopRatedPlayerImage(dataUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setTopRatedPlayerImage("");
+          setTopRatedPlayerNumber("");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [topRatedPlayer?.id, topRatedPlayer?.number]);
 
   const resolveMatchPlayerStats = (opts: { playerId?: string; playerName?: string }) => {
     const playerId = String(opts.playerId ?? "").trim();
@@ -396,9 +523,17 @@ export const gameInfo = () => {
 
   const timelineEvents = resolveTimelineEvents().slice().sort((a, b) => minuteSortValue(a) - minuteSortValue(b));
   const matchTimerMinutes = resolveTimerMinutes();
-  const statusText = String((liveFixture as any)?.status ?? (fixtureDetails as any)?.status ?? "").trim().toLowerCase();
+  const statusText = String(
+    isFullTimeMatchInfo
+      ? (matchInfo as any)?.match?.status
+      : (liveFixture as any)?.status ?? (fixtureDetails as any)?.status ?? ""
+  )
+    .trim()
+    .toLowerCase();
   const ui = getMatchUiInfo({
-    status: (liveFixture as any)?.status ?? (fixtureDetails as any)?.status,
+    status: isFullTimeMatchInfo
+      ? (matchInfo as any)?.match?.status
+      : (liveFixture as any)?.status ?? (fixtureDetails as any)?.status,
     timer: (liveFixture as any)?.timer ?? (fixtureDetails as any)?.timer,
   });
 
@@ -725,7 +860,15 @@ export const gameInfo = () => {
           : (upcomingTimeLabel || "Upcoming");
   const shouldShowHalfTime = matchTimerMinutes > 45 || statusText === "ht";
   const halfTimeScoreText = shouldShowHalfTime
-    ? normalizeScoreText(liveFixture?.halfTimeScore ?? fixtureDetails?.halfTimeScore)
+    ? (() => {
+      if (isFullTimeMatchInfo) {
+        const htHome = (matchInfo as any)?.teams?.home?.score?.half_time;
+        const htAway = (matchInfo as any)?.teams?.away?.score?.half_time;
+        const bothPresent = htHome !== undefined && htHome !== null && htAway !== undefined && htAway !== null;
+        if (bothPresent) return normalizeScoreText(`${htHome} - ${htAway}`);
+      }
+      return normalizeScoreText(liveFixture?.halfTimeScore ?? fixtureDetails?.halfTimeScore);
+    })()
     : "";
 
   const baseMinuteValue = (ev: LiveStreamEvent) => {
@@ -836,38 +979,50 @@ export const gameInfo = () => {
       .filter(
         (e) =>
           String((e as any)?.type ?? "").toLowerCase() === "goal" &&
-          String((e as any)?.team) === teamKey
+          String((e as any)?.team ?? "") === teamKey
       )
       .map((e) => ({
         player: String((e as any)?.player ?? ""),
-        minute: (() => {
-          const base = String((e as any)?.minute ?? "").trim();
-          const extra = String((e as any)?.extra_min ?? "").trim();
-          if (base && extra) return `${base}+${extra}`;
-          return base;
-        })(),
+        minute: formatLiveMinute(e),
       }))
       .filter((g) => String(g.player).trim());
 
     const restGoals = (fixtureDetails?.goals ?? []) as Array<{ team?: string; player?: string; minute?: string | number }>;
 
+    const restMatchInfoGoals = (() => {
+      if (!isFullTimeMatchInfo) return [] as Array<{ player: string; minute: string }>;
+      const sideKey = teamKey === "localteam" ? "home" : "away";
+      const bucket = (matchInfo as any)?.summary?.[sideKey]?.goals;
+      const wrapper = Array.isArray(bucket) ? bucket : [];
+      const players = (wrapper?.[0] as any)?.player;
+      const arr = Array.isArray(players) ? players : [];
+      return arr
+        .map((p: any) => ({
+          player: String(p?.name ?? ""),
+          minute: String(p?.minute ?? "").trim(),
+        }))
+        .filter((g: any) => String(g.player).trim());
+    })();
+
     const goalsToUse = sseGoals.length > 0
       ? sseGoals
-      : restGoals
-          .filter((g) => g?.team === teamKey)
-          .map((g) => ({ player: String(g.player ?? ""), minute: String(g.minute ?? "").trim() }))
-          .filter((g) => String(g.player).trim());
+      : restMatchInfoGoals.length > 0
+        ? restMatchInfoGoals
+        : restGoals
+            .filter((g) => g?.team === teamKey)
+            .map((g) => ({ player: String(g.player ?? ""), minute: String(g.minute ?? "").trim() }))
+            .filter((g) => String(g.player).trim());
 
     const byPlayer = new Map<string, { player: string; minutes: Array<string | number> }>();
 
     goalsToUse.forEach((g) => {
-      const player = String(g.player ?? "").trim();
+      const player = String((g as any)?.player ?? "").trim();
       if (!player) return;
       const current = byPlayer.get(player);
       if (current) {
-        current.minutes.push(g.minute ?? "");
+        current.minutes.push((g as any)?.minute ?? "");
       } else {
-        byPlayer.set(player, { player, minutes: [g.minute ?? ""] });
+        byPlayer.set(player, { player, minutes: [(g as any)?.minute ?? ""] });
       }
     });
 
@@ -1024,7 +1179,7 @@ export const gameInfo = () => {
                 <p className="text-[32px] leading-none">-</p>
                 <p className="leading-none">{displayAwayScore}</p>
               </div>
-              <p className="mt-1 text-[11px] opacity-90">{String((displayFixture as any)?.status ?? "")}</p>
+              <p className="mt-1 text-[11px] opacity-90">{displayStatusText}</p>
             </div>
           </div>
         )}
@@ -1069,7 +1224,7 @@ export const gameInfo = () => {
                   <p>-</p>
                   <p className="leading-none">{displayAwayScore}</p>
                 </div>
-                <p className="text-center block md:hidden">{String((displayFixture as any)?.status ?? "")}</p>
+                <p className="text-center block md:hidden">{displayStatusText}</p>
               </div>
 
               {/* Away team (left aligned) */}
@@ -1195,8 +1350,90 @@ export const gameInfo = () => {
               <div className="hidden md:block flex-4">
                 <TimelinePanel mode="desktop" />
               </div>
-              <div className="flex flex-col justify-between flex-5 gap-4 block-style">
-                <StaggerChildren className="flex gap-1 flex-col">
+              <div className="flex flex-col flex-5 gap-4">
+                {topRatedPlayer ? (
+                  <div className="w-full p-0 overflow-hidden rounded-xl">
+                    <div className="relative p-4">
+                      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#FDE68A]/35 via-[#F5C542]/20 to-transparent" />
+                        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[#F59E0B]/20 blur-3xl" />
+                      </div>
+
+                      <div className="relative flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openPlayerSheet({
+                                playerId: topRatedPlayer.id || undefined,
+                                playerName: topRatedPlayer.name || undefined,
+                              })
+                            }
+                            className="relative h-14 w-14 rounded-full overflow-visible shrink-0"
+                            aria-label="Open top rated player"
+                          >
+                            <span className="absolute inset-0 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center">
+                              {topRatedPlayerImage || topRatedPlayer.image ? (
+                                <img
+                                  src={topRatedPlayerImage || topRatedPlayer.image || undefined}
+                                  alt={topRatedPlayer.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="tall-font font-extrabold theme-text text-lg">
+                                  {topRatedPlayer.number || topRatedPlayerNumber
+                                    ? String(topRatedPlayer.number || topRatedPlayerNumber)
+                                    : "--"}
+                                </span>
+                              )}
+                            </span>
+
+                            <span className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-[#F5C542] text-black flex items-center justify-center text-base font-black shadow ring-2 ring-white/70 dark:ring-black/30">
+                              ★
+                            </span>
+
+                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-semibold">
+                              {topRatedPlayer.number || topRatedPlayerNumber
+                                ? String(topRatedPlayer.number || topRatedPlayerNumber)
+                                : "--"}
+                            </span>
+                          </button>
+
+                          <div className="min-w-0">
+                            <p className="text-[11px] uppercase tracking-wide text-neutral-m6">Highest Rated</p>
+                            <p className="theme-text font-semibold truncate">{topRatedPlayer.name || "Player"}</p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`h-10 w-10 rounded-md flex items-center justify-center font-extrabold tabular-nums ${ratingBadgeClass(
+                            topRatedPlayer.rating
+                          )}`}
+                        >
+                          {topRatedPlayer.rating.toFixed(1)}
+                        </span>
+                      </div>
+
+                      <div className="relative mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                        <p className="text-neutral-m6">
+                          Goals: <span className="theme-text font-semibold">{topRatedPlayer.goals}</span>
+                        </p>
+                        <p className="text-neutral-m6">
+                          Assists: <span className="theme-text font-semibold">{topRatedPlayer.assists}</span>
+                        </p>
+                        <p className="text-neutral-m6">
+                          Duels: <span className="theme-text font-semibold">{topRatedPlayer.duels}</span>
+                        </p>
+                        <p className="text-neutral-m6">
+                          Passes: <span className="theme-text font-semibold">{topRatedPlayer.passAcc || "--"}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-col justify-between gap-4 block-style">
+                  <StaggerChildren className="flex gap-1 flex-col">
                   <div className="flex items-center gap-2">
                     <img
                       src="/icons/calendar-line-1.svg"
@@ -1307,13 +1544,14 @@ export const gameInfo = () => {
                       </p>
                     </div>
                   </div>
-                </StaggerChildren>
+                  </StaggerChildren>
 
                 <GetVenueImage
                   teamId={fixtureDetails?.localteam?.id}
                   alt={`${fixtureDetails?.localteam?.name ?? ""} venue`}
                   className="w-full h-full max-h-[260px] object-cover rounded"
                 />
+                </div>
               </div>
             </div>
 
