@@ -22,6 +22,7 @@ import GameInfo from "./features/football/pages/gameInfo";
 import { setNavigator } from "./lib/router/navigate";
 import { useEffect } from "react";
 import PlayerProfile from "./features/football/pages/playerProfile";
+import PlayerComparison from "./features/football/pages/playerComparison";
 import TeamProfile from "./features/football/pages/teamProfile";
 import Onboard from "./features/onboarding/pages/onboard";
 import Afcon from "./features/football/pages/afcon";
@@ -175,6 +176,21 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <PlayerProfile />
+            </motion.div>
+          }
+        />
+
+        <Route
+          path="/player/compare"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <PlayerComparison />
             </motion.div>
           }
         />

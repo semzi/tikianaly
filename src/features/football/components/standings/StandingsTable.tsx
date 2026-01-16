@@ -90,6 +90,118 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
   const [apiError, setApiError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const SkeletonBlock = ({ className }: { className: string }) => (
+    <div className={`animate-pulse rounded bg-snow-200/80 dark:bg-white/10 ${className}`} />
+  );
+
+  const StandingsSkeletonDesktop = () => (
+    <div className="hidden lg:block block-style overflow-x-auto">
+      <div className="min-w-full">
+        <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+          <div className="text-center">#</div>
+          <div>Team</div>
+          <div className="text-center">P</div>
+          <div className="text-center">W</div>
+          <div className="text-center">D</div>
+          <div className="text-center">L</div>
+          <div className="text-center">GF</div>
+          <div className="text-center">GA</div>
+          <div className="text-center">GD</div>
+          <div className="text-center">PTS</div>
+          <div className="text-center">Form</div>
+        </div>
+        <div className="flex flex-col gap-2 px-6 pb-6">
+          {Array.from({ length: 10 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 items-center"
+            >
+              <SkeletonBlock className="h-4 w-6 mx-auto" />
+              <div className="flex items-center gap-3 min-w-0">
+                <SkeletonBlock className="w-8 h-8 rounded-full" />
+                <SkeletonBlock className="h-3 w-40" />
+              </div>
+              <SkeletonBlock className="h-4 w-6 mx-auto" />
+              <SkeletonBlock className="h-4 w-6 mx-auto" />
+              <SkeletonBlock className="h-4 w-6 mx-auto" />
+              <SkeletonBlock className="h-4 w-6 mx-auto" />
+              <SkeletonBlock className="h-4 w-8 mx-auto" />
+              <SkeletonBlock className="h-4 w-8 mx-auto" />
+              <SkeletonBlock className="h-4 w-8 mx-auto" />
+              <SkeletonBlock className="h-4 w-8 mx-auto" />
+              <div className="flex items-center justify-center gap-1">
+                {Array.from({ length: 5 }).map((__, j) => (
+                  <SkeletonBlock key={j} className="h-2.5 w-2.5 rounded-full" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const StandingsSkeletonMobile = () => (
+    <div className="block lg:hidden">
+      <div className="block-style">
+        <div className="flex">
+          <div className="w-[220px] shrink-0">
+            <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+              <div className="text-center">#</div>
+              <div>Team</div>
+            </div>
+            <div className="flex flex-col gap-0">
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <div key={idx} className="grid grid-cols-[40px_1fr] gap-3 px-4 h-10 items-center whitespace-nowrap">
+                  <SkeletonBlock className="h-4 w-6 mx-auto" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <SkeletonBlock className="w-7 h-7 rounded-full" />
+                    <SkeletonBlock className="h-3 w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-x-auto hide-scrollbar">
+            <div className="min-w-[680px]">
+              <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                <div className="text-center">P</div>
+                <div className="text-center">W</div>
+                <div className="text-center">D</div>
+                <div className="text-center">L</div>
+                <div className="text-center">GF</div>
+                <div className="text-center">GA</div>
+                <div className="text-center">GD</div>
+                <div className="text-center">PTS</div>
+                <div className="text-center">Form</div>
+              </div>
+              <div className="flex flex-col gap-0">
+                {Array.from({ length: 10 }).map((_, idx) => (
+                  <div key={idx} className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 h-10 items-center whitespace-nowrap">
+                    <SkeletonBlock className="h-4 w-6 mx-auto" />
+                    <SkeletonBlock className="h-4 w-6 mx-auto" />
+                    <SkeletonBlock className="h-4 w-6 mx-auto" />
+                    <SkeletonBlock className="h-4 w-6 mx-auto" />
+                    <SkeletonBlock className="h-4 w-8 mx-auto" />
+                    <SkeletonBlock className="h-4 w-8 mx-auto" />
+                    <SkeletonBlock className="h-4 w-8 mx-auto" />
+                    <SkeletonBlock className="h-4 w-8 mx-auto" />
+                    <div className="flex items-center justify-center gap-1">
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <SkeletonBlock key={j} className="h-2.5 w-2.5 rounded-full" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   useEffect(() => {
     const id = String(leagueId ?? "").trim();
     if (!id) return;
@@ -318,126 +430,135 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
       {apiError ? (
         <div className="mb-4 text-sm text-ui-negative">{apiError}</div>
       ) : null}
-      {isLoading ? (
-        <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">Loading standings...</div>
-      ) : null}
       {!isLoading && !apiError && data.length === 0 ? (
-        <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">Standing not found</div>
+        <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">No records at the Moment check back later</div>
       ) : null}
-      <div className="hidden lg:block block-style overflow-x-auto">
-        <div className="min-w-full">
-          <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
-            <div className="text-center">#</div>
-            <div>Team</div>
-            <div className="text-center">P</div>
-            <div className="text-center">W</div>
-            <div className="text-center">D</div>
-            <div className="text-center">L</div>
-            <div className="text-center">GF</div>
-            <div className="text-center">GA</div>
-            <div className="text-center">GD</div>
-            <div className="text-center">PTS</div>
-            <div className="text-center">Form</div>
-          </div>
-          {renderRows(data, "px-6")}
-        </div>
-      </div>
 
-      <div className="block lg:hidden">
-        <div className="block-style">
-          <div className="flex">
-            <div className="w-[220px] shrink-0">
-              <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+      {isLoading ? (
+        <>
+          <StandingsSkeletonDesktop />
+          <StandingsSkeletonMobile />
+        </>
+      ) : null}
+
+      {!isLoading ? (
+        <>
+          <div className="hidden lg:block block-style overflow-x-auto">
+            <div className="min-w-full">
+              <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
                 <div className="text-center">#</div>
                 <div>Team</div>
+                <div className="text-center">P</div>
+                <div className="text-center">W</div>
+                <div className="text-center">D</div>
+                <div className="text-center">L</div>
+                <div className="text-center">GF</div>
+                <div className="text-center">GA</div>
+                <div className="text-center">GD</div>
+                <div className="text-center">PTS</div>
+                <div className="text-center">Form</div>
               </div>
-              <div className="flex flex-col gap-0">
-                {data.map((team) => (
-                  <div
-                    key={`mobile-team-${team.position}-${team.team}`}
-                    className={`grid grid-cols-[40px_1fr] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
-                  >
-                    <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
-                      {team.position}
+              {renderRows(data, "px-6")}
+            </div>
+          </div>
+
+          <div className="block lg:hidden">
+            <div className="block-style">
+              <div className="flex">
+                <div className="w-[220px] shrink-0">
+                  <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                    <div className="text-center">#</div>
+                    <div>Team</div>
+                  </div>
+                  <div className="flex flex-col gap-0">
+                    {data.map((team) => (
+                      <div
+                        key={`mobile-team-${team.position}-${team.team}`}
+                        className={`grid grid-cols-[40px_1fr] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
+                      >
+                        <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
+                          {team.position}
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {team.teamId ? (
+                            <GetTeamLogo
+                              teamId={team.teamId}
+                              alt={team.team}
+                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                            />
+                          ) : (
+                            <img
+                              src={team.logo || "/loading-state/shield.svg"}
+                              alt={team.team}
+                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
+                              }}
+                            />
+                          )}
+                          <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                            {team.team}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-x-auto hide-scrollbar">
+                  <div className="min-w-[680px]">
+                    <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                      <div className="text-center">P</div>
+                      <div className="text-center">W</div>
+                      <div className="text-center">D</div>
+                      <div className="text-center">L</div>
+                      <div className="text-center">GF</div>
+                      <div className="text-center">GA</div>
+                      <div className="text-center">GD</div>
+                      <div className="text-center">PTS</div>
+                      <div className="text-center">Form</div>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      {team.teamId ? (
-                        <GetTeamLogo
-                          teamId={team.teamId}
-                          alt={team.team}
-                          className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                        />
-                      ) : (
-                        <img
-                          src={team.logo || "/loading-state/shield.svg"}
-                          alt={team.team}
-                          className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                          }}
-                        />
-                      )}
-                      <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                        {team.team}
-                      </span>
+                    <div className="flex flex-col gap-0">
+                      {data.map((team) => (
+                        <div
+                          key={`mobile-stats-${team.position}-${team.team}`}
+                          className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
+                        >
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.played}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.wins}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.draws}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.losses}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.goalsFor}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.goalsAgainst}
+                          </div>
+                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
+                          </div>
+                          <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.points}
+                          </div>
+                          <div className="text-center">{renderRecentForm(team.recentForm)}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-x-auto hide-scrollbar">
-              <div className="min-w-[680px]">
-                <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
-                  <div className="text-center">P</div>
-                  <div className="text-center">W</div>
-                  <div className="text-center">D</div>
-                  <div className="text-center">L</div>
-                  <div className="text-center">GF</div>
-                  <div className="text-center">GA</div>
-                  <div className="text-center">GD</div>
-                  <div className="text-center">PTS</div>
-                  <div className="text-center">Form</div>
-                </div>
-                <div className="flex flex-col gap-0">
-                  {data.map((team) => (
-                    <div
-                      key={`mobile-stats-${team.position}-${team.team}`}
-                      className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
-                    >
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.played}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.wins}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.draws}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.losses}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.goalsFor}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.goalsAgainst}
-                      </div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
-                      </div>
-                      <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.points}
-                      </div>
-                      <div className="text-center">{renderRecentForm(team.recentForm)}</div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      ) : null}
 
       <div className="mt-6 block-style p-4 md:p-6">
         <div className="mb-6">

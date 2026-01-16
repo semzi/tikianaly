@@ -60,7 +60,7 @@ const PlayerStatsBottomSheet = ({ open, onClose, onViewProfile, playerName, play
   if (minutes) highlightCards.push({ label: "Minutes", value: minutes });
   if (goals) highlightCards.push({ label: "Goals", value: goals });
   if (assists) highlightCards.push({ label: "Assists", value: assists });
-  if (passAcc) highlightCards.push({ label: "Pass acc", value: passAcc });
+  if (passAcc) highlightCards.push({ label: "Pass acc (%)", value: passAcc });
 
   const ratioCards: Array<{ label: string; value: string }> = [];
   if (duelsWon && duels) ratioCards.push({ label: "Duels", value: `${duelsWon}/${duels}` });

@@ -9,9 +9,8 @@ import {
   ShareIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
-import Button from "@/components/ui/Form/FormButton";
 import { navigate } from "@/lib/router/navigate";
-import { getFixtureDetails, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
+import { getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { useLocation, useParams } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -20,7 +19,9 @@ import LineupBuilder from "@/features/football/components/lineupBuilder";
 import MatchStatisticsPanel from "@/features/football/components/MatchStatisticsPanel";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import TeamComparison from "@/features/football/components/TeamComparison";
+import { HeadToHeadSection } from "@/features/football/components/HeadToHeadSection";
 import PlayerStatsBottomSheet from "@/features/football/components/player/PlayerStatsBottomSheet";
+import { useToast } from "@/context/ToastContext";
 import {
   closeLiveStream,
   createFootballLiveStream,
@@ -30,18 +31,67 @@ import {
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { Helmet } from "react-helmet";
 
-const events = [
-  {
-    minute: 1,
-    title: "Feature Coming Soon",
-    text: "This feature is under development and will be available soon.",
-    icon: "",
-  }
-];
-
-// ... (rest of the code remains the same)
 
 export const gameInfo = () => {
+  const toast = useToast();
+
+  const Skeleton = ({ className = "" }: { className?: string }) => (
+    <div className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`} style={{ minHeight: "1em" }} />
+  );
+
+  const GameInfoSkeleton = () => (
+    <div className="page-padding-x">
+      <div className="my-6">
+        <div className="rounded-xl bg-white/60 dark:bg-[#0D1117] border border-snow-200 dark:border-snow-100/10 overflow-hidden">
+          <div className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <div className="space-y-2 text-right">
+                <Skeleton className="h-4 w-28 ml-auto" />
+                <Skeleton className="h-8 w-24 ml-auto" />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <Skeleton className="h-14 w-14 rounded-full" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-14 w-14 rounded-full" />
+            </div>
+          </div>
+
+          <div className="border-t border-snow-200 dark:border-snow-100/10 bg-snow-100/60 dark:bg-snow-100/5 p-3">
+            <div className="flex gap-3 overflow-hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-7 w-24 flex-shrink-0" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="block-style p-5 space-y-3">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+          <div className="block-style p-5 space-y-3">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const tabs = [
     { id: "timeline", label: "Timeline" },
     { id: "overview", label: "Overview" },
@@ -70,7 +120,12 @@ export const gameInfo = () => {
   const [matchInfo, setMatchInfo] = useState<any>(null);
   const [liveFixture, setLiveFixture] = useState<LiveStreamFixture | null>(null);
   const [liveEvents, setLiveEvents] = useState<LiveStreamEvent[]>([]);
+  const [commentaryComments, setCommentaryComments] = useState<Array<{ comment_id: number; comment: string }>>([]);
   const [, setStandingsData] = useState<any>(null);
+  const [isLoadingMatchInfo, setIsLoadingMatchInfo] = useState(false);
+  const [isLoadingFixtureDetails, setIsLoadingFixtureDetails] = useState(false);
+  const [isLoadingCommentary, setIsLoadingCommentary] = useState(false);
+  const [matchLoadError, setMatchLoadError] = useState<string>("");
   const [homeRecentForm, setHomeRecentForm] = useState<Array<"W" | "D" | "L">>([]);
   const [awayRecentForm, setAwayRecentForm] = useState<Array<"W" | "D" | "L">>([]);
   const [isPlayerSheetOpen, setIsPlayerSheetOpen] = useState(false);
@@ -94,18 +149,76 @@ export const gameInfo = () => {
   })();
 
   useEffect(() => {
+    const onOffline = () => {
+      toast.show({
+        id: "network-offline",
+        variant: "error",
+        message: "Network connection lost",
+      });
+    };
+
+    const onOnline = () => {
+      toast.dismiss("network-offline");
+      toast.show({
+        id: "network-online",
+        variant: "success",
+        message: "Back online",
+        durationMs: 2500,
+      });
+    };
+
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      onOffline();
+    }
+
+    return () => {
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [toast]);
+
+  useEffect(() => {
     const fetchMatchInfo = async () => {
       if (!fixtureIdForRest) return;
       try {
+        setIsLoadingMatchInfo(true);
+        setMatchLoadError("");
         const res = await getMatchInfo(fixtureIdForRest);
         const item0 = (res as any)?.responseObject?.item?.[0];
         setMatchInfo(item0 ?? (res as any)?.responseObject ?? res);
       } catch (error) {
+        setMatchInfo(null);
+        setMatchLoadError("match_info");
         console.error("Error fetching match info:", error);
+      } finally {
+        setIsLoadingMatchInfo(false);
       }
     };
 
     fetchMatchInfo();
+  }, [fixtureIdForRest]);
+
+  useEffect(() => {
+    const fetchCommentary = async () => {
+      if (!fixtureIdForRest) return;
+      try {
+        setIsLoadingCommentary(true);
+        const res = await getMatchCommentary(fixtureIdForRest);
+        const item0 = (res as any)?.responseObject?.item?.[0];
+        const comments = (item0?.comments ?? []) as Array<{ comment_id: number; comment: string }>;
+        setCommentaryComments(Array.isArray(comments) ? comments : []);
+      } catch (error) {
+        setCommentaryComments([]);
+        console.error("Error fetching match commentary:", error);
+      } finally {
+        setIsLoadingCommentary(false);
+      }
+    };
+
+    fetchCommentary();
   }, [fixtureIdForRest]);
 
   const toInt = (v: unknown) => {
@@ -152,10 +265,23 @@ export const gameInfo = () => {
   };
 
   const displayFixture: any = liveFixture ?? fixtureDetails;
-  const displayHomeTeamId = (displayFixture as any)?.localteam?.id;
-  const displayAwayTeamId = (displayFixture as any)?.visitorteam?.id;
+  const displayHomeTeamId =
+    (displayFixture as any)?.localteam?.id ??
+    (fixtureDetails as any)?.localteam?.id ??
+    (fixtureDetails as any)?.homeTeamId;
+  const displayAwayTeamId =
+    (displayFixture as any)?.visitorteam?.id ??
+    (fixtureDetails as any)?.visitorteam?.id ??
+    (fixtureDetails as any)?.awayTeamId;
   const displayHomeTeamName = String((displayFixture as any)?.localteam?.name ?? "");
   const displayAwayTeamName = String((displayFixture as any)?.visitorteam?.name ?? "");
+
+  const headToHeadTeamAId = displayHomeTeamId ?? (matchInfo as any)?.teams?.home?.id;
+  const headToHeadTeamBId = displayAwayTeamId ?? (matchInfo as any)?.teams?.away?.id;
+  const headToHeadTeamAName =
+    displayHomeTeamName || String((matchInfo as any)?.teams?.home?.name ?? "");
+  const headToHeadTeamBName =
+    displayAwayTeamName || String((matchInfo as any)?.teams?.away?.name ?? "");
 
   const canonicalUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}${window.location.search}`
@@ -172,6 +298,25 @@ export const gameInfo = () => {
   const pageDescription = `Live score, lineups, stats and timeline for ${matchTitleCore}.`;
 
   const isFullTimeMatchInfo = String(matchInfo?.match?.status ?? "").trim().toLowerCase() === "full-time";
+  const isFullTimeLineupStatus = (() => {
+    const s = String(
+      (matchInfo as any)?.match?.status ?? (liveFixture as any)?.status ?? (fixtureDetails as any)?.status ?? ""
+    )
+      .trim()
+      .toLowerCase();
+    return (
+      isFullTimeMatchInfo ||
+      s === "ft" ||
+      s === "full-time" ||
+      s === "full time" ||
+      s === "finished" ||
+      s === "ended" ||
+      s === "aet" ||
+      s === "pen" ||
+      s.includes("after extra") ||
+      s.includes("pen")
+    );
+  })();
 
   const displayStatusText = String(
     isFullTimeMatchInfo
@@ -195,6 +340,18 @@ export const gameInfo = () => {
     (fixtureDetails as any)?.league_id ??
     (fixtureDetails as any)?.leagueId ??
     (fixtureDetails as any)?.league?.id;
+
+  const isGameInfoLoading =
+    !!fixtureIdForRest &&
+    (isLoadingMatchInfo || isLoadingFixtureDetails) &&
+    !(fixtureDetails || matchInfo || liveFixture);
+
+  const isGameNotFound =
+    !!fixtureIdForRest &&
+    !isLoadingMatchInfo &&
+    !isLoadingFixtureDetails &&
+    !(fixtureDetails || matchInfo || liveFixture) &&
+    !!matchLoadError;
 
   const playerAvatarStorageKey = (id: string) => `player_avatar_base64_${id}`;
 
@@ -323,8 +480,8 @@ export const gameInfo = () => {
     const playerName = String(opts.playerName ?? "").trim();
     const toKey = (s: string) => s.trim().toLowerCase();
 
-    const bucketHome = fixtureDetails?.player_stats?.home;
-    const bucketAway = fixtureDetails?.player_stats?.away;
+    const bucketHome = matchInfo?.player_stats?.home ?? fixtureDetails?.player_stats?.home;
+    const bucketAway = matchInfo?.player_stats?.away ?? fixtureDetails?.player_stats?.away;
     const all = [
       ...(Array.isArray(bucketHome) ? bucketHome : []),
       ...(Array.isArray(bucketAway) ? bucketAway : []),
@@ -442,7 +599,7 @@ export const gameInfo = () => {
     const id = String(playerSheetId ?? "").trim();
     if (!id) return;
     closePlayerSheet();
-    navigate(`/football/player/${id}`);
+    navigate(`/player/profile/${id}`);
   };
 
   const FormDots = ({ results, align }: { results: Array<"W" | "D" | "L">; align?: "left" | "right" }) => {
@@ -513,12 +670,43 @@ export const gameInfo = () => {
     const hasSseFixture = !!liveFixture;
     const fromSse = Array.isArray(liveEvents) ? liveEvents : [];
     if (hasSseFixture) {
-      // If SSE is present but events are missing/empty: show nothing (no REST fallback)
       return fromSse;
     }
-
-    const fromRest = Array.isArray(fixtureDetails?.events) ? (fixtureDetails.events as any[]) : [];
+    const fromRest = (fixtureDetails as any)?.events ?? (fixtureDetails as any)?.fixture?.events ?? [];
     return fromRest as LiveStreamEvent[];
+  };
+
+  const redCardByTeam = useMemo(() => {
+    const base = { localteam: 0, visitorteam: 0 } as Record<"localteam" | "visitorteam", number>;
+    const items = resolveTimelineEvents();
+    for (const ev of items) {
+      const eventType = String((ev as any)?.type ?? "").toLowerCase();
+      if (eventType !== "redcard" && eventType !== "yellowred") continue;
+      const team = String((ev as any)?.team ?? "").toLowerCase();
+      if (team === "localteam" || team === "visitorteam") {
+        base[team] += 1;
+      }
+    }
+    return base;
+  }, [liveFixture, liveEvents, fixtureDetails]);
+
+  const TeamLogoWithRedCardBadge = (props: {
+    teamId?: string | number;
+    alt?: string;
+    className?: string;
+    hasRedCard?: boolean;
+  }) => {
+    return (
+      <div className="relative shrink-0">
+        <GetTeamLogo teamId={props.teamId} alt={props.alt} className={props.className} />
+        {props.hasRedCard ? (
+          <span
+            className="absolute -top-1 -right-1 h-4 w-3 rounded-[2px] bg-ui-negative"
+            aria-label="Red card"
+          />
+        ) : null}
+      </div>
+    );
   };
 
   const timelineEvents = resolveTimelineEvents().slice().sort((a, b) => minuteSortValue(a) - minuteSortValue(b));
@@ -1046,10 +1234,14 @@ export const gameInfo = () => {
     const fetchFixtureDetails = async () => {
       if (fixtureIdForRest) {
         try {
+          setIsLoadingFixtureDetails(true);
           const response = await getFixtureDetails(fixtureIdForRest);
           setFixtureDetails(response.responseObject.item[0]);
         } catch (error) {
+          setFixtureDetails(null);
           console.error("Error fetching fixture details:", error);
+        } finally {
+          setIsLoadingFixtureDetails(false);
         }
       }
     };
@@ -1096,52 +1288,76 @@ export const gameInfo = () => {
         <meta name="twitter:image" content={shareImageUrl} />
       </Helmet>
       <PageHeader />
-      <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
-        <div
-          className= "absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
-          }}
-        />
-        {/* Floating SVG background */}
-        <img
-          src="./icons/football-line-1.svg"
-          className="absolute w-60 md:w-150 invert sepia opacity-8 pointer-events-none z-[1] float-edges"
-          alt=""
-          style={{ animation: "float-around-edges 12s linear infinite" }}
-        />
-        {/* Foreground content */}
-        <div className="relative px-3 z-[2] grid grid-cols-3 items-center">
-          <button type="button" onClick={() => navigate(-1)} className="flex gap-4 items-center w-fit cursor-pointer text-left">
-            <ArrowLeftIcon className="text-white h-5" />
-            <p className="text-white hidden md:block">Back</p>
-          </button>
 
-          <div className="bg-brand-secondary md:opacity-100 opacity-0 font-semibold mb-2 text items-center text-white py-1.5 px-4 rounded w-fit mx-auto">
-            <div className="flex flex-col items-center leading-none">
-              <span className="text-[12px]">
-                {statusLabel}
-              </span>
+      {isGameInfoLoading ? (
+        <GameInfoSkeleton />
+      ) : isGameNotFound ? (
+        <div className="page-padding-x">
+          <div className="my-8 block-style p-6 md:p-10">
+            <p className="theme-text font-semibold text-lg">Game not found</p>
+            <p className="text-neutral-m6 mt-2">We couldn’t load this match. Please check the link and try again.</p>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="h-11 px-4 rounded-xl bg-brand-primary text-white font-semibold"
+              >
+                Go back
+              </button>
             </div>
           </div>
-
-          <div className="flex gap-4 justify-end">
-            {/* <Icons.Notification2Line className="text-white h-5" /> */}
-            <BellAlertIcon className="text-white h-5" />
-            <ShareIcon className="text-white h-5" />
-          </div>
         </div>
+      ) : null}
+
+      {!isGameInfoLoading && !isGameNotFound ? (
+        <>
+          <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
+            <div
+              className= "absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+              }}
+            />
+            {/* Floating SVG background */}
+            <img
+              src="./icons/football-line-1.svg"
+              className="absolute w-60 md:w-150 invert sepia opacity-8 pointer-events-none z-[1] float-edges"
+              alt=""
+              style={{ animation: "float-around-edges 12s linear infinite" }}
+            />
+            {/* Foreground content */}
+            <div className="relative px-3 z-[2] grid grid-cols-3 items-center">
+              <button type="button" onClick={() => navigate(-1)} className="flex gap-4 items-center w-fit cursor-pointer text-left">
+                <ArrowLeftIcon className="text-white h-5" />
+                <p className="text-white hidden md:block">Back</p>
+              </button>
+
+              <div className="bg-brand-secondary md:opacity-100 opacity-0 font-semibold mb-2 text items-center text-white py-1.5 px-4 rounded w-fit mx-auto">
+                <div className="flex flex-col items-center leading-none">
+                  <span className="text-[12px]">
+                    {statusLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-4 justify-end">
+                {/* <Icons.Notification2Line className="text-white h-5" /> */}
+                <BellAlertIcon className="text-white h-5" />
+                <ShareIcon className="text-white h-5" />
+              </div>
+            </div>
 
         {displayFixture && (
           <div className="md:hidden px-3 mt-2 text-white">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1 flex flex-col">
                 <div className="mt-1 flex items-center gap-2">
-                  <GetTeamLogo
+                  <TeamLogoWithRedCardBadge
                     teamId={displayHomeTeamId}
                     alt={displayHomeTeamName}
                     className="h-10 w-10 shrink-0"
+                    hasRedCard={redCardByTeam.localteam > 0}
                   />
                   <p className="min-w-0 truncate text-[13px] font-semibold">
                     {displayHomeTeamName}
@@ -1161,10 +1377,11 @@ export const gameInfo = () => {
                   <p className="min-w-0 truncate text-[13px] font-semibold text-right">
                     {displayAwayTeamName}
                   </p>
-                  <GetTeamLogo
+                  <TeamLogoWithRedCardBadge
                     teamId={displayAwayTeamId}
                     alt={displayAwayTeamName}
                     className="h-10 w-10 shrink-0"
+                    hasRedCard={redCardByTeam.visitorteam > 0}
                   />
                 </div>
                 <div className="mt-1">
@@ -1191,7 +1408,12 @@ export const gameInfo = () => {
               <div className="flex items-center md:items-end flex-col">
                 <div className="flex flex-col-reverse sz-7 md:flex-row md:mr-2 md:text-[20px] md:font-light md:justify-end items-center font-semibold md:gap-3">
                   <p className="text-center sz-4 font-bold">{displayHomeTeamName}</p>
-                  <GetTeamLogo teamId={displayHomeTeamId} alt={displayHomeTeamName} className="w-fit h-12" />
+                  <TeamLogoWithRedCardBadge
+                    teamId={displayHomeTeamId}
+                    alt={displayHomeTeamName}
+                    className="w-fit h-12"
+                    hasRedCard={redCardByTeam.localteam > 0}
+                  />
                 </div>
                 <div className="mt-1">
                   <FormDots results={homeRecentForm} align="right" />
@@ -1230,7 +1452,12 @@ export const gameInfo = () => {
               {/* Away team (left aligned) */}
               <div className="flex items-center md:items-start flex-col">
                 <div className="flex flex-col sz-7 md:flex-row md:ml-2 md:text-[20px] md:font-light md:justify-start items-center font-semibold md:gap-3">
-                  <GetTeamLogo teamId={displayAwayTeamId} alt={displayAwayTeamName} className="w-fit h-12" />
+                  <TeamLogoWithRedCardBadge
+                    teamId={displayAwayTeamId}
+                    alt={displayAwayTeamName}
+                    className="w-fit h-12"
+                    hasRedCard={redCardByTeam.visitorteam > 0}
+                  />
                   <p className="text-center sz-4 font-bold">{displayAwayTeamName}</p>
                 </div>
                 <div className="mt-1">
@@ -1574,7 +1801,7 @@ export const gameInfo = () => {
 
         {activeTab === "commentary" && (
           <div className=" my-4 flex flex-col">
-            <div className="flex gap-5 mb-5">
+            {/* <div className="flex gap-5 mb-5">
               <Button
                 label={fixtureDetails?.localteam?.name ?? ""}
                 className="btn-primary text-sm text-white border-brand-primary"
@@ -1584,46 +1811,61 @@ export const gameInfo = () => {
                 label={fixtureDetails?.visitorteam?.name ?? ""}
                 className="btn-outline text-sm bg-transparent text-neutral-m6 border-neutral-m6 hover:bg-brand-secondary hover:text-white hover:border-brand-secondary"
               />
-            </div>
-            <div className="flex flex-col">
-              {events.map((event, idx) => (
-                <div key={idx} className="flex gap-5 md:gap-12">
-                  {/* Left: Minute + dotted line */}
-                  <div className="flex flex-col items-center">
-                    <div className="bg-snow-200 p-2">
-                      <span className="text-sm font-medium">
-                        {event.minute}'
-                      </span>
-                    </div>
-                    {/* line continues only if not last item */}
-                    {idx !== events.length - 1 && (
-                      <div className="flex-1 border-l-2 border-dashed border-snow-200"></div>
-                    )}
-                  </div>
+            </div> */}
 
-                  {/* Right: Event card */}
-                  <div className="flex-1 block-style mb-12 w-full">
-                    <p className="font-semibold theme-text mb-3">
-                      {event.title}
-                    </p>
-                    <p className="text-xs md:text-base dark:text-snow-200 text-neutral-n3 mb-2">
-                      {event.text}
-                    </p>
-                    <div className="py-4 block-style items-center flex justify-between">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/loading-state/player.svg"
-                          alt=""
-                          className="h-5 rounded-full"
-                        />
-                        <p className="theme-text sz-7">Tikianaly</p>
-                      </div>
-                      <div className="">{event.icon}</div>
+            {isLoadingCommentary ? (
+              <div className="flex flex-col gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={`c-skel-${i}`} className="block-style p-4">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-3 w-28 rounded bg-snow-200 dark:bg-[#1F2937]" />
+                      <div className="h-3 w-full rounded bg-snow-200 dark:bg-[#1F2937]" />
+                      <div className="h-3 w-5/6 rounded bg-snow-200 dark:bg-[#1F2937]" />
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : commentaryComments.length > 0 ? (
+              <div className="flex flex-col">
+                {commentaryComments
+                  .slice()
+                  .sort((a, b) => (b.comment_id ?? 0) - (a.comment_id ?? 0))
+                  .map((c, idx) => (
+                    <div key={c.comment_id ?? idx} className="flex gap-5 md:gap-12">
+                      <div className="flex flex-col items-center">
+                        <div className="bg-snow-200 p-2">
+                          <span className="text-sm font-medium">#{c.comment_id}</span>
+                        </div>
+                        {idx !== commentaryComments.length - 1 && (
+                          <div className="flex-1 border-l-2 border-dashed border-snow-200"></div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 block-style mb-12 w-full">
+                        <p className="text-xs md:text-base dark:text-snow-200 text-neutral-n3 mb-2">
+                          {c.comment}
+                        </p>
+                        {/* <div className="py-4 block-style items-center flex justify-between">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src="/loading-state/player.svg"
+                              alt=""
+                              className="h-5 rounded-full"
+                            />
+                            <p className="theme-text sz-7">Tikianaly</p>
+                          </div>
+                          <div className=""></div>
+                        </div> */}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="block-style p-6 md:p-8">
+                <p className="theme-text font-semibold text-base">Commentary</p>
+                <p className="text-neutral-m6 mt-2">Commentary not available</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -1633,20 +1875,46 @@ export const gameInfo = () => {
 
         {activeTab === "lineup" && (
          <div className="my-8">
-          <LineupBuilder
-            lineup={matchInfo?.lineup ?? (fixtureDetails as any)?.lineup}
-            substitutions={matchInfo?.substitutions ?? (fixtureDetails as any)?.substitutions}
-            coaches={matchInfo?.coaches ?? (fixtureDetails as any)?.coaches}
-            playerStats={matchInfo?.player_stats}
-            summary={matchInfo?.summary}
-            homeFormation={matchInfo?.teams?.home?.formation}
-            awayFormation={matchInfo?.teams?.away?.formation}
-            localteam={fixtureDetails?.lineups?.localteam}
-            visitorteam={fixtureDetails?.lineups?.visitorteam}
-            onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
-            homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
-            awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
-          />
+          {(() => {
+            const lineupPayload = matchInfo?.lineup ?? (fixtureDetails as any)?.lineup;
+            const localLineup = (fixtureDetails as any)?.lineups?.localteam;
+            const visitorLineup = (fixtureDetails as any)?.lineups?.visitorteam;
+
+            const hasLineup =
+              (lineupPayload && (lineupPayload as any)?.home && (lineupPayload as any)?.away) ||
+              (localLineup && Array.isArray((localLineup as any)?.player) && (localLineup as any)?.player?.length) ||
+              (visitorLineup && Array.isArray((visitorLineup as any)?.player) && (visitorLineup as any)?.player?.length);
+
+            if (!hasLineup) {
+              return (
+                <div className="block-style p-6 md:p-8">
+                  <p className="theme-text font-semibold text-base">Line up</p>
+                  <p className="text-neutral-m6 mt-2">
+                    {isFullTimeLineupStatus
+                      ? "Lineup not available for this Game"
+                      : "Official line up would be displayed 1 hour before the match"}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <LineupBuilder
+                lineup={lineupPayload}
+                substitutions={matchInfo?.substitutions ?? (fixtureDetails as any)?.substitutions}
+                coaches={matchInfo?.coaches ?? (fixtureDetails as any)?.coaches}
+                playerStats={matchInfo?.player_stats}
+                summary={matchInfo?.summary}
+                homeFormation={matchInfo?.teams?.home?.formation}
+                awayFormation={matchInfo?.teams?.away?.formation}
+                localteam={localLineup}
+                visitorteam={visitorLineup}
+                onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
+                homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+                awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
+              />
+            );
+          })()}
           </div>
         )}
 
@@ -1668,9 +1936,14 @@ export const gameInfo = () => {
 
         {/* -------------------------------------------------------headtohead-------------------------------------------------------- */}
 
-        {/* {activeTab === "headtohead" && (
-          <HeadToHeadSection homeTeam={fixtureDetails?.localteam} awayTeam={fixtureDetails?.visitorteam} />
-        )} */}
+        {activeTab === "headtohead" && (
+          <HeadToHeadSection
+            teamAId={headToHeadTeamAId}
+            teamBId={headToHeadTeamBId}
+            teamAName={headToHeadTeamAName}
+            teamBName={headToHeadTeamBName}
+          />
+        )}
 
         {/* -------------------------------------------------------headtohead end-------------------------------------------------------- */}
 
@@ -1696,15 +1969,17 @@ export const gameInfo = () => {
 
         {/* --------------------------------------------------------timeline end--------------------------------------------------------------- */}
       </div>
-      <PlayerStatsBottomSheet
-        open={isPlayerSheetOpen}
-        onClose={closePlayerSheet}
-        onViewProfile={playerSheetId ? handleViewPlayerProfile : undefined}
-        playerName={playerSheetName}
-        playerImageUrl={playerSheetImage}
-        stats={playerSheetStats}
-      />
-      <FooterComp />
+          <PlayerStatsBottomSheet
+            open={isPlayerSheetOpen}
+            onClose={closePlayerSheet}
+            onViewProfile={playerSheetId ? handleViewPlayerProfile : undefined}
+            playerName={playerSheetName}
+            playerImageUrl={playerSheetImage}
+            stats={playerSheetStats}
+          />
+          <FooterComp />
+        </>
+      ) : null}
     </div>
   );
 };

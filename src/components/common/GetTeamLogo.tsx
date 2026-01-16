@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { getTeamById } from "@/lib/api/endpoints";
 
 interface GetTeamLogoProps {
-  teamId: string | number;
-  alt: string;
+  teamId?: string | number;
+  alt?: string;
   className?: string;
 }
 
@@ -25,6 +25,8 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const safeAlt = String(alt ?? "").trim() || "Team";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -123,10 +125,10 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
   }
 
   if (error || !logoUrl) {
-    return <img src={"/loading-state/shield.svg"} alt={`${alt} - No Logo`} className={`object-contain ${className ?? ""}`} />;
+    return <img src={"/loading-state/shield.svg"} alt={`${safeAlt} - No Logo`} className={`object-contain ${className ?? ""}`} />;
   }
 
-  return <img src={logoUrl} alt={alt} className={`object-contain ${className ?? ""}`} />;
+  return <img src={logoUrl} alt={safeAlt} className={`object-contain ${className ?? ""}`} />;
 };
 
 export default GetTeamLogo;

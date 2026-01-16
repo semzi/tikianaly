@@ -167,6 +167,9 @@ export const FooterComp = () => {
         <p className="text-center mb-8 mt-18">
           Copyright ©2026 Tikianaly / All rights reserved
         </p>
+        <p className="text-center text-xs text-white/70 -mt-6 mb-2">
+          API provided by GoalServe
+        </p>
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-import { Moon, Sun, UserIcon } from "lucide-react";
+import { GitCompare, Moon, Sun, UserIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -819,6 +819,18 @@ export const PageHeader = () => {
                   setSearchShow(true);
                 }}
               />
+              <button
+                type="button"
+                className="bg-transparent transition-colors"
+                onClick={() => {
+                  setOpenMenu(null);
+                  closeSearch();
+                  navigate("/player/compare");
+                }}
+                aria-label="Compare players"
+              >
+                <GitCompare className="h-5 w-5 text-white" />
+              </button>
               {/* <Cog6ToothIcon className="h-5 w-5" /> */}
               <button
                 className="bg-transparent transition-colors"
@@ -950,6 +962,18 @@ export const PageHeader = () => {
                     setSearchShow(true);
                   }}
                 />
+                <button
+                  type="button"
+                  className="bg-transparent transition-colors"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    closeSearch();
+                    navigate("/player/compare");
+                  }}
+                  aria-label="Compare players"
+                >
+                  <GitCompare className="h-5 w-5 text-white" />
+                </button>
                 {/* <Cog6ToothIcon className="h-5" /> */}
                 <button
                   className="bg-transparent transition-colors"
