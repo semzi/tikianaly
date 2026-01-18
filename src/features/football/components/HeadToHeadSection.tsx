@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { postTeamHeadToHead, type FootballHeadToHeadItem } from "@/lib/api/endpoints";
+import { Link } from "react-router-dom";
 
 type Props = {
   teamAId?: string | number;
@@ -158,8 +159,14 @@ export const HeadToHeadSection = ({ teamAId, teamBId, teamAName, teamBName }: Pr
               const rightId = isTeamAHome ? teamBId : teamAId;
               const score = String(m.scoreline ?? `${m.homeScore} - ${m.awayScore}`);
 
+              const fixtureId = m.fixture_id;
+
               return (
-                <div key={String(m.fixture_id)} className="px-4 py-3">
+                <Link
+                  key={String(m.fixture_id)}
+                  to={`/football/gameinfo/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
+                  className="block px-4 py-3 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors"
+                >
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <div className="min-w-0 flex items-center gap-2">
                       <GetTeamLogo teamId={leftId} alt={leftName} className="h-5 w-5 shrink-0" />
@@ -173,7 +180,7 @@ export const HeadToHeadSection = ({ teamAId, teamBId, teamAName, teamBName }: Pr
                       <GetTeamLogo teamId={rightId} alt={rightName} className="h-5 w-5 shrink-0" />
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

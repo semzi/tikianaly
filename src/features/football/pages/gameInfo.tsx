@@ -3,10 +3,11 @@ import FooterComp from "@/components/layout/Footer";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowLeftIcon,
-  BellAlertIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  DocumentDuplicateIcon,
   ShareIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/lib/router/navigate";
@@ -30,10 +31,14 @@ import {
 } from "@/lib/api/livestream";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { Helmet } from "react-helmet";
+import { format } from "date-fns";
 
 
 export const gameInfo = () => {
   const toast = useToast();
+
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
 
   const Skeleton = ({ className = "" }: { className?: string }) => (
     <div className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`} style={{ minHeight: "1em" }} />
@@ -297,6 +302,101 @@ export const gameInfo = () => {
   const pageTitle = `${matchTitleCore} | Game Info | TikiAnaly`;
   const pageDescription = `Live score, lineups, stats and timeline for ${matchTitleCore}.`;
 
+  const PINNED_STORAGE_KEY = "dashboard_pinned_fixtures_v1";
+  const readPinnedStore = (): Record<string, Array<string | number>> => {
+    try {
+      const raw = localStorage.getItem(PINNED_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writePinnedStore = (next: Record<string, Array<string | number>>) => {
+    try {
+      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const [pinnedRevision, setPinnedRevision] = useState(0);
+  const matchDateKey = useMemo(() => {
+    try {
+      const raw =
+        (displayFixture as any)?.date ??
+        (fixtureDetails as any)?.date ??
+        (matchInfo as any)?.match?.date ??
+        (matchInfo as any)?.match?.match_date ??
+        null;
+      const d = raw ? new Date(String(raw)) : new Date();
+      return Number.isNaN(d.getTime()) ? format(new Date(), "yyyy-MM-dd") : format(d, "yyyy-MM-dd");
+    } catch {
+      return format(new Date(), "yyyy-MM-dd");
+    }
+  }, [displayFixture, fixtureDetails, matchInfo]);
+
+  const pinnedFixtureIds = useMemo(() => {
+    if (typeof window === "undefined") return [] as Array<string | number>;
+    void pinnedRevision;
+    const store = readPinnedStore();
+    const list = store?.[matchDateKey] ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [matchDateKey, pinnedRevision]);
+
+  const fixtureIdForPin = fixtureIdForRest;
+  const isPinned = useMemo(() => {
+    if (!fixtureIdForPin) return false;
+    return pinnedFixtureIds.some((x) => String(x) === String(fixtureIdForPin));
+  }, [fixtureIdForPin, pinnedFixtureIds]);
+
+  const togglePinned = () => {
+    if (typeof window === "undefined") return;
+    if (!fixtureIdForPin) return;
+    const store = readPinnedStore();
+    const current = Array.isArray(store?.[matchDateKey]) ? store[matchDateKey] : [];
+    const exists = current.some((x) => String(x) === String(fixtureIdForPin));
+    const nextList = exists
+      ? current.filter((x) => String(x) !== String(fixtureIdForPin))
+      : [...current, fixtureIdForPin];
+    const next = { ...store, [matchDateKey]: nextList };
+    writePinnedStore(next);
+    setPinnedRevision((v) => v + 1);
+  };
+
+  const openTeamProfile = (teamId: unknown) => {
+    const id = String(teamId ?? "").trim();
+    if (!id) return;
+    navigate(`/team/profile/${encodeURIComponent(id)}`);
+  };
+
+  const copyShareUrl = async () => {
+    try {
+      if (!canonicalUrl) throw new Error("Missing URL");
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(canonicalUrl);
+      } else if (typeof document !== "undefined") {
+        const el = document.createElement("textarea");
+        el.value = canonicalUrl;
+        el.setAttribute("readonly", "true");
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+
+      setHasCopiedShareUrl(true);
+      toast.show({ variant: "success", message: "Link copied to clipboard" });
+    } catch {
+      toast.show({ variant: "error", message: "Could not copy link. Please copy it manually." });
+    }
+  };
+
   const isFullTimeMatchInfo = String(matchInfo?.match?.status ?? "").trim().toLowerCase() === "full-time";
   const isFullTimeLineupStatus = (() => {
     const s = String(
@@ -340,6 +440,75 @@ export const gameInfo = () => {
     (fixtureDetails as any)?.league_id ??
     (fixtureDetails as any)?.leagueId ??
     (fixtureDetails as any)?.league?.id;
+
+  const overviewRefereeName =
+    (matchInfo as any)?.venue?.referee?.name ??
+    (matchInfo as any)?.venue?.referee ??
+    (matchInfo as any)?.referee?.name ??
+    (matchInfo as any)?.match?.referee?.name ??
+    (matchInfo as any)?.fixture?.referee?.name ??
+    (fixtureDetails as any)?.referee?.name ??
+    "";
+
+  const overviewAttendanceRaw =
+    (matchInfo as any)?.venue?.attendance ??
+    (matchInfo as any)?.attendance ??
+    (matchInfo as any)?.match?.attendance ??
+    (matchInfo as any)?.fixture?.attendance ??
+    (fixtureDetails as any)?.attendance;
+
+  const overviewAttendanceText = (() => {
+    const raw = overviewAttendanceRaw;
+    if (raw === null || raw === undefined) return "--";
+    if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) return raw.toLocaleString();
+    const s = String(raw).trim();
+    if (!s) return "--";
+    const n = Number(s.replace(/[^0-9]/g, ""));
+    if (Number.isFinite(n) && n >= 0) return n.toLocaleString();
+    return s;
+  })();
+
+  const overviewVenueAddress =
+    String(
+      (matchInfo as any)?.venue?.address ??
+        (matchInfo as any)?.match?.venue?.address ??
+        (matchInfo as any)?.fixture?.venue?.address ??
+        (fixtureDetails as any)?.venue_address ??
+        ""
+    ).trim();
+  const overviewVenueCity =
+    String(
+      (matchInfo as any)?.venue?.city ??
+        (matchInfo as any)?.match?.venue?.city ??
+        (matchInfo as any)?.fixture?.venue?.city ??
+        (fixtureDetails as any)?.venue_city ??
+        ""
+    ).trim();
+  const overviewVenueName =
+    String(
+      (matchInfo as any)?.venue?.name ??
+        (matchInfo as any)?.match?.venue?.name ??
+        (matchInfo as any)?.fixture?.venue?.name ??
+        (fixtureDetails as any)?.venue ??
+        ""
+    ).trim();
+  const overviewVenueCountry =
+    String(
+      (matchInfo as any)?.venue?.country ??
+        (matchInfo as any)?.match?.venue?.country ??
+        (matchInfo as any)?.fixture?.venue?.country ??
+        (fixtureDetails as any)?.country ??
+        ""
+    ).trim();
+
+  const overviewLocationText =
+    overviewVenueAddress || overviewVenueCity || "--";
+  const overviewStadiumText = (() => {
+    if (!overviewVenueName) return "--";
+    const city = overviewVenueCity ? `, ${overviewVenueCity}` : "";
+    const country = overviewVenueCountry ? `, ${overviewVenueCountry}` : "";
+    return `${overviewVenueName}${city}${country}`;
+  })();
 
   const isGameInfoLoading =
     !!fixtureIdForRest &&
@@ -833,11 +1002,11 @@ export const gameInfo = () => {
                 return <img src="/icons/goal-missed.svg" className="w-5 theme-icon" alt="" />;
               }
               if (eventType === "halftime") {
-                return <img src="./icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
+                return <img src="/icons/Whistle.svg" className="w-4 theme-icon" alt="" />;
               }
               if (eventType === "var") {
-                return <img src="./icons/VAR.svg" className="w-4 theme-icon" alt="" />;
-              }
+                return <img src="/icons/VAR.svg" className="w-4 theme-icon" alt="" />;
+              } 
               return <div className="w-4 h-5 bg-snow-200 dark:bg-neutral-n4" />;
             })();
 
@@ -1287,6 +1456,64 @@ export const gameInfo = () => {
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={shareImageUrl} />
       </Helmet>
+
+      {isShareOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share link"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setIsShareOpen(false);
+              setHasCopiedShareUrl(false);
+            }}
+          />
+
+          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0D1117] border border-snow-200 dark:border-snow-100/10 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+              <div className="min-w-0">
+                <p className="theme-text font-bold text-base">Share this match</p>
+                <p className="text-neutral-m6 text-sm mt-1">
+                  Copy the link below to share this page with friends or on social media.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg p-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                onClick={() => {
+                  setIsShareOpen(false);
+                  setHasCopiedShareUrl(false);
+                }}
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5 theme-text" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-center gap-3 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-snow-100/50 dark:bg-white/5 px-3 py-2">
+                <input
+                  value={canonicalUrl}
+                  readOnly
+                  className="w-full bg-transparent text-sm theme-text outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-3 py-2 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <DocumentDuplicateIcon className="h-4 w-4" />
+                  {hasCopiedShareUrl ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <PageHeader />
 
       {isGameInfoLoading ? (
@@ -1343,8 +1570,68 @@ export const gameInfo = () => {
 
               <div className="flex gap-4 justify-end">
                 {/* <Icons.Notification2Line className="text-white h-5" /> */}
-                <BellAlertIcon className="text-white h-5" />
-                <ShareIcon className="text-white h-5" />
+                <button
+                  type="button"
+                  className={`rounded ${fixtureIdForPin ? "hover:opacity-90 transition-opacity" : "opacity-40 cursor-not-allowed"}`}
+                  onClick={() => {
+                    if (!fixtureIdForPin) return;
+                    togglePinned();
+                  }}
+                  aria-label={isPinned ? "Unpin fixture" : "Pin fixture"}
+                >
+                  <span
+                    className={`inline-flex items-center justify-center rounded-md p-1 ${
+                      isPinned ? "bg-brand-secondary" : ""
+                    }`}
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill={isPinned ? "currentColor" : "none"}
+                      className={isPinned ? "text-white" : "text-white"}
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                      <path
+                        d="M8 9h8l-1 9H9L8 9Z"
+                        fill={isPinned ? "currentColor" : "none"}
+                        opacity="1"
+                      />
+                      <path
+                        d="M8 9h8l-1 9H9L8 9Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                      <path
+                        d="M12 18v3"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                    </svg>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    setIsShareOpen(true);
+                    setHasCopiedShareUrl(false);
+                  }}
+                  aria-label="Share"
+                >
+                  <ShareIcon className="text-white h-5" />
+                </button>
               </div>
             </div>
 
@@ -1359,9 +1646,14 @@ export const gameInfo = () => {
                     className="h-10 w-10 shrink-0"
                     hasRedCard={redCardByTeam.localteam > 0}
                   />
-                  <p className="min-w-0 truncate text-[13px] font-semibold">
+                  <button
+                    type="button"
+                    className="min-w-0 truncate text-[13px] font-semibold hover:underline text-left"
+                    onClick={() => openTeamProfile(displayHomeTeamId)}
+                    aria-label={`Open ${displayHomeTeamName} profile`}
+                  >
                     {displayHomeTeamName}
-                  </p>
+                  </button>
                 </div>
                 <div className="mt-1">
                   <FormDots results={homeRecentForm} align="left" />
@@ -1374,9 +1666,14 @@ export const gameInfo = () => {
 
               <div className="min-w-0 flex-1 flex flex-col items-end">
                 <div className="mt-1 flex items-center justify-end gap-2">
-                  <p className="min-w-0 truncate text-[13px] font-semibold text-right">
+                  <button
+                    type="button"
+                    className="min-w-0 truncate text-[13px] font-semibold text-right hover:underline"
+                    onClick={() => openTeamProfile(displayAwayTeamId)}
+                    aria-label={`Open ${displayAwayTeamName} profile`}
+                  >
                     {displayAwayTeamName}
-                  </p>
+                  </button>
                   <TeamLogoWithRedCardBadge
                     teamId={displayAwayTeamId}
                     alt={displayAwayTeamName}
@@ -1407,7 +1704,14 @@ export const gameInfo = () => {
             <>
               <div className="flex items-center md:items-end flex-col">
                 <div className="flex flex-col-reverse sz-7 md:flex-row md:mr-2 md:text-[20px] md:font-light md:justify-end items-center font-semibold md:gap-3">
-                  <p className="text-center sz-4 font-bold">{displayHomeTeamName}</p>
+                  <button
+                    type="button"
+                    className="text-center sz-4 font-bold hover:underline"
+                    onClick={() => openTeamProfile(displayHomeTeamId)}
+                    aria-label={`Open ${displayHomeTeamName} profile`}
+                  >
+                    {displayHomeTeamName}
+                  </button>
                   <TeamLogoWithRedCardBadge
                     teamId={displayHomeTeamId}
                     alt={displayHomeTeamName}
@@ -1458,7 +1762,14 @@ export const gameInfo = () => {
                     className="w-fit h-12"
                     hasRedCard={redCardByTeam.visitorteam > 0}
                   />
-                  <p className="text-center sz-4 font-bold">{displayAwayTeamName}</p>
+                  <button
+                    type="button"
+                    className="text-center sz-4 font-bold hover:underline"
+                    onClick={() => openTeamProfile(displayAwayTeamId)}
+                    aria-label={`Open ${displayAwayTeamName} profile`}
+                  >
+                    {displayAwayTeamName}
+                  </button>
                 </div>
                 <div className="mt-1">
                   <FormDots results={awayRecentForm} align="left" />
@@ -1535,16 +1846,6 @@ export const gameInfo = () => {
               <GetLeagueLogo leagueId={displayLeagueId} alt={String(fixtureDetails?.league_name ?? "League")} className="w-4 h-4 object-contain" />
               <p>{fixtureDetails.league_name}, Week {fixtureDetails.week}</p>
             </div>
-            {fixtureDetails.referee.name && (
-              <div className="flex gap-2 items-center">
-                <img
-                  src="./icons/Whistle.svg"
-                  className=" w-4 invert sepia"
-                  alt=""
-                />
-                <p>{fixtureDetails.referee.name}</p>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -1705,7 +2006,7 @@ export const gameInfo = () => {
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Referee:</p>
                       <p className="theme-text">
-                        {fixtureDetails?.referee?.name ?? "--"}
+                        {overviewRefereeName ? String(overviewRefereeName) : "--"}
                       </p>
                     </div>
                   </div>
@@ -1719,9 +2020,7 @@ export const gameInfo = () => {
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Attendance:</p>
                       <p className="theme-text">
-                        {fixtureDetails?.attendance 
-                          ? fixtureDetails.attendance.toLocaleString()
-                          : "--"}
+                        {overviewAttendanceText}
                       </p>
                     </div>
                   </div>
@@ -1735,9 +2034,7 @@ export const gameInfo = () => {
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Location:</p>
                       <p className="theme-text">
-                        {fixtureDetails?.venue_address 
-                          ? fixtureDetails.venue_address
-                          : fixtureDetails?.venue_city || "--"}
+                        {overviewLocationText}
                       </p>
                     </div>
                   </div>
@@ -1751,9 +2048,7 @@ export const gameInfo = () => {
                     <div className="flex flex-col">
                       <p className="text-neutral-m6">Stadium:</p>
                       <p className="theme-text">
-                        {fixtureDetails?.venue 
-                          ? `${fixtureDetails.venue}${fixtureDetails?.venue_city ? `, ${fixtureDetails.venue_city}` : ""}${fixtureDetails?.country ? `, ${fixtureDetails.country}` : ""}`
-                          : "--"}
+                        {overviewStadiumText}
                       </p>
                     </div>
                   </div>

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import FormInput from "@/components/ui/Form/FormInput";
 import Checkbox from "@/components/ui/Form/FormCheckbox";
 import FormButton from "@/components/ui/Form/FormButton";
-import { setAuthToken, clearAuthToken } from "@/lib/api/axios";
+import { setAuthToken, clearAuthToken, setStoredUser } from "@/lib/api/axios";
 import { login } from "@/lib/api/endpoints";
 
 type LoginForm = {
@@ -79,8 +79,8 @@ function Login() {
       }
       
       // Store authentication data
-      setAuthToken(token);
-      localStorage.setItem("tikianaly_user", JSON.stringify(userData));
+      setAuthToken(token, formValues.rememberMe);
+      setStoredUser(userData, formValues.rememberMe);
 
       setStatus({
         type: "success",
@@ -94,10 +94,23 @@ function Login() {
       // Clear any partial auth data on error
       clearAuthToken();
       
-      const apiMessage =
+      const rawMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
+        "";
+
+      const lower = String(rawMessage).toLowerCase();
+      if (
+        lower.includes("password") &&
+        (lower.includes("uppercase") || lower.includes("number") || lower.includes("special"))
+      ) {
+        setStatus({ type: "error", message: "Incorrect email or password" });
+        return;
+      }
+
+      const apiMessage =
+        rawMessage ||
         "Unable to sign in right now. Please check your credentials.";
       setStatus({ type: "error", message: apiMessage });
     } finally {

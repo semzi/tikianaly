@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/features/dashboard/components/Category";
-import { getFixturesByLeague } from "@/lib/api/endpoints";
+import { getFixtureDetails, getFixturesByLeague } from "@/lib/api/endpoints";
 import { closeLiveStream, subscribeDashboardLiveFixtures } from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
 import DatePicker from "react-datepicker";
@@ -13,6 +13,7 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   InboxIcon,
+  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
@@ -108,9 +109,54 @@ export const dashboard = () => {
     );
   };
 
+  const sortFixturesLiveFirst = (games: any[]) => {
+    const safe = Array.isArray(games) ? [...games] : [];
+    safe.sort((a: any, b: any) => {
+      const aUi = getMatchUiInfo({ status: a?.status, timer: a?.timer });
+      const bUi = getMatchUiInfo({ status: b?.status, timer: b?.timer });
+      const rank = (ui: { state: string }) => {
+        if (ui.state === "timer" || ui.state === "ht") return 0; // live
+        if (ui.state === "ft") return 1; // finished
+        return 2; // upcoming
+      };
+
+      const aRank = rank(aUi);
+      const bRank = rank(bUi);
+      if (aRank !== bRank) return aRank - bRank;
+
+      const aMs = a?.date ? new Date(a.date).getTime() : NaN;
+      const bMs = b?.date ? new Date(b.date).getTime() : NaN;
+      if (Number.isFinite(aMs) && Number.isFinite(bMs)) return aMs - bMs;
+      if (Number.isFinite(aMs)) return -1;
+      if (Number.isFinite(bMs)) return 1;
+      return 0;
+    });
+    return safe;
+  };
+
+  const getStatusLabel = (game: any, ui: { state: string; minutes: number }) => {
+    const rawStatus = String(game?.status ?? "").trim();
+    const s = rawStatus.toLowerCase();
+    if (s === "postp." || s === "postponed" || s.includes("postp")) return "Postp.";
+    if (ui.state === "ft") return "FT";
+    if (ui.state === "ht") return "HT";
+    if (ui.state === "timer") return `${ui.minutes}'`;
+    return getDateModeTimeLabel(game);
+  };
+
   const getDateModeTimeLabel = (game: any) => {
     const useTimer = isInSseStream(game);
-    return useTimer ? game?.timer : (game?.time ?? game?.timer);
+    if (useTimer) return game?.timer;
+
+    const rawIso = game?.date;
+    if (rawIso) {
+      const d = new Date(rawIso);
+      if (!Number.isNaN(d.getTime())) {
+        return format(d, "HH:mm");
+      }
+    }
+
+    return game?.time ?? game?.timer;
   };
   const [loadingLeagueIds, setLoadingLeagueIds] = useState<Set<number>>(
     () => new Set()
@@ -124,8 +170,154 @@ export const dashboard = () => {
     }
     return "date";
   });
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const DASHBOARD_SELECTED_DATE_KEY = "dashboard_selected_date_v1";
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+    try {
+      const raw = localStorage.getItem(DASHBOARD_SELECTED_DATE_KEY);
+      if (!raw) return new Date();
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? new Date() : d;
+    } catch {
+      return new Date();
+    }
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const shouldShowReturnToToday = useMemo(() => {
+    if (fixturesMode !== "date") return false;
+    try {
+      return !isToday(selectedDate ?? new Date());
+    } catch {
+      return false;
+    }
+  }, [fixturesMode, selectedDate]);
+
+  const selectedDateKey = useMemo(() => {
+    try {
+      return format(selectedDate ?? new Date(), "yyyy-MM-dd");
+    } catch {
+      return format(new Date(), "yyyy-MM-dd");
+    }
+  }, [selectedDate]);
+
+  const PINNED_STORAGE_KEY = "dashboard_pinned_fixtures_v1";
+  const readPinnedStore = (): Record<string, Array<string | number>> => {
+    try {
+      const raw = localStorage.getItem(PINNED_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writePinnedStore = (next: Record<string, Array<string | number>>) => {
+    try {
+      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [pinnedRevision, setPinnedRevision] = useState(0);
+  const [pinnedLoading, setPinnedLoading] = useState(false);
+  const [pinnedFixtures, setPinnedFixtures] = useState<any[]>([]);
+
+  const pinnedFixtureIds = useMemo(() => {
+    if (typeof window === "undefined") return [] as Array<string | number>;
+    const store = readPinnedStore();
+    const list = store?.[selectedDateKey] ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [selectedDateKey, pinnedRevision]);
+
+  const isPinnedFixtureId = useCallback(
+    (fixtureId: any) => {
+      if (!fixtureId) return false;
+      return pinnedFixtureIds.some((x) => String(x) === String(fixtureId));
+    },
+    [pinnedFixtureIds]
+  );
+
+  const togglePinnedFixture = useCallback(
+    (fixtureId: any) => {
+      if (typeof window === "undefined") return;
+      if (!fixtureId) return;
+      const store = readPinnedStore();
+      const current = Array.isArray(store?.[selectedDateKey]) ? store[selectedDateKey] : [];
+      const exists = current.some((x) => String(x) === String(fixtureId));
+      const nextList = exists
+        ? current.filter((x) => String(x) !== String(fixtureId))
+        : [...current, fixtureId];
+      const next = { ...store, [selectedDateKey]: nextList };
+      writePinnedStore(next);
+      setPinnedRevision((v) => v + 1);
+      if (!exists) setPinnedOpen(true);
+    },
+    [selectedDateKey]
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPinnedOpen = () => {
+      const store = readPinnedStore();
+      const list = store?.[selectedDateKey] ?? [];
+      if (!Array.isArray(list) || list.length === 0) {
+        setPinnedOpen(false);
+      }
+    };
+    syncPinnedOpen();
+  }, [selectedDateKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const ids = pinnedFixtureIds;
+    if (!ids.length) {
+      setPinnedFixtures([]);
+      setPinnedLoading(false);
+      return;
+    }
+
+    setPinnedLoading(true);
+    (async () => {
+      const results = await Promise.allSettled(ids.map((id) => getFixtureDetails(id)));
+      if (cancelled) return;
+      const ok = results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+        .map((r) => r.value);
+      const normalized = ok
+        .map((resp: any) => {
+          const item0 = resp?.responseObject?.item?.[0];
+          return item0 ?? resp?.responseObject ?? resp?.data ?? resp;
+        })
+        .filter(Boolean);
+      setPinnedFixtures(normalized);
+      setPinnedLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pinnedFixtureIds]);
+
+  const pinnedFixturesWithLive = useMemo(() => {
+    void sseRevision;
+    const { byStaticId, byMatchId, byFixtureId } = latestSseUpdatesRef.current;
+    const items = Array.isArray(pinnedFixtures) ? pinnedFixtures : [];
+    if (!byStaticId.size && !byMatchId.size && !byFixtureId.size) return items;
+    return items.map((game: any) => {
+      const staticIdKey = game?.static_id ? String(game.static_id) : "";
+      const matchIdKey = game?.match_id ? String(game.match_id) : "";
+      const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
+      const update =
+        (staticIdKey && byStaticId.get(staticIdKey)) ||
+        (matchIdKey && byMatchId.get(matchIdKey)) ||
+        (fixtureIdKey && byFixtureId.get(fixtureIdKey));
+      return update ? { ...game, ...update } : game;
+    });
+  }, [pinnedFixtures, sseRevision]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -143,7 +335,7 @@ export const dashboard = () => {
       toast.show({
         variant: "success",
         message: "Connected",
-        durationMs: 2500,
+        durationMs: 5000,
       });
     };
 
@@ -220,7 +412,7 @@ export const dashboard = () => {
     }
 
     return Array.from(grouped.entries())
-      .map(([leagueId, fx]) => ({ leagueId, fixtures: fx }))
+      .map(([leagueId, fx]) => ({ leagueId, fixtures: sortFixturesLiveFirst(fx) }))
       .sort((a, b) => a.leagueId - b.leagueId);
   }, [fixtures, fixturesMode, loadingLeagueIds, sseRevision]);
 
@@ -231,6 +423,16 @@ export const dashboard = () => {
       // ignore storage errors
     }
   }, [fixturesMode]);
+
+  useEffect(() => {
+    try {
+      if (selectedDate) {
+        localStorage.setItem(DASHBOARD_SELECTED_DATE_KEY, selectedDate.toISOString());
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchFixtures = async () => {
@@ -294,7 +496,7 @@ export const dashboard = () => {
         const upsertLeagueFixtures = (leagueId: number, leagueFixtures: any[]) => {
           const fixturesToInsert =
             fixturesMode === "date" || fixturesMode === "all" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
-          leagueFixturesMapRef.current.set(leagueId, fixturesToInsert);
+          leagueFixturesMapRef.current.set(leagueId, sortFixturesLiveFirst(fixturesToInsert));
           scheduleFlushFixtures();
         };
 
@@ -383,7 +585,7 @@ export const dashboard = () => {
                   return { ...game, ...update };
                 });
 
-                return { ...leagueBlock, fixtures: mergedFixtures };
+                return { ...leagueBlock, fixtures: sortFixturesLiveFirst(mergedFixtures) };
               });
 
               return changed ? next : prev;
@@ -544,6 +746,371 @@ export const dashboard = () => {
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-y-3 md:gap-y-6">
+            {(fixturesMode === "date" || fixturesMode === "all") && (
+              <div className="block-style">
+                <button
+                  type="button"
+                  onClick={() => setPinnedOpen((v) => !v)}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="font-[500] text-[#23272A] dark:text-neutral-m6 text-[14px] md:text-base">
+                      Pinned Fixtures
+                    </p>
+                    <span className="text-xs text-neutral-n5 dark:text-snow-200/70">
+                      ({pinnedFixtureIds.length})
+                    </span>
+                  </div>
+                  <ChevronDownIcon
+                    className={`h-5 w-5 theme-text transition-transform ${pinnedOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {pinnedOpen && (
+                  <div className="mt-4">
+                    {pinnedLoading ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: Math.min(3, Math.max(1, pinnedFixtureIds.length)) }).map((_, idx) => (
+                          <div
+                            key={`pinned-skel-${idx}`}
+                            className="flex justify-around items-center gap-4 border-b-1 px-5 py-3 border-snow-200 last:border-b-0"
+                          >
+                            <Skeleton className="w-10 h-4" />
+                            <Skeleton className="w-64 h-4" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : pinnedFixturesWithLive.length === 0 ? (
+                      <p className="text-sm text-neutral-n5 dark:text-snow-200/70">
+                        No pinned fixtures for this date.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col">
+                        {pinnedFixturesWithLive.map((game: any, idx: number) => {
+                          const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
+                          const events = Array.isArray(game?.events) ? game.events : [];
+                          const normalizeTeamKey = (raw: unknown) => {
+                            const t = String(raw ?? "").trim().toLowerCase();
+                            if (!t) return "";
+                            if (t.includes("local") || t.includes("home")) return "localteam";
+                            if (t.includes("visitor") || t.includes("away")) return "visitorteam";
+                            return t;
+                          };
+                          const countEventType = (teamKey: "localteam" | "visitorteam", types: string[]) => {
+                            const set = new Set(types.map((x) => String(x).toLowerCase()));
+                            return events.reduce((acc: number, ev: any) => {
+                              const evType = String(ev?.type ?? "").trim().toLowerCase();
+                              const evTeam = normalizeTeamKey(ev?.team);
+                              if (evTeam === teamKey && set.has(evType)) return acc + 1;
+                              return acc;
+                            }, 0);
+                          };
+                          const homeRedCards = countEventType("localteam", ["redcard"]);
+                          const awayRedCards = countEventType("visitorteam", ["redcard"]);
+                          const homeStreams = countEventType("localteam", ["sream", "stream"]);
+                          const awayStreams = countEventType("visitorteam", ["sream", "stream"]);
+
+                          const IndicatorCard = ({
+                            count,
+                            variant,
+                          }: {
+                            count: number;
+                            variant: "red" | "stream";
+                          }) => {
+                            if (!count) return null;
+                            const base = variant === "red" ? "bg-red-600 text-white" : "bg-sky-600 text-white";
+                            const size =
+                              variant === "red"
+                                ? "h-4 w-3"
+                                : "h-4 min-w-4 px-1 rounded-sm";
+                            return (
+                              <span
+                                className={`inline-flex items-center justify-center ${size} text-[10px] font-bold leading-none ${base}`}
+                              >
+                                {variant === "red" ? (count > 1 ? count : null) : count > 1 ? count : "S"}
+                              </span>
+                            );
+                          };
+
+                          const statusLabel = getStatusLabel(game, ui);
+
+                          const fixtureIdForPin = game?.fixture_id;
+
+                          return (
+                            <div
+                              key={`pinned-${idx}`}
+                            >
+                              <div
+                                className={`hidden md:flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
+                                  idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0  border-b-0" : ""
+                                }`}
+                              >
+                                <Link
+                                  to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                                  className="flex flex-1 items-center gap-2"
+                                >
+                                  {ui.state === "ft" ? (
+                                    <>
+                                      <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
+                                      <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                        <IndicatorCard count={homeRedCards} variant="red" />
+                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <IndicatorCard count={homeStreams} variant="stream" />
+                                        {game?.localteam?.id && game?.localteam?.name && (
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                      </div>
+                                      <div className="flex-2/11 flex  justify-between">
+                                        <p className="score">{game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? '-'}</p>
+                                        <p className="score">{game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? '-'}</p>
+                                      </div>
+                                      <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                        {game?.visitorteam?.id && game?.visitorteam?.name && (
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                        <IndicatorCard count={awayStreams} variant="stream" />
+                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <IndicatorCard count={awayRedCards} variant="red" />
+                                      </div>
+                                    </>
+                                  ) : ui.state === "ht" ? (
+                                    <>
+                                      <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
+                                      <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                        <IndicatorCard count={homeRedCards} variant="red" />
+                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <IndicatorCard count={homeStreams} variant="stream" />
+                                        {game?.localteam?.id && game?.localteam?.name && (
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                      </div>
+                                      <div className="flex-2/11 flex  justify-between">
+                                        <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                        <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                      </div>
+                                      <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                        {game?.visitorteam?.id && game?.visitorteam?.name && (
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                        <IndicatorCard count={awayStreams} variant="stream" />
+                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <IndicatorCard count={awayRedCards} variant="red" />
+                                      </div>
+                                    </>
+                                  ) : ui.state === "timer" ? (
+                                    <>
+                                      <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
+                                      <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                        <IndicatorCard count={homeRedCards} variant="red" />
+                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <IndicatorCard count={homeStreams} variant="stream" />
+                                        {game?.localteam?.id && game?.localteam?.name && (
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                      </div>
+                                      <div className="flex-2/11 flex  justify-between">
+                                        <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                        <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                      </div>
+                                      <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                        {game?.visitorteam?.id && game?.visitorteam?.name && (
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                        <IndicatorCard count={awayStreams} variant="stream" />
+                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <IndicatorCard count={awayRedCards} variant="red" />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
+                                        <IndicatorCard count={homeRedCards} variant="red" />
+                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <IndicatorCard count={homeStreams} variant="stream" />
+                                        {game?.localteam?.id && game?.localteam?.name && (
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                      </div>
+                                      <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
+                                        {statusLabel}
+                                      </p>
+                                      <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                        {game?.visitorteam?.id && game?.visitorteam?.name && (
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                        )}
+                                        <IndicatorCard count={awayStreams} variant="stream" />
+                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <IndicatorCard count={awayRedCards} variant="red" />
+                                      </div>
+                                    </>
+                                  )}
+                                </Link>
+                                <button
+                                  type="button"
+                                  className="ml-2 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
+                                  onClick={() => togglePinnedFixture(fixtureIdForPin)}
+                                  aria-label="Unpin fixture"
+                                >
+                                  <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+                                    <path
+                                      d="M8 9h8l-1 9H9L8 9Z"
+                                      fill="currentColor"
+                                      opacity="1"
+                                    />
+                                    <path
+                                      d="M8 9h8l-1 9H9L8 9Z"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinejoin="round"
+                                      fill="none"
+                                    />
+                                    <path
+                                      d="M12 18v3"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+
+                              <div
+                                className={`flex md:hidden items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 bg-neutral-n9 ${
+                                  idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0" : ""
+                                }`}
+                              >
+                                <Link
+                                  to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                                  className="flex flex-1 items-center justify-between"
+                                >
+                                  <p
+                                    className={`text-xs text-center w-15 px-2 font-bold ${
+                                      ui.state === "timer" || ui.state === "ht"
+                                        ? "text-brand-secondary animate-pulse"
+                                        : "text-neutral-n4 dark:text-snow-200 font-medium"
+                                    }`}
+                                  >
+                                    {statusLabel}
+                                  </p>
+                                  <div className="flex flex-col flex-1 mx-1 gap-0.5">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1">
+                                        {game?.localteam?.id && game?.localteam?.name && (
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
+                                        )}
+                                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                                          {game?.localteam?.name ?? game?.localteam_name ?? "Home"}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1">
+                                          <IndicatorCard count={homeRedCards} variant="red" />
+                                          <IndicatorCard count={homeStreams} variant="stream" />
+                                        </span>
+                                      </div>
+                                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                          {ui.state === "ft" ? (
+                                            game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
+                                          ) : ui.state === "timer" || ui.state === "ht" ? (
+                                            <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1">
+                                        {game?.visitorteam?.id && game?.visitorteam?.name && (
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
+                                        )}
+                                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                                          {game?.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1">
+                                          <IndicatorCard count={awayRedCards} variant="red" />
+                                          <IndicatorCard count={awayStreams} variant="stream" />
+                                        </span>
+                                      </div>
+                                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                          {ui.state === "ft" ? (
+                                            game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
+                                          ) : ui.state === "timer" || ui.state === "ht" ? (
+                                            <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Link>
+                                <button
+                                  type="button"
+                                  className="ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
+                                  onClick={() => togglePinnedFixture(fixtureIdForPin)}
+                                  aria-label="Unpin fixture"
+                                >
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+                                    <path
+                                      d="M8 9h8l-1 9H9L8 9Z"
+                                      fill="currentColor"
+                                      opacity="1"
+                                    />
+                                    <path
+                                      d="M8 9h8l-1 9H9L8 9Z"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinejoin="round"
+                                      fill="none"
+                                    />
+                                    <path
+                                      d="M12 18v3"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Desktop Section */}
             <div className="hidden md:block">
               {(fixturesMode === "live"
@@ -643,24 +1210,23 @@ export const dashboard = () => {
                             </span>
                           );
                         };
-                        const statusLabel =
-                          ui.state === "ft"
-                            ? "FT"
-                            : ui.state === "ht"
-                              ? "HT"
-                              : ui.state === "timer"
-                                ? `${ui.minutes}'`
-                                : getDateModeTimeLabel(game);
+                        const statusLabel = getStatusLabel(game, ui);
+
+                        const fixtureIdForPin = game?.fixture_id;
+                        const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                         return (
-                      <Link
-                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                      <div
                         key={gameIdx}
-                        className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
+                        className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
                           gameIdx === leagueFixture.fixtures.length - 1
                             ? "last:border-b-0  border-b-0"
                             : ""
                         }`}
+                      >
+                      <Link
+                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                        className="flex flex-1 items-center gap-2"
                       >
                         {ui.state === "ft" ? (
                           <>
@@ -741,7 +1307,63 @@ export const dashboard = () => {
                             </div>
                           </>
                         )}
+
                       </Link>
+
+                        <button
+                          type="button"
+                          className={`ml-2 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
+                            fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                          }`}
+                          onClick={() => {
+                            if (!fixtureIdForPin) return;
+                            togglePinnedFixture(fixtureIdForPin);
+                          }}
+                          aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                        >
+                          <span
+                            className={`inline-flex items-center justify-center rounded-md p-1 ${
+                              pinned ? "bg-brand-secondary" : ""
+                            }`}
+                          >
+                            <svg
+                              width="22"
+                              height="22"
+                              viewBox="0 0 24 24"
+                              fill={pinned ? "currentColor" : "none"}
+                              className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                fill="none"
+                              />
+                              <path
+                                d="M8 9h8l-1 9H9L8 9Z"
+                                fill={pinned ? "currentColor" : "none"}
+                                opacity="1"
+                              />
+                              <path
+                                d="M8 9h8l-1 9H9L8 9Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinejoin="round"
+                                fill="none"
+                              />
+                              <path
+                                d="M12 18v3"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                fill="none"
+                              />
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
                         );
                       })()
                     ))}
@@ -811,14 +1433,7 @@ export const dashboard = () => {
                           </span>
                         );
                       };
-                      const statusLabel =
-                        ui.state === "ft"
-                          ? "FT"
-                          : ui.state === "ht"
-                            ? "HT"
-                            : ui.state === "timer"
-                              ? `${ui.minutes}'`
-                              : getDateModeTimeLabel(game);
+                      const statusLabel = getStatusLabel(game, ui);
 
                       return (
                     <Link
@@ -1003,81 +1618,137 @@ export const dashboard = () => {
                           </span>
                         );
                       };
-                      const statusLabel =
-                        ui.state === "ft"
-                          ? "FT"
-                          : ui.state === "ht"
-                            ? "HT"
-                            : ui.state === "timer"
-                              ? `${ui.minutes}'`
-                              : getDateModeTimeLabel(game);
+                      const statusLabel = getStatusLabel(game, ui);
+
+                      const fixtureIdForPin = game?.fixture_id;
+                      const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                       return (
-                    <Link
-                      to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                    <div
                       key={gameIdx}
                       className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                     >
-                      <p
-                        className={`text-xs text-center w-15 px-2 font-bold ${
-                          ui.state === "timer" || ui.state === "ht" ? "text-brand-secondary animate-pulse" : "text-brand-secondary"
-                        }`}
+                      <Link
+                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                        className="flex flex-1 items-center justify-between"
                       >
-                        {statusLabel}
-                      </p>
-                      <div className="flex flex-col flex-1 mx-1 gap-0.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1">
-                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                            {game.localteam.name}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <IndicatorCard count={homeRedCards} variant="red" />
-                            <IndicatorCard count={homeStreams} variant="stream" />
-                          </span>
-                        </div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                            {fixturesMode === "live" ? (
-                              <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                            ) : ui.state === "ft" ? (
-                                game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
-                              ) : ui.state === "timer" || ui.state === "ht" ? (
+                        <p
+                          className={`text-xs text-center w-15 px-2 font-bold ${
+                            ui.state === "timer" || ui.state === "ht"
+                              ? "text-brand-secondary animate-pulse"
+                              : "text-neutral-n4 dark:text-snow-200 font-medium"
+                          }`}
+                        >
+                          {statusLabel}
+                        </p>
+                        <div className="flex flex-col flex-1 mx-1 gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
+                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                              {game.localteam.name}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <IndicatorCard count={homeRedCards} variant="red" />
+                              <IndicatorCard count={homeStreams} variant="stream" />
+                            </span>
+                          </div>
+                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                              {fixturesMode === "live" ? (
                                 <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              ) : (
-                                "-"
-                              )}
+                              ) : ui.state === "ft" ? (
+                                  game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
+                                ) : ui.state === "timer" || ui.state === "ht" ? (
+                                  <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                ) : (
+                                  "-"
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
+                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                              {game.visitorteam.name}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <IndicatorCard count={awayRedCards} variant="red" />
+                              <IndicatorCard count={awayStreams} variant="stream" />
                             </span>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1">
-                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                          <span className="text-sm font-medium dark:text-white text-neutral-n4">
-                            {game.visitorteam.name}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <IndicatorCard count={awayRedCards} variant="red" />
-                            <IndicatorCard count={awayStreams} variant="stream" />
-                          </span>
-                        </div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                          <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                            {fixturesMode === "live" ? (
-                              <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                            ) : ui.state === "ft" ? (
-                                game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
-                              ) : ui.state === "timer" || ui.state === "ht" ? (
+                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                              {fixturesMode === "live" ? (
                                 <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                              ) : (
-                                "-"
-                              )}
-                            </span>
+                              ) : ui.state === "ft" ? (
+                                  game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
+                                ) : ui.state === "timer" || ui.state === "ht" ? (
+                                  <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                ) : (
+                                  "-"
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
+
+                      <button
+                        type="button"
+                        className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
+                          fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                        }`}
+                        onClick={() => {
+                          if (!fixtureIdForPin) return;
+                          togglePinnedFixture(fixtureIdForPin);
+                        }}
+                        aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                      >
+                        <span
+                          className={`inline-flex items-center justify-center rounded-md p-1 ${
+                            pinned ? "bg-brand-secondary" : ""
+                          }`}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill={pinned ? "currentColor" : "none"}
+                            className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              fill="none"
+                            />
+                            <path
+                              d="M8 9h8l-1 9H9L8 9Z"
+                              fill={pinned ? "currentColor" : "none"}
+                              opacity="1"
+                            />
+                            <path
+                              d="M8 9h8l-1 9H9L8 9Z"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinejoin="round"
+                              fill="none"
+                            />
+                            <path
+                              d="M12 18v3"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              fill="none"
+                            />
+                          </svg>
+                        </span>
+                      </button>
+                    </div>
                       );
                     })()
                   ))}
@@ -1150,14 +1821,10 @@ export const dashboard = () => {
                         </span>
                       );
                     };
-                    const statusLabel =
-                      ui.state === "ft"
-                        ? "FT"
-                        : ui.state === "ht"
-                          ? "HT"
-                          : ui.state === "timer"
-                            ? `${ui.minutes}'`
-                            : getDateModeTimeLabel(game);
+                    const statusLabel = getStatusLabel(game, ui);
+
+                    const fixtureIdForPin = game?.fixture_id;
+                    const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                     return (
                   <Link
@@ -1167,7 +1834,9 @@ export const dashboard = () => {
                   >
                     <p
                       className={`text-xs text-center w-15 px-2 font-bold ${
-                        ui.state === "timer" || ui.state === "ht" ? "text-brand-secondary animate-pulse" : "text-brand-secondary"
+                        ui.state === "timer" || ui.state === "ht"
+                          ? "text-brand-secondary animate-pulse"
+                          : "text-neutral-n4 dark:text-snow-200 font-medium"
                       }`}
                     >
                       {statusLabel}
@@ -1208,6 +1877,62 @@ export const dashboard = () => {
                       </div>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
+                        fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!fixtureIdForPin) return;
+                        togglePinnedFixture(fixtureIdForPin);
+                      }}
+                      aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                    >
+                      <span
+                        className={`inline-flex items-center justify-center rounded-md p-1 ${
+                          pinned ? "bg-brand-secondary" : ""
+                        }`}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill={pinned ? "currentColor" : "none"}
+                          className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                          <path
+                            d="M8 9h8l-1 9H9L8 9Z"
+                            fill={pinned ? "currentColor" : "none"}
+                            opacity="1"
+                          />
+                          <path
+                            d="M8 9h8l-1 9H9L8 9Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                            fill="none"
+                          />
+                          <path
+                            d="M12 18v3"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </span>
+                    </button>
                   </Link>
                     );
                   })()
@@ -1233,6 +1958,27 @@ export const dashboard = () => {
 
       {/* Footer */}
       <FooterComp />
+
+      {shouldShowReturnToToday && (
+        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50">
+          <button
+            type="button"
+            className="px-4 text-sm py-2 rounded-full bg-brand-secondary text-white shadow-lg hover:opacity-95"
+            onClick={() => {
+              setSelectedDate(new Date());
+              setFixturesMode("date");
+              setShowDatePicker(false);
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            Return to Today
+          </button>
+        </div>
+      )}
     </div>
   );
 };

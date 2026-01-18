@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
+import { navigate } from "@/lib/router/navigate";
 
 export type StandingsRow = {
   position: number;
@@ -89,6 +90,11 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
   const [apiData, setApiData] = useState<StandingsByLeagueResponse | null>(null);
   const [apiError, setApiError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const openTeamProfile = (teamId?: number) => {
+    if (!teamId) return;
+    navigate(`/team/profile/${encodeURIComponent(String(teamId))}`);
+  };
 
   const SkeletonBlock = ({ className }: { className: string }) => (
     <div className={`animate-pulse rounded bg-snow-200/80 dark:bg-white/10 ${className}`} />
@@ -390,9 +396,20 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                   }}
                 />
               )}
-              <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                {team.team}
-              </span>
+              {team.teamId ? (
+                <button
+                  type="button"
+                  className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                  onClick={() => openTeamProfile(team.teamId)}
+                  aria-label={`Open ${team.team} profile`}
+                >
+                  {team.team}
+                </button>
+              ) : (
+                <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                  {team.team}
+                </span>
+              )}
             </div>
             <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
               {team.played}
@@ -496,9 +513,20 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                               }}
                             />
                           )}
-                          <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                            {team.team}
-                          </span>
+                          {team.teamId ? (
+                            <button
+                              type="button"
+                              className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                              onClick={() => openTeamProfile(team.teamId)}
+                              aria-label={`Open ${team.team} profile`}
+                            >
+                              {team.team}
+                            </button>
+                          ) : (
+                            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                              {team.team}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

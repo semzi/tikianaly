@@ -236,7 +236,14 @@ export const FavouriteSelection = ({
         {/* Desktop Section */}
         <div className="bg-white border-1 dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded">
           <div className="grid max-h-[280px] hide-scrollbar overflow-y-auto grid-cols-3 p-5 gap-4 text-center items-stretch">
-            {filteredItems.map((item, idx) => {
+            {!loading && filteredItems.length === 0 ? (
+              <div className="col-span-3 py-12">
+                <p className="text-sm text-neutral-n5 dark:text-snow-200/70">
+                  Nothing to show yet.
+                </p>
+              </div>
+            ) : (
+            filteredItems.map((item, idx) => {
               const itemIdentifier = getItemIdentifier(item);
               const isSelected = selectedItems.has(itemIdentifier);
               return (
@@ -258,30 +265,31 @@ export const FavouriteSelection = ({
                   className={`flex flex-col items-center justify-center gap-3 text-center rounded-lg p-4 transition-all min-h-[120px] ${
                     isLoggedIn ? "cursor-pointer" : "cursor-not-allowed opacity-60"
                   } ${
-                    isSelected
-                      ? "bg-blue-50 border-2 border-brand-secondary dark:bg-blue-900/20 dark:border-brand-secondary"
-                      : "bg-white border border-gray-200 dark:bg-[#161B22] dark:border-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  <div className="flex items-center justify-center h-16 w-16">
-                    <img
-                      src={item.icon}
-                      alt={item.name}
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
-                  <span
-                    className={`text-center text-sm font-medium ${
                       isSelected
-                        ? "text-brand-secondary dark:text-brand-secondary"
-                        : "text-gray-700 dark:text-snow-200"
+                        ? "bg-blue-50 border-2 border-brand-secondary dark:bg-blue-900/20 dark:border-brand-secondary"
+                        : "bg-white border border-gray-200 dark:bg-[#161B22] dark:border-gray-300 hover:border-gray-400"
                     }`}
                   >
-                    {item.name}
-                  </span>
-                </div>
-              );
-            })}
+                    <div className="relative">
+                      <img
+                        src={item.icon}
+                        alt={item.name}
+                        className="w-12 h-12 object-contain"
+                      />
+                    </div>
+                    <span
+                      className={`text-center text-sm font-medium ${
+                        isSelected
+                          ? "text-brand-secondary dark:text-brand-secondary"
+                          : "text-gray-700 dark:text-snow-200"
+                      }`}
+                    >
+                      {item.name}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           <div className="border-t drop-shadow-[0_-4px_6px_rgba(0,0,0,0.02)] h-fit w-full bg-white dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded-b p-5 pt-2 pb-0">

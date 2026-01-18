@@ -36,7 +36,6 @@ export default function FeedbackPanel({ className, onSubmit }: FeedbackPanelProp
           <ChatBubbleLeftRightIcon className="w-5 h-5 text-brand-primary" />
         </div>
         <div className="min-w-0">
-          <p className="font-[500] sz-4 theme-text">Have any complaint or suggestion?</p>
           <p className="text-xs text-neutral-n5 dark:text-snow-200">
             Kindly reach out to us using the form below.
           </p>

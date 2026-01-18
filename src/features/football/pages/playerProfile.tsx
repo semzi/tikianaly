@@ -3,8 +3,6 @@ import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
-import PlayerMatchesWidget from "@/features/football/components/player/PlayerMatchesWidget";
-import HeatMap from "@/features/football/components/player/HeatMap";
 import FeedbackPanel from "@/components/common/FeedbackPanel";
 import {
   ArrowLeftIcon,
@@ -133,7 +131,7 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
 const playerProfile = () => {
   const tabs = [
     { id: "profile", label: "Profile" },
-    { id: "matches", label: "Matches" },
+    // { id: "matches", label: "Matches" },
     { id: "career", label: "Career" },
   ];
   
@@ -232,6 +230,11 @@ const playerProfile = () => {
   const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [isSeasonOpen, setIsSeasonOpen] = useState(false);
 
+  const openTeamProfile = (teamId?: number) => {
+    if (!teamId) return;
+    navigate(`/team/profile/${encodeURIComponent(String(teamId))}`);
+  };
+
   useEffect(() => {
     const run = async (id: string) => {
       setLoading(true);
@@ -317,7 +320,7 @@ const playerProfile = () => {
     return num;
   };
 
-  const teamLogoStorageKey = (id: string) => `team_logo_base64_${id}`;
+  const teamLogoStorageKey = (id: string) => `team_logo_image_${id}`;
   const getCachedTeamLogo = (teamId?: number): string | null => {
     const id = String(teamId ?? "").trim();
     if (!id) return null;
@@ -688,9 +691,14 @@ const playerProfile = () => {
                       <img src="/loading-state/shield.svg" alt="" className="w-12 h-12" />
                     )}
                     <span className="block gap-2 items-center">
-                      <p className="text-white font-semibold">
+                      <button
+                        type="button"
+                        className={`text-white font-semibold text-left ${player?.team_id ? "cursor-pointer hover:underline" : "cursor-default"}`}
+                        onClick={() => openTeamProfile(player?.team_id)}
+                        aria-label={`Open ${String(player?.team ?? "Team")} profile`}
+                      >
                         {player?.team ?? "-"}
-                      </p>
+                      </button>
                       <p className="sz-8 text-snow-200">
                         {selectedSeason ? `Season ${selectedSeason}` : ""}
                       </p>
@@ -806,9 +814,14 @@ const playerProfile = () => {
                   <img src="/loading-state/shield.svg" alt="" className="w-8 h-8 flex-shrink-0" />
                 )}
                 <div className="flex flex-col">
-                  <p className="text-white font-semibold text-xs">
+                  <button
+                    type="button"
+                    className={`text-white font-semibold text-xs text-left ${player?.team_id ? "cursor-pointer hover:underline" : "cursor-default"}`}
+                    onClick={() => openTeamProfile(player?.team_id)}
+                    aria-label={`Open ${String(player?.team ?? "Team")} profile`}
+                  >
                     {player?.team ?? "-"}
-                  </p>
+                  </button>
                   <p className="text-[10px] text-snow-200">
                     {selectedSeason ? `Season ${selectedSeason}` : ""}
                   </p>
@@ -1007,9 +1020,9 @@ const playerProfile = () => {
           {/* Content Section - Different for each tab */}
           <div className="flex flex-col gap-5 flex-5 ">
             {/* ---------------Matches Tab---------------- */}
-            {activeTab === 'matches' && (
+            {/* {activeTab === 'matches' && (
               <PlayerMatchesWidget />
-            )}
+            )} */}
 
             {/* ---------------profile---------------- */}
             {activeTab === 'profile' && (
@@ -1023,7 +1036,14 @@ const playerProfile = () => {
                   {playerDisplayName} {player?.age ? `is ${player.age} years old` : ""}{player?.birthdate ? ` (born ${player.birthdate})` : ""}{player?.height ? `, ${player.height} cm tall` : ""}
                   {player?.team ? (
                     <>
-                      {" "}and plays for <span className="cursor-pointer hover:underline transition-all text-brand-primary italic">{player.team}.</span>
+                      {" "}and plays for <button
+                        type="button"
+                        className={`hover:underline transition-all text-brand-primary italic ${player?.team_id ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => openTeamProfile(player?.team_id)}
+                        aria-label={`Open ${String(player?.team ?? "Team")} profile`}
+                      >
+                        {player.team}.
+                      </button>
                     </>
                   ) : null}{" "}
                   {player?.preferredFoot ? `Preferred foot: ${player.preferredFoot}.` : ""}{" "}
@@ -1205,7 +1225,6 @@ const playerProfile = () => {
               <div className="block-style">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <p className="font-bold text-lg theme-text">Transfer fees history</p>
-                  <p className="text-xs text-neutral-n5 dark:text-snow-200">(fees parsed from transfer price)</p>
                 </div>
                 <div className="w-full h-64">
                   {transferChartData.length === 0 ? (
@@ -1299,7 +1318,7 @@ const playerProfile = () => {
                 </div>
               </div>
 
-              <HeatMap />
+              {/* <HeatMap /> */}
 
             <div className="block-style">
               <p className="font-bold text-lg mb-3 theme-text">Trophies</p>

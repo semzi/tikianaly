@@ -4,12 +4,11 @@ import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/features/dashboard/components/Category";
 import { FavouriteSelection } from "@/features/dashboard/components/FavouriteSelection";
 import Leftbar from "@/components/layout/LeftBar";
-import popularLeagues from "@/data/favouriteSelect";
 import { getAllTeams, getAllLeagues, getAllPlayers } from "@/lib/api/endpoints";
 import { usePaginatedApi } from "@/hooks/usePaginatedApi";
 import { useNavigate } from "react-router-dom";
 import RightBar from "@/components/layout/RightBar";
-import { getAuthToken } from "@/lib/api/axios";
+import { getAuthToken, getStoredUser } from "@/lib/api/axios";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -53,7 +52,7 @@ export const favourite = () => {
 
     const syncLoginState = () => {
       try {
-        const stored = localStorage.getItem("tikianaly_user");
+        const stored = getStoredUser();
         const token = getAuthToken();
         setIsLoggedIn(Boolean(stored) && Boolean(token));
       } catch {
@@ -129,7 +128,9 @@ export const favourite = () => {
 
   // Combine all items
   const allItems = [...teamsHook.items, ...leaguesHook.items, ...playersHook.items];
-  const loading = teamsHook.initialLoading || leaguesHook.initialLoading || playersHook.initialLoading;
+  const loading =
+    allItems.length === 0 &&
+    (teamsHook.initialLoading || leaguesHook.initialLoading || playersHook.initialLoading);
   const error = teamsHook.error || leaguesHook.error || playersHook.error;
 
   const toggleItemSelection = (itemId: string) => {
@@ -185,7 +186,7 @@ export const favourite = () => {
           ) : (
             <FavouriteSelection
               loading={loading}
-              items={allItems.length > 0 ? allItems : popularLeagues} 
+              items={allItems}
               selectedItems={selectedItems}
               toggleItemSelection={toggleItemSelection}
               isLoggedIn={isLoggedIn}

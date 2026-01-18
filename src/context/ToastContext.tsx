@@ -40,6 +40,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const timersRef = useRef<Map<string, number>>(new Map());
 
+  const DEFAULT_DURATION_MS = 5000;
+
   const dismiss = useCallback((id: string) => {
     const t = timersRef.current.get(id);
     if (t) {
@@ -60,10 +62,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   const show = useCallback(
     ({ id, variant, message, durationMs }: ShowToastArgs) => {
       const toastId = id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const isNetworkToast =
+        toastId.startsWith("network-") ||
+        toastId.endsWith("-connection") ||
+        toastId.includes("connection");
+      const effectiveDurationMs =
+        typeof durationMs === "number"
+          ? durationMs
+          : isNetworkToast
+            ? undefined
+            : DEFAULT_DURATION_MS;
 
       setToasts((prev) => {
         const next = prev.filter((x) => x.id !== toastId);
-        next.push({ id: toastId, variant, message, durationMs });
+        next.push({ id: toastId, variant, message, durationMs: effectiveDurationMs });
         return next;
       });
 
@@ -73,8 +85,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
         timersRef.current.delete(toastId);
       }
 
-      if (durationMs && durationMs > 0) {
-        const t = window.setTimeout(() => dismiss(toastId), durationMs);
+      if (effectiveDurationMs && effectiveDurationMs > 0) {
+        const t = window.setTimeout(() => dismiss(toastId), effectiveDurationMs);
         timersRef.current.set(toastId, t);
       }
 

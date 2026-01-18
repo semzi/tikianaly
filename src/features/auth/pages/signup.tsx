@@ -13,6 +13,8 @@ type SignupForm = {
   password: string;
 };
 
+type FieldErrors = Partial<Record<keyof SignupForm, string>>;
+
 type FormStatus = {
   type: "success" | "error" | null;
   message: string;
@@ -247,11 +249,59 @@ function Signup() {
   const [status, setStatus] = useState<FormStatus>({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [termsError, setTermsError] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]); // Default to Nigeria
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const countryDropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const validateEmail = (emailRaw: string): string => {
+    const email = String(emailRaw ?? "").trim();
+    if (!email) return "Email address is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Enter a valid email address";
+    return "";
+  };
+
+  const validateName = (nameRaw: string): string => {
+    const name = String(nameRaw ?? "").trim();
+    if (!name) return "Full name is required";
+    const noDigits = /\d/.test(name) === false;
+    const lettersOnly = /^[A-Za-z\s.'-]+$/.test(name);
+    if (!noDigits || !lettersOnly) return "Enter a valid full name";
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return "Enter your first and last name";
+    return "";
+  };
+
+  const validatePhone = (phoneRaw: string): string => {
+    const phone = String(phoneRaw ?? "").trim();
+    if (!phone) return "Phone number is required";
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 7 || digits.length > 15) return "Enter a valid phone number";
+    return "";
+  };
+
+  const validateField = (field: keyof SignupForm, value: string): string => {
+    if (field === "email") return validateEmail(value);
+    if (field === "name") return validateName(value);
+    if (field === "phone") return validatePhone(value);
+    return "";
+  };
+
+  const validateAll = useCallback((): FieldErrors => {
+    const next: FieldErrors = {};
+    const nameErr = validateName(formValues.name);
+    if (nameErr) next.name = nameErr;
+    const phoneErr = validatePhone(formValues.phone);
+    if (phoneErr) next.phone = phoneErr;
+    const emailErr = validateEmail(formValues.email);
+    if (emailErr) next.email = emailErr;
+    if (!formValues.password) next.password = "Password is required";
+    return next;
+  }, [formValues.email, formValues.name, formValues.password, formValues.phone]);
 
   // Filter countries based on search
   const filteredCountries = useMemo(() => {
@@ -284,6 +334,7 @@ function Signup() {
   const handleTermsChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       setAcceptTerms(event.target.checked);
+      setTermsError("");
     },
     []
   );
@@ -313,15 +364,7 @@ function Signup() {
   }, [formValues.password]);
 
   const isSubmitDisabled = useMemo(() => {
-    const { name, email, password, phone } = formValues;
-    return (
-      !acceptTerms ||
-      !name.trim() ||
-      !email.trim() ||
-      !password ||
-      !phone.trim() ||
-      isSubmitting
-    );
+    return isSubmitting;
   }, [acceptTerms, formValues, isSubmitting]);
 
   const handleInputChange = useCallback(
@@ -331,6 +374,11 @@ function Signup() {
         ...prev,
         [field]: value,
       }));
+
+      setFieldErrors((prev) => {
+        if (!prev[field]) return prev;
+        return { ...prev, [field]: "" };
+      });
     },
     []
   );
@@ -339,12 +387,17 @@ function Signup() {
     event.preventDefault();
     setStatus({ type: null, message: "" });
 
-      if (isSubmitDisabled) {
-      setStatus({
-        type: "error",
-        message:
-          "Please fill in your name, email, phone number, password and accept the terms.",
-      });
+    const nextErrors = validateAll();
+    setFieldErrors(nextErrors);
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setStatus({ type: "error", message: "Please fix the highlighted fields." });
+      return;
+    }
+
+    if (!acceptTerms) {
+      setTermsError("You must agree to the Terms & Conditions to continue.");
+      setStatus({ type: "error", message: "Please accept the Terms & Conditions." });
       return;
     }
 
@@ -385,8 +438,16 @@ function Signup() {
         icon="/assets/icons/user.png"
         value={formValues.name}
         onChange={handleInputChange("name")}
+        onBlur={(e) => {
+          const msg = validateField("name", e.target.value);
+          setFieldErrors((prev) => ({ ...prev, name: msg }));
+        }}
         required
+        className={fieldErrors.name ? "border-ui-negative" : ""}
       />
+      {fieldErrors.name && (
+        <p className="-mt-3 mb-4 text-sm text-ui-negative">{fieldErrors.name}</p>
+      )}
 
       <p className="mb-2">Phone Number</p>
       <div className="relative flex items-center gap-3 h-[44px] sm:h-[50px] md:h-[56px] w-full max-w-full sm:max-w-md md:max-w-lg border border-snow-200 px-3 sm:px-4 mb-4 rounded-[8px]">
@@ -457,8 +518,15 @@ function Signup() {
           className="w-full text-[13px] sm:text-[14px] md:text-[15px] outline-none border-none"
           value={formValues.phone}
           onChange={handleInputChange("phone")}
+          onBlur={(e) => {
+            const msg = validateField("phone", e.target.value);
+            setFieldErrors((prev) => ({ ...prev, phone: msg }));
+          }}
         />
       </div>
+      {fieldErrors.phone && (
+        <p className="-mt-3 mb-4 text-sm text-ui-negative">{fieldErrors.phone}</p>
+      )}
 
       <FormInput
         label="Email Address"
@@ -467,8 +535,16 @@ function Signup() {
         icon="/assets/icons/mail-line-1.png"
         value={formValues.email}
         onChange={handleInputChange("email")}
+        onBlur={(e) => {
+          const msg = validateField("email", e.target.value);
+          setFieldErrors((prev) => ({ ...prev, email: msg }));
+        }}
         required
+        className={fieldErrors.email ? "border-ui-negative" : ""}
       />
+      {fieldErrors.email && (
+        <p className="-mt-3 mb-4 text-sm text-ui-negative">{fieldErrors.email}</p>
+      )}
 
       <FormInput
         label="Password"
@@ -485,7 +561,11 @@ function Signup() {
         value={formValues.password}
         onChange={handleInputChange("password")}
         required
+        className={fieldErrors.password ? "border-ui-negative" : ""}
       />
+      {fieldErrors.password && (
+        <p className="-mt-3 mb-4 text-sm text-ui-negative">{fieldErrors.password}</p>
+      )}
 
       <div aria-live="polite">
         <div className="flex gap-2 mb-3 items-stretch">
@@ -530,7 +610,7 @@ function Signup() {
           <Checkbox
             className="checkbox"
             checked={acceptTerms}
-            onChange={handleTermsChange}it
+            onChange={handleTermsChange}
           />
           <p>
             I agree to the{" "}
@@ -544,6 +624,10 @@ function Signup() {
           </p>
         </div>
       </div>
+
+      {termsError && (
+        <p className="-mt-2 mb-4 text-sm text-ui-negative">{termsError}</p>
+      )}
 
       {status.message && (
         <p

@@ -16,15 +16,23 @@ export const Category = () => {
       <div
         className="flex hide-scrollbar dark:bg-[#0D1117]  w-full gap-2 overflow-x-auto overflow-y-hidden page-padding-x pb-1"
       >
-        {categories.map((cat: CategoryItem) => (
-          <Button
-            key={cat.label}
-            label={cat.label}
-            variant={cat.variant}
-            href={cat.href}
-            className="font sz-8 md:font-[600]"
-          />
-        ))}
+        {categories.map((cat: CategoryItem) => {
+          const isDisabled = !cat.href;
+          return (
+            <Button
+              key={cat.label}
+              label={cat.label}
+              variant={cat.variant}
+              href={isDisabled ? undefined : cat.href}
+              disabled={isDisabled}
+              aria-disabled={isDisabled}
+              title={isDisabled ? "Coming soon" : undefined}
+              className={`font sz-8 md:font-[600] ${
+                isDisabled ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+              }`}
+            />
+          );
+        })}
       </div>
     </div>
   );

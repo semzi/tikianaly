@@ -11,6 +11,11 @@ body {
   background-color: #fdfdfd;
 }
 
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 :root {
   --gameinfo-stripe-color: rgba(220, 220, 220, 0.35);
 }

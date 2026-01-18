@@ -349,6 +349,18 @@ const TeamProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
 
+  const openPlayerProfile = (playerId: unknown) => {
+    const id = String(playerId ?? "").trim();
+    if (!id) return;
+    navigate(`/player/profile/${encodeURIComponent(id)}`);
+  };
+
+  const openTeamProfile = (teamId: unknown) => {
+    const id = String(teamId ?? "").trim();
+    if (!id) return;
+    navigate(`/team/profile/${encodeURIComponent(id)}`);
+  };
+
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
@@ -941,7 +953,16 @@ const TeamProfile = () => {
                                     alt={String(p?.name ?? "Player")}
                                     className="w-7 h-7 rounded-full object-cover"
                                   />
-                                  <span className="theme-text truncate max-w-[220px]">{p?.name ?? "-"}</span>
+                                  <button
+                                    type="button"
+                                    className={`theme-text truncate max-w-[220px] text-left hover:underline ${
+                                      p?.id ? "cursor-pointer" : "cursor-default"
+                                    }`}
+                                    onClick={() => openPlayerProfile(p?.id)}
+                                    aria-label={`Open ${String(p?.name ?? "Player")} profile`}
+                                  >
+                                    {p?.name ?? "-"}
+                                  </button>
                                 </div>
                               </td>
                               <td className="py-2 pr-4 theme-text">{p?.position ?? "-"}</td>
@@ -993,7 +1014,16 @@ const TeamProfile = () => {
                               ) : (
                                 <img src="/loading-state/shield.svg" alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                               )}
-                              <span className="text-xs theme-text truncate">{t?.from ?? "-"}</span>
+                              <button
+                                type="button"
+                                className={`text-xs theme-text truncate text-left hover:underline ${
+                                  t?.team_id ? "cursor-pointer" : "cursor-default"
+                                }`}
+                                onClick={() => openTeamProfile(t?.team_id)}
+                                aria-label={`Open ${String(t?.from ?? "Team")} profile`}
+                              >
+                                {t?.from ?? "-"}
+                              </button>
                             </div>
                           </div>
                         ))
@@ -1031,7 +1061,16 @@ const TeamProfile = () => {
                               ) : (
                                 <img src="/loading-state/shield.svg" alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                               )}
-                              <span className="text-xs theme-text truncate">{t?.to ?? "-"}</span>
+                              <button
+                                type="button"
+                                className={`text-xs theme-text truncate text-left hover:underline ${
+                                  t?.team_id ? "cursor-pointer" : "cursor-default"
+                                }`}
+                                onClick={() => openTeamProfile(t?.team_id)}
+                                aria-label={`Open ${String(t?.to ?? "Team")} profile`}
+                              >
+                                {t?.to ?? "-"}
+                              </button>
                             </div>
                           </div>
                         ))

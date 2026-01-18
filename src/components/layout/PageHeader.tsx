@@ -8,9 +8,10 @@ import {
   ArrowRightIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { clearAuthToken } from "@/lib/api/axios";
+import { clearAuthToken, getStoredUser } from "@/lib/api/axios";
 import { getLeagueByName, getPlayerByName, getTeamByName } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import useProfileAvatar from "@/hooks/useProfileAvatar";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -369,13 +370,12 @@ export const PageHeader = () => {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Load user profile from localStorage
+  // Load user profile from storage
   const loadUserProfile = useCallback(() => {
     if (typeof window === "undefined") return;
     try {
-      const stored = localStorage.getItem("tikianaly_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
+      const parsed = getStoredUser();
+      if (parsed) {
         setUserProfile({
           name: parsed.name || "",
           email: parsed.email || "",
@@ -408,6 +408,10 @@ export const PageHeader = () => {
     email: "",
     avatar: "",
   };
+
+  const { avatarUrl } = useProfileAvatar({
+    seed: profile?.email || profile?.name || "user",
+  });
 
   // Truncate email if too long
   const truncateEmail = (email: string, maxLength: number = 20): string => {
@@ -856,25 +860,43 @@ export const PageHeader = () => {
               </button>
               <div className="relative" ref={mobileMenuRef}>
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-brand-primary"
+                  className={`flex h-8 w-8 items-center justify-center rounded-full overflow-hidden ${
+                    userProfile && avatarUrl ? "bg-transparent" : "bg-white text-brand-primary"
+                  }`}
                   onClick={() => toggleMenu("mobile")}
                   aria-haspopup="true"
                   aria-expanded={openMenu === "mobile"}
                 >
-                  <UserIcon className="h-4" />
+                  {userProfile && avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Profile"
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserIcon className="h-4" />
+                  )}
                 </button>
                 {openMenu === "mobile" && (
-                  <div className="absolute right-0 z-[1000] mt-3 w-64 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-lg">
+                  <div className="absolute right-0 z-[1000] mt-3 w-64 rounded-2xl border border-snow-200 bg-white dark:bg-[#161B22] p-4 theme-text shadow-lg">
                     {userProfile ? (
                       <>
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center">
-                            <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
-                              {(profile.name || "U").charAt(0).toUpperCase()}
-                            </div>
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt="Profile"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
+                                {(profile.name || "U").charAt(0).toUpperCase()}
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">{profile.name}</p>
+                            <p className="text-sm font-medium truncate">{profile.name}</p>
                             <p className="text-xs text-neutral-n5 truncate" title={profile.email || ""}>
                               {truncateEmail(profile.email || "", 18)}
                             </p>
@@ -999,25 +1021,43 @@ export const PageHeader = () => {
                 </button>
                 <div className="relative hidden lg:flex" ref={desktopMenuRef}>
                   <button
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-2 text-brand-primary"
+                    className={`flex h-9 w-9 items-center justify-center rounded-full overflow-hidden ${
+                      userProfile && avatarUrl ? "bg-transparent p-0" : "bg-white p-2 text-brand-primary"
+                    }`}
                     onClick={() => toggleMenu("desktop")}
                     aria-haspopup="true"
                     aria-expanded={openMenu === "desktop"}
                   >
-                    <UserIcon className="h-5" />
+                    {userProfile && avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserIcon className="h-5" />
+                    )}
                   </button>
                   {openMenu === "desktop" && (
-                    <div className="absolute z-[1000] right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
+                    <div className="absolute z-[1000] right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white dark:bg-[#161B22] p-4 theme-text shadow-2xl">
                       {userProfile ? (
                         <>
                           <div className="flex items-center gap-4">
                             <div className="h-14 w-14 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
-                              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
-                                {(profile.name || "U").charAt(0).toUpperCase()}
-                              </div>
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt="Profile"
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
+                                  {(profile.name || "U").charAt(0).toUpperCase()}
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-base font-semibold truncate">{profile.name}</p>
+                              <p className="text-base font-medium truncate">{profile.name}</p>
                               <p className="text-sm text-neutral-n5 truncate" title={profile.email || ""}>
                                 {truncateEmail(profile.email || "", 22)}
                               </p>
