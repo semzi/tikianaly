@@ -5,8 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { Link } from "react-router-dom";
-import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 type PlayerSeasonRow = {
   league?: string;
@@ -81,6 +82,8 @@ type PlayerSlot = {
   filterSeason?: string;
   filterLeagueId?: string;
   filterLeagueName?: string;
+  filterTeamId?: string;
+  filterTeamName?: string;
 };
 
 const toNumber = (v: unknown): number => {
@@ -90,6 +93,24 @@ const toNumber = (v: unknown): number => {
   if (!s || s === "-" || s.toLowerCase() === "null") return 0;
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
+};
+
+const formatAxiosishError = (err: any): string => {
+  const status = err?.response?.status;
+  const statusText = err?.response?.statusText;
+  const apiMessage = err?.response?.data?.message ?? err?.response?.data?.error?.message;
+  const message = err?.message;
+
+  if (status) {
+    const parts = [
+      `Search failed (${status}${statusText ? ` ${statusText}` : ""})`,
+      apiMessage ? String(apiMessage) : null,
+    ].filter(Boolean);
+    return parts.join(": ");
+  }
+
+  if (message) return `Search failed: ${String(message)}`;
+  return "Search failed. Please try again.";
 };
 
 const normalizeItem = (item: any): PlayerApiItem | null => {
@@ -138,6 +159,68 @@ const parseTransferDate = (value?: string): number => {
     return Number.isFinite(dt) ? dt : 0;
   }
   return 0;
+};
+
+const seasonStartDateTs = (season?: string): number => {
+  const y = seasonStartYear(season);
+  if (!y) return 0;
+  // Rough season start (July 1)
+  return Date.UTC(y, 6, 1);
+};
+
+const getTeamOptionsForPlayer = (p: PlayerApiItem | null) => {
+  if (!p) return [] as Array<{ teamId: string; name: string }>;
+  const map = new Map<string, string>();
+
+  if (typeof p.team_id === "number") {
+    map.set(String(p.team_id), String(p.team ?? "").trim() || "Current team");
+  }
+
+  (p.transfers ?? []).forEach((t) => {
+    const fromId = t?.from_id;
+    const toId = t?.to_id;
+    const fromName = String(t?.from ?? "").trim();
+    const toName = String(t?.to ?? "").trim();
+
+    if (typeof fromId === "number") {
+      map.set(String(fromId), fromName || map.get(String(fromId)) || "Team");
+    }
+    if (typeof toId === "number") {
+      map.set(String(toId), toName || map.get(String(toId)) || "Team");
+    }
+  });
+
+  return Array.from(map.entries()).map(([teamId, name]) => ({ teamId, name }));
+};
+
+const inferTeamForSeason = (p: PlayerApiItem | null, season: string) => {
+  if (!p || !season) return null as null | { teamId?: string; name?: string };
+  const targetTs = seasonStartDateTs(season);
+  type TransferLite = { ts: number; toId: number; to: string };
+  const transfers = (p.transfers ?? [])
+    .reduce((acc: TransferLite[], t) => {
+      const ts = parseTransferDate(t?.date);
+      const toId = t?.to_id;
+      if (ts && typeof toId === "number") {
+        acc.push({ ts, toId, to: String(t?.to ?? "").trim() });
+      }
+      return acc;
+    }, [] as TransferLite[])
+    .sort((a, b) => a.ts - b.ts);
+
+  if (targetTs) {
+    for (let i = transfers.length - 1; i >= 0; i -= 1) {
+      const t = transfers[i];
+      if (t && t.ts <= targetTs) {
+        return { teamId: String(t.toId), name: t.to || "Team" };
+      }
+    }
+  }
+
+  if (typeof p.team_id === "number") {
+    return { teamId: String(p.team_id), name: String(p.team ?? "").trim() || "Current team" };
+  }
+  return null;
 };
 
 const parseFeeToNumber = (value?: string): number => {
@@ -252,20 +335,38 @@ const sumSeasonTotals = (p: PlayerApiItem | null, season: string, leagueId?: str
   return { goals, assists, xg };
 };
 
-const sumSeasonExtended = (p: PlayerApiItem | null, season: string, leagueId?: string) => {
-  if (!p || !season) return { apps: 0, minutes: 0, passes: 0, ratingAvg: 0 };
+const radarMetricsFromSeason = (p: PlayerApiItem | null, season: string, leagueId?: string) => {
+  if (!p || !season) {
+    return {
+      goalsPer90: 0,
+      assistsPer90: 0,
+      gPlusA90: 0,
+      passPer90: 0,
+      avgRating: 0,
+      minsPerMatch: 0,
+      cardsPer90: 0,
+    };
+  }
 
   const rows = getFilteredSeasonRows(p, season, leagueId);
 
-  let apps = 0;
+  let lineups = 0;
   let minutes = 0;
+  let goals = 0;
+  let assists = 0;
+  let yellow = 0;
+  let red = 0;
   let passes = 0;
   let ratingSum = 0;
   let ratingCount = 0;
 
   rows.forEach((r) => {
-    apps += toNumber(r?.lineups);
+    lineups += toNumber(r?.lineups);
     minutes += toNumber(r?.minutes);
+    goals += toNumber(r?.goals);
+    assists += toNumber(r?.assists);
+    yellow += toNumber(r?.yellowcards);
+    red += toNumber(r?.redcards);
     passes += toNumber(r?.passes);
     const rating = toNumber(r?.rating);
     if (rating > 0) {
@@ -274,12 +375,24 @@ const sumSeasonExtended = (p: PlayerApiItem | null, season: string, leagueId?: s
     }
   });
 
-  const ratingAvg = ratingCount ? ratingSum / ratingCount : 0;
-  return { apps, minutes, passes, ratingAvg };
-};
+  const avgRating = ratingCount ? ratingSum / ratingCount : 0;
+  const minsPerMatch = minutes > 0 ? (lineups > 0 ? minutes / lineups : minutes / 1) : 0;
+  const goalsPer90 = minutes > 0 ? (goals / minutes) * 90 : 0;
+  const assistsPer90 = minutes > 0 ? (assists / minutes) * 90 : 0;
+  const gPlusA90 = minutes > 0 ? ((goals + assists) / minutes) * 90 : 0;
+  const passPer90 = minutes > 0 ? (passes / minutes) * 90 : 0;
+  const cardsPer90 = minutes > 0 ? ((yellow + red) / minutes) * 90 : 0;
 
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const toPct = (v01: number) => Math.round(clamp01(v01) * 100);
+  return {
+    goalsPer90,
+    assistsPer90,
+    gPlusA90,
+    passPer90,
+    avgRating,
+    minsPerMatch,
+    cardsPer90,
+  };
+};
 
 const extractXgFromPlayersStatsResponse = (statsRes: any, playerId: string, season: string): number | null => {
   if (!statsRes || !playerId || !season) return null;
@@ -323,7 +436,7 @@ export default function PlayerComparison() {
     { loading: false, error: null, player: null },
   ]);
 
-  const [openFilter, setOpenFilter] = useState<{ slotIndex: number; kind: "season" | "league" } | null>(null);
+  const [openFilter, setOpenFilter] = useState<{ slotIndex: number; kind: "season" | "league" | "team" } | null>(null);
 
   const [searchValue, setSearchValue] = useState<string>("");
   const [searchResults, setSearchResults] = useState<PlayerSearchItem[]>([]);
@@ -374,9 +487,11 @@ export default function PlayerComparison() {
     const requestId = ++searchRequestIdRef.current;
 
     const timeoutId = window.setTimeout(() => {
-      getPlayerByName(q)
-        .then((data) => {
+      const run = async (attempt: number) => {
+        try {
+          const data = await getPlayerByName(q);
           if (requestId !== searchRequestIdRef.current) return;
+
           const items = normalizeItemsToArray(data?.responseObject?.item);
           const normalized: PlayerSearchItem[] = items.slice(0, 10).map((p: any) => {
             const rawImage = p?.image;
@@ -394,14 +509,27 @@ export default function PlayerComparison() {
               image,
             };
           });
+
           setSearchResults(normalized);
           setSearchLoading(false);
-        })
-        .catch(() => {
+          setSearchError(null);
+        } catch (err: any) {
           if (requestId !== searchRequestIdRef.current) return;
-          setSearchError("Search failed. Please try again.");
+          const status = err?.response?.status;
+          const retryable = status === 429 || (typeof status === "number" && status >= 500);
+          if (attempt === 0 && retryable) {
+            window.setTimeout(() => {
+              if (requestId !== searchRequestIdRef.current) return;
+              run(1);
+            }, 450);
+            return;
+          }
+          setSearchError(formatAxiosishError(err));
           setSearchLoading(false);
-        });
+        }
+      };
+
+      run(0);
     }, 450);
 
     return () => window.clearTimeout(timeoutId);
@@ -424,6 +552,8 @@ export default function PlayerComparison() {
       const leagues = defaultSeason ? getLeagueOptionsForSeason(item, defaultSeason) : [];
       const defaultLeague = leagues[0];
 
+      const inferredTeam = defaultSeason ? inferTeamForSeason(item, defaultSeason) : null;
+
       setSlots((prev) =>
         prev.map((s, idx) =>
           idx === slotIndex
@@ -441,6 +571,8 @@ export default function PlayerComparison() {
                   filterSeason: defaultSeason,
                   filterLeagueId: defaultLeague?.leagueId,
                   filterLeagueName: defaultLeague?.name,
+                  filterTeamId: inferredTeam?.teamId,
+                  filterTeamName: inferredTeam?.name,
                 }
               : s
           )
@@ -460,7 +592,7 @@ export default function PlayerComparison() {
   const removeSlotPlayer = (slotIndex: number) => {
     setSlots((prev) =>
       prev.map((s, idx) =>
-        idx === slotIndex ? { ...s, playerId: undefined, player: null, error: null, loading: false, filterSeason: undefined, filterLeagueId: undefined, filterLeagueName: undefined } : s
+        idx === slotIndex ? { ...s, playerId: undefined, player: null, error: null, loading: false, filterSeason: undefined, filterLeagueId: undefined, filterLeagueName: undefined, filterTeamId: undefined, filterTeamName: undefined } : s
       )
     );
   };
@@ -476,6 +608,23 @@ export default function PlayerComparison() {
     setSlots((prev) => {
       if (prev.length <= 2) return prev;
       return prev.slice(0, 2);
+    });
+  };
+
+  const swapSlots = (a: number, b: number) => {
+    if (a === b) return;
+    setSlots((prev) => {
+      if (a < 0 || b < 0 || a >= prev.length || b >= prev.length) return prev;
+      const next = [...prev];
+      const tmp = next[a];
+      next[a] = next[b];
+      next[b] = tmp;
+      return next;
+    });
+    setActiveSlotIndex((cur) => {
+      if (cur === a) return b;
+      if (cur === b) return a;
+      return cur;
     });
   };
 
@@ -536,39 +685,55 @@ export default function PlayerComparison() {
     });
   }, [slots]);
 
-  const radarDataBySlot = useMemo(() => {
-    return slots.map((s, idx) => {
-      const p = s.player ?? null;
-      const season = String(s.filterSeason ?? "");
-      const leagueId = String(s.filterLeagueId ?? "");
-      if (!p || !season) return null;
+  const radarSeries = useMemo(() => {
+    const clamp = (n: number) => Math.max(0, Math.min(100, n));
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const colors = [
+      { stroke: "#2563eb", fill: "#2563eb" },
+      { stroke: "#f97316", fill: "#f97316" },
+      { stroke: "#22c55e", fill: "#22c55e" },
+    ];
 
-      const totals = sumSeasonTotals(p, season, leagueId);
-      const ext = sumSeasonExtended(p, season, leagueId);
+    return slots
+      .map((s, idx) => {
+        const p = s.player ?? null;
+        const season = String(s.filterSeason ?? "");
+        const leagueId = String(s.filterLeagueId ?? "");
+        if (!p || !season) return null;
 
-      const minutes = ext.minutes;
-      const passesPer90 = minutes > 0 ? (ext.passes / minutes) * 90 : 0;
+        const m = radarMetricsFromSeason(p, season, leagueId);
+        const goals90 = m.goalsPer90;
+        const assists90 = m.assistsPer90;
+        const ga90 = m.gPlusA90;
+        const passes90 = m.passPer90;
+        const avgRating = m.avgRating;
+        const minsPerMatch = m.minsPerMatch;
+        const discipline = m.cardsPer90;
 
-      // Heuristic normalization to 0-100 for visualization (not an official rating)
-      const passing = toPct(passesPer90 / 80); // 80 passes/90 => 100
-      const scoring = toPct((totals.goals + totals.xg) / 30); // ~30 combined => 100
-      const creating = toPct(totals.assists / 15); // 15 assists => 100
-      const rating = toPct((ext.ratingAvg - 5) / 3.5); // 5.0..8.5 => 0..100
-      const minutesScore = toPct(ext.minutes / 3000); // 3000 mins => 100
-      const appsScore = toPct(ext.apps / 38); // 38 apps => 100
+        const data = [
+          { skill: "Impact", value: r1(clamp((goals90 + assists90) * 35)) },
+          { skill: "Creating", value: r1(clamp(assists90 * 80)) },
+          { skill: "Scoring", value: r1(clamp(goals90 * 60)) },
+          { skill: "Passing", value: r1(clamp(passes90 / 1.2)) },
+          { skill: "Fitness", value: r1(clamp((minsPerMatch / 90) * 100)) },
+          { skill: "Discipline", value: r1(clamp(100 - discipline * 120)) },
+          { skill: "Rating", value: r1(clamp((avgRating / 10) * 100)) },
+          { skill: "Goals/90", value: r1(clamp(goals90 * 60)) },
+          { skill: "Assists/90", value: r1(clamp(assists90 * 80)) },
+          { skill: "G+A/90", value: r1(clamp(ga90 * 40)) },
+          { skill: "Passes/90", value: r1(clamp(passes90 / 1.2)) },
+          { skill: "Min/Apps", value: r1(clamp((minsPerMatch / 90) * 100)) },
+        ];
 
-      return {
-        key: `radar-${idx}`,
-        data: [
-          { skill: "Passing", value: passing },
-          { skill: "Scoring", value: scoring },
-          { skill: "Creating", value: creating },
-          { skill: "Rating", value: rating },
-          { skill: "Minutes", value: minutesScore },
-          { skill: "Apps", value: appsScore },
-        ],
-      };
-    });
+        const c = colors[idx] ?? colors[0];
+        return {
+          name: playerDisplayName(p) || `Player ${idx + 1}`,
+          data,
+          stroke: c.stroke,
+          fill: c.fill,
+        };
+      })
+      .filter(Boolean) as Array<{ name: string; data: Array<{ skill: string; value: number }>; stroke: string; fill: string }>;
   }, [slots]);
 
   type TransferFeePoint = { label: string; ts: number; fee: number };
@@ -621,7 +786,7 @@ export default function PlayerComparison() {
   return (
     <>
       <PageHeader />
-      <main className="m-page-padding-x my-8">
+      <main className="m-page-padding-x py-8 bg-snow-100 dark:bg-[#0D1117] transition-colors">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold theme-text">Player Comparison</h1>
@@ -660,54 +825,198 @@ export default function PlayerComparison() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {slots.map((slot, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setActiveSlotIndex(idx)}
-                className={`rounded-xl border p-3 text-left transition-colors ${
-                  activeSlotIndex === idx
-                    ? "border-brand-secondary bg-brand-secondary/10"
-                    : "border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={playerImageUrl(slot.player)}
-                    className="w-10 h-10 rounded-full object-cover"
-                    alt={playerDisplayName(slot.player) || "Player"}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/loading-state/player.svg";
-                    }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold theme-text truncate">
-                      {playerDisplayName(slot.player) || `Slot ${idx + 1}`}
-                    </p>
-                    <p className="text-xs text-neutral-n5 truncate">
-                      {slot.player?.position ? String(slot.player.position) : "Select a player"}
-                    </p>
-                  </div>
-                  {slot.playerId ? (
-                    <button
-                      type="button"
-                      className="h-9 w-9 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeSlotPlayer(idx);
-                      }}
-                      aria-label="Remove"
-                    >
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
-                  ) : null}
-                </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {slots.map((slot, idx) => {
+              const isActive = activeSlotIndex === idx;
+              const hasPlayer = Boolean(slot.playerId);
+              const surface = hasPlayer
+                ? "bg-gradient-to-r from-brand-secondary/20 via-amber-400/10 to-brand-secondary/10 dark:from-brand-secondary/25 dark:via-amber-400/10 dark:to-brand-secondary/10"
+                : "bg-white dark:bg-[#161B22]";
 
-                {slot.loading ? <p className="mt-2 text-xs text-neutral-n5">Loading…</p> : null}
-                {slot.error ? <p className="mt-2 text-xs text-ui-negative">{slot.error}</p> : null}
-              </button>
-            ))}
+              return (
+                <div
+                  key={idx}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setActiveSlotIndex(idx)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") setActiveSlotIndex(idx);
+                  }}
+                  className={`relative rounded-2xl border overflow-visible transition-colors ${surface} ${
+                    isActive
+                      ? "border-brand-secondary ring-2 ring-brand-secondary/20"
+                      : "border-snow-200 dark:border-snow-100/10"
+                  } cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/30`}
+                >
+                  <div className="p-4">
+                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                      {hasPlayer ? (
+                        <button
+                          type="button"
+                          className="h-9 w-9 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSlotPlayer(idx);
+                          }}
+                          aria-label="Remove"
+                        >
+                          <XMarkIcon className="h-5 w-5" />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="absolute right-3 top-3 flex items-center gap-2">
+                      {slots.length > 1 ? (
+                        <button
+                          type="button"
+                          className="h-9 w-9 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const other = idx === 0 ? 1 : 0;
+                            swapSlots(idx, other);
+                          }}
+                          aria-label="Swap"
+                        >
+                          <ArrowsRightLeftIcon className="h-5 w-5" />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-col items-center text-center pt-3">
+                      <img
+                        src={playerImageUrl(slot.player)}
+                        className="w-12 h-12 rounded-full object-cover ring-2 ring-white/60 dark:ring-black/30"
+                        alt={playerDisplayName(slot.player) || "Player"}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/loading-state/player.svg";
+                        }}
+                      />
+                      <p className="mt-2 font-semibold theme-text truncate max-w-full">
+                        {playerDisplayName(slot.player) || "Select player"}
+                      </p>
+                      <p className="text-xs text-neutral-n5 truncate max-w-full">
+                        {slot.player?.position ? String(slot.player.position) : hasPlayer ? "-" : "Tap to select slot, then search below"}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="relative" data-compare-filter-popover="true">
+                        <button
+                          type="button"
+                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenFilter((cur) =>
+                              cur && cur.slotIndex === idx && cur.kind === "league" ? null : { slotIndex: idx, kind: "league" }
+                            );
+                          }}
+                          disabled={!slot.player || !slot.filterSeason}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            {slot.filterLeagueId ? (
+                              <GetLeagueLogo leagueId={slot.filterLeagueId} alt={slot.filterLeagueName || "League"} className="h-5 w-5" />
+                            ) : (
+                              <img src="/loading-state/shield.svg" className="h-5 w-5" alt="League" />
+                            )}
+                            <span className="text-sm theme-text truncate">{slot.filterLeagueName || "League"}</span>
+                          </span>
+                          <ChevronDownIcon className="h-4 w-4 theme-text opacity-70" />
+                        </button>
+
+                        {openFilter?.slotIndex === idx && openFilter.kind === "league" ? (
+                          <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-lg overflow-hidden">
+                            {(getLeagueOptionsForSeason(slot.player ?? null, String(slot.filterSeason ?? "")) || []).length ? (
+                              <div className="max-h-64 overflow-y-auto">
+                                {getLeagueOptionsForSeason(slot.player ?? null, String(slot.filterSeason ?? "")).map((opt) => (
+                                  <button
+                                    key={opt.leagueId}
+                                    type="button"
+                                    className="w-full px-3 py-2 flex items-center gap-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                                    onClick={() => {
+                                      setSlots((prev) =>
+                                        prev.map((ss, sidx) =>
+                                          sidx === idx ? { ...ss, filterLeagueId: opt.leagueId, filterLeagueName: opt.name } : ss
+                                        )
+                                      );
+                                      setOpenFilter(null);
+                                    }}
+                                  >
+                                    <GetLeagueLogo leagueId={opt.leagueId} alt={opt.name} className="h-5 w-5" />
+                                    <span className="text-sm theme-text truncate">{opt.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-3 text-sm text-neutral-n5">No leagues available</div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="relative" data-compare-filter-popover="true">
+                        <button
+                          type="button"
+                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenFilter((cur) =>
+                              cur && cur.slotIndex === idx && cur.kind === "season" ? null : { slotIndex: idx, kind: "season" }
+                            );
+                          }}
+                          disabled={!slot.player}
+                        >
+                          <span className="text-sm theme-text truncate">{slot.filterSeason || "Season"}</span>
+                          <ChevronDownIcon className="h-4 w-4 theme-text opacity-70" />
+                        </button>
+
+                        {openFilter?.slotIndex === idx && openFilter.kind === "season" ? (
+                          <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-lg overflow-hidden">
+                            {uniqSeasonsFromPlayer(slot.player).length ? (
+                              <div className="max-h-64 overflow-y-auto">
+                                {uniqSeasonsFromPlayer(slot.player).map((seasonOpt) => (
+                                  <button
+                                    key={seasonOpt}
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left hover:bg-snow-100 dark:hover:bg-white/5"
+                                    onClick={() => {
+                                      const leagues = getLeagueOptionsForSeason(slot.player ?? null, seasonOpt);
+                                      const first = leagues[0];
+                                      const inferred = inferTeamForSeason(slot.player ?? null, seasonOpt);
+                                      setSlots((prev) =>
+                                        prev.map((ss, sidx) =>
+                                          sidx === idx
+                                            ? {
+                                                ...ss,
+                                                filterSeason: seasonOpt,
+                                                filterLeagueId: first?.leagueId,
+                                                filterLeagueName: first?.name,
+                                                filterTeamId: inferred?.teamId,
+                                                filterTeamName: inferred?.name,
+                                              }
+                                            : ss
+                                        )
+                                      );
+                                      setOpenFilter(null);
+                                    }}
+                                  >
+                                    <span className="text-sm theme-text">{seasonOpt}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-3 text-sm text-neutral-n5">No seasons available</div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {slot.loading ? <p className="mt-3 text-xs text-neutral-n5">Loading…</p> : null}
+                    {slot.error ? <p className="mt-3 text-xs text-ui-negative">{slot.error}</p> : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="mt-5">
@@ -802,22 +1111,14 @@ export default function PlayerComparison() {
             <>
               <div className="mt-6">
                 <p className="text-lg font-semibold theme-text">Performance radar</p>
-                <p className="text-sm text-neutral-n5">Derived from season stats (passing, scoring, creating, rating, minutes, apps).</p>
+                <p className="text-sm text-neutral-n5">Same radar metrics used on Player Profile.</p>
 
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {slots.map((s, idx) => (
-                    <div
-                      key={`radar-wrap-${idx}`}
-                      className="rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] p-4"
-                    >
-                      <p className="font-semibold theme-text truncate">{playerDisplayName(s.player) || "-"}</p>
-                      {radarDataBySlot[idx]?.data ? (
-                        <PlayerRadarChart data={radarDataBySlot[idx]?.data as any} />
-                      ) : (
-                        <p className="mt-2 text-sm text-neutral-n5">Select a player to see radar.</p>
-                      )}
-                    </div>
-                  ))}
+                <div className="mt-3 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] p-4">
+                  {radarSeries.length ? (
+                    <PlayerRadarChart series={radarSeries as any} />
+                  ) : (
+                    <p className="text-sm text-neutral-n5">Select players and seasons to see radar.</p>
+                  )}
                 </div>
               </div>
 
@@ -899,7 +1200,7 @@ export default function PlayerComparison() {
                     </div>
 
                     {s.player ? (
-                      <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="relative" data-compare-filter-popover="true">
                           <button
                             type="button"
@@ -923,9 +1224,9 @@ export default function PlayerComparison() {
 
                           {openFilter?.slotIndex === idx && openFilter.kind === "league" ? (
                             <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-lg overflow-hidden">
-                              {(getLeagueOptionsForSeason(s.player, String(s.filterSeason ?? "")) || []).length ? (
+                              {(getLeagueOptionsForSeason(s.player ?? null, String(s.filterSeason ?? "")) || []).length ? (
                                 <div className="max-h-64 overflow-y-auto">
-                                  {getLeagueOptionsForSeason(s.player, String(s.filterSeason ?? "")).map((opt) => (
+                                  {getLeagueOptionsForSeason(s.player ?? null, String(s.filterSeason ?? "")).map((opt) => (
                                     <button
                                       key={opt.leagueId}
                                       type="button"
@@ -957,6 +1258,57 @@ export default function PlayerComparison() {
                             className="w-full h-10 rounded-lg border border-snow-200 dark:border-snow-100/10 bg-snow-100 dark:bg-white/5 px-3 flex items-center justify-between gap-2"
                             onClick={() =>
                               setOpenFilter((cur) =>
+                                cur && cur.slotIndex === idx && cur.kind === "team" ? null : { slotIndex: idx, kind: "team" }
+                              )
+                            }
+                          >
+                            <span className="flex items-center gap-2 min-w-0">
+                              {s.filterTeamId ? (
+                                <GetTeamLogo teamId={s.filterTeamId} alt={s.filterTeamName || "Team"} className="h-5 w-5 rounded-full" />
+                              ) : (
+                                <img src="/loading-state/shield.svg" className="h-5 w-5" alt="Team" />
+                              )}
+                              <span className="text-sm theme-text truncate">{s.filterTeamName || "Select team"}</span>
+                            </span>
+                            <ChevronDownIcon className="h-4 w-4 theme-text opacity-70" />
+                          </button>
+
+                          {openFilter?.slotIndex === idx && openFilter.kind === "team" ? (
+                            <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-lg overflow-hidden">
+                              {getTeamOptionsForPlayer(s.player).length ? (
+                                <div className="max-h-64 overflow-y-auto">
+                                  {getTeamOptionsForPlayer(s.player).map((opt) => (
+                                    <button
+                                      key={opt.teamId}
+                                      type="button"
+                                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                                      onClick={() => {
+                                        setSlots((prev) =>
+                                          prev.map((ss, sidx) =>
+                                            sidx === idx ? { ...ss, filterTeamId: opt.teamId, filterTeamName: opt.name } : ss
+                                          )
+                                        );
+                                        setOpenFilter(null);
+                                      }}
+                                    >
+                                      <GetTeamLogo teamId={opt.teamId} alt={opt.name} className="h-5 w-5 rounded-full" />
+                                      <span className="text-sm theme-text truncate">{opt.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="p-3 text-sm text-neutral-n5">No teams available</div>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="relative" data-compare-filter-popover="true">
+                          <button
+                            type="button"
+                            className="w-full h-10 rounded-lg border border-snow-200 dark:border-snow-100/10 bg-snow-100 dark:bg-white/5 px-3 flex items-center justify-between gap-2"
+                            onClick={() =>
+                              setOpenFilter((cur) =>
                                 cur && cur.slotIndex === idx && cur.kind === "season" ? null : { slotIndex: idx, kind: "season" }
                               )
                             }
@@ -977,6 +1329,7 @@ export default function PlayerComparison() {
                                       onClick={() => {
                                         const leagues = getLeagueOptionsForSeason(s.player ?? null, seasonOpt);
                                         const first = leagues[0];
+                                        const inferred = inferTeamForSeason(s.player ?? null, seasonOpt);
                                         setSlots((prev) =>
                                           prev.map((ss, sidx) =>
                                             sidx === idx
@@ -985,6 +1338,8 @@ export default function PlayerComparison() {
                                                   filterSeason: seasonOpt,
                                                   filterLeagueId: first?.leagueId,
                                                   filterLeagueName: first?.name,
+                                                  filterTeamId: inferred?.teamId,
+                                                  filterTeamName: inferred?.name,
                                                 }
                                               : ss
                                           )

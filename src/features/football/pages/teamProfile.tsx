@@ -1,7 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
-import FeedbackPanel from "@/components/common/FeedbackPanel";
 import { getPlayerById, getTeamById } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import {
@@ -796,9 +795,7 @@ const TeamProfile = () => {
         {/* OVERVIEW */}
         {activeTab === "overview" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="space-y-8">
                 <div className="block-style">
                   <div className="flex items-center text-neutral-n4 dark:text-snow-100 gap-2 mb-2">
@@ -893,9 +890,7 @@ const TeamProfile = () => {
         {/* SQUAD */}
         {activeTab === "squad" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="space-y-6">
                 <div className="block-style">
                   <p className="font-bold text-lg theme-text mb-3">Squad</p>
@@ -981,8 +976,7 @@ const TeamProfile = () => {
         {/* TRANSFERS */}
         {activeTab === "transfers" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="space-y-8">
                 <div className="block-style">
                   <p className="font-bold text-lg theme-text mb-3">Transfers In</p>
@@ -1085,8 +1079,7 @@ const TeamProfile = () => {
         {/* TROPHIES */}
         {activeTab === "trophies" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="block-style">
                 <p className="font-bold text-lg mb-3 theme-text">Trophies</p>
                 {(team?.trophies ?? []).length === 0 ? (
@@ -1124,8 +1117,7 @@ const TeamProfile = () => {
         {/* VENUE */}
         {activeTab === "venue" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="block-style">
                 <p className="font-bold text-lg theme-text mb-3">Venue</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1167,8 +1159,7 @@ const TeamProfile = () => {
         {/* STATS */}
         {activeTab === "stats" && (
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-            <div className="flex flex-col gap-5 flex-5">
+            <div className="flex flex-col gap-5 w-full">
               <div className="space-y-6">
                 <div className="block-style">
                   <p className="font-bold text-lg theme-text mb-3">Season stats</p>

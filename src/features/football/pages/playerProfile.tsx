@@ -3,7 +3,6 @@ import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
-import FeedbackPanel from "@/components/common/FeedbackPanel";
 import {
   ArrowLeftIcon,
   BellAlertIcon,
@@ -588,22 +587,29 @@ const playerProfile = () => {
 
   const radarData = useMemo(() => {
     const clamp = (n: number) => Math.max(0, Math.min(100, n));
+    const r1 = (n: number) => Math.round(n * 10) / 10;
 
     const goals90 = seasonTotals.goalsPer90;
     const assists90 = seasonTotals.assistsPer90;
+    const ga90 = seasonTotals.gPlusA90;
     const passes90 = seasonTotals.passPer90;
     const avgRating = seasonTotals.avgRating;
     const minsPerMatch = seasonTotals.minsPerMatch;
     const discipline = seasonTotals.cardsPer90;
 
     return [
-      { skill: "Impact", value: clamp((goals90 + assists90) * 35) },
-      { skill: "Scoring", value: clamp(goals90 * 60) },
-      { skill: "Creating", value: clamp(assists90 * 80) },
-      { skill: "Passing", value: clamp(passes90 / 1.2) },
-      { skill: "Fitness", value: clamp((minsPerMatch / 90) * 100) },
-      { skill: "Discipline", value: clamp(100 - discipline * 120) },
-      { skill: "Rating", value: clamp((avgRating / 10) * 100) },
+      { skill: "Impact", value: r1(clamp((goals90 + assists90) * 35)) },
+      { skill: "Creating", value: r1(clamp(assists90 * 80)) },
+      { skill: "Scoring", value: r1(clamp(goals90 * 60)) },
+      { skill: "Passing", value: r1(clamp(passes90 / 1.2)) },
+      { skill: "Fitness", value: r1(clamp((minsPerMatch / 90) * 100)) },
+      { skill: "Discipline", value: r1(clamp(100 - discipline * 120)) },
+      { skill: "Rating", value: r1(clamp((avgRating / 10) * 100)) },
+      { skill: "Goals/90", value: r1(clamp(goals90 * 60)) },
+      { skill: "Assists/90", value: r1(clamp(assists90 * 80)) },
+      { skill: "G+A/90", value: r1(clamp(ga90 * 40)) },
+      { skill: "Passes/90", value: r1(clamp(passes90 / 1.2)) },
+      { skill: "Min/Apps", value: r1(clamp((minsPerMatch / 90) * 100)) },
     ];
   }, [seasonTotals]);
 
@@ -847,11 +853,6 @@ const playerProfile = () => {
                     <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
                       <p className="text-[10px] text-snow-200 mb-1">Nationality</p>
                       <div className="flex items-center gap-1">
-                        <img
-                          src="/assets/icons/United Kingdom.png"
-                          alt=""
-                          className="w-3 h-3"
-                        />
                         <p className="text-white font-bold text-xs">{player?.nationality ?? "-"}</p>
                       </div>
                     </div>
@@ -1015,10 +1016,8 @@ const playerProfile = () => {
 
         {/* Banter Section - Common for all tabs */}
         <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-          <FeedbackPanel className="flex flex-2 gap-3 flex-col edge-lighting block-style" />
-
           {/* Content Section - Different for each tab */}
-          <div className="flex flex-col gap-5 flex-5 ">
+          <div className="flex flex-col gap-5 w-full ">
             {/* ---------------Matches Tab---------------- */}
             {/* {activeTab === 'matches' && (
               <PlayerMatchesWidget />
@@ -1353,7 +1352,7 @@ const playerProfile = () => {
               )}
             </div>
             
-            <div className="block-style flex bg-ui-success/10 rounded px-3 py-4 flex-col gap-2">
+            {/* <div className="block-style flex bg-ui-success/10 rounded px-3 py-4 flex-col gap-2">
               <p className="font-bold text-lg text-ui-success">Strength</p>
               <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                 <li>Anchor Play</li>
@@ -1380,7 +1379,7 @@ const playerProfile = () => {
                 <li>Stamina</li>
                 <li>Leadership</li>
                 </ul>
-            </div>
+            </div> */}
               </>
             )}
           </div>

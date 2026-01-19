@@ -1,5 +1,5 @@
 // import  footerLinks  from '/data/footerLink'
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { EnvelopeIcon, PencilSquareIcon, UserIcon } from "@heroicons/react/24/outline";
 const footerLinks = [
   { label: "Community", href: "https://tikianaly.com" },
@@ -10,6 +10,10 @@ const footerLinks = [
 
 export const FooterComp = () => {
   const [showMobileAppPopup, setShowMobileAppPopup] = useState(false);
+
+  const handleFeedbackSubmit = (ev: FormEvent) => {
+    ev.preventDefault();
+  };
 
   useEffect(() => {
     if (!showMobileAppPopup) return;
@@ -50,7 +54,7 @@ export const FooterComp = () => {
               </p>
             </div>
 
-            <form className="w-full md:max-w-[560px]">
+            <form className="w-full md:max-w-[560px]" onSubmit={handleFeedbackSubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-slate-700">Full Name</label>
@@ -86,6 +90,15 @@ export const FooterComp = () => {
                     className="min-h-[110px] w-full resize-none bg-transparent outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  className="h-10 rounded bg-brand-secondary px-5 text-sm font-semibold text-white hover:opacity-95"
+                >
+                  Submit
+                </button>
               </div>
             </form>
           </div>
