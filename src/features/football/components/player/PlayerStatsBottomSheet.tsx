@@ -15,35 +15,7 @@ type Props = {
 };
 
 const PlayerStatsBottomSheet = ({ open, onClose, onViewProfile, playerName, playerImageUrl, stats }: Props) => {
-  const demoStats: StatItem[] = [
-    { label: "Rating", value: "7.4" },
-    { label: "Minutes", value: "90" },
-    { label: "Goals", value: "1" },
-    { label: "Assists", value: "0" },
-    { label: "Pass accuracy", value: "86%" },
-    { label: "Duels", value: "14" },
-    { label: "Duels won", value: "8" },
-    { label: "Dribble attempts", value: "5" },
-    { label: "Dribbles completed", value: "3" },
-    { label: "Shots", value: "3" },
-    { label: "Shots on target", value: "2" },
-    { label: "Key passes", value: "2" },
-    { label: "Tackles", value: "2" },
-    { label: "Interceptions", value: "1" },
-    { label: "Fouls drawn", value: "2" },
-    { label: "Fouls committed", value: "1" },
-    { label: "Offsides", value: "1" },
-    { label: "Total crosses", value: "4" },
-    { label: "Accurate crosses", value: "2" },
-    { label: "Blocks", value: "1" },
-    { label: "Clearances", value: "3" },
-    { label: "Dispossessed", value: "2" },
-    { label: "Aerials won", value: "2" },
-    { label: "Dribbled past", value: "1" },
-    { label: "Yellow cards", value: "1" },
-  ];
-
-  const statsArray = Array.isArray(stats) && stats.length ? stats : demoStats;
+  const statsArray = Array.isArray(stats) ? stats : [];
   const getStat = (label: string) => statsArray.find((s) => s.label === label)?.value;
 
   const rating = getStat("Rating");

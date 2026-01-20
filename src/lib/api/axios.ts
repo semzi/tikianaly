@@ -67,12 +67,34 @@ export const setStoredUser = (user: any, rememberMe: boolean = true): void => {
   localStorage.removeItem("tikianaly_user");
 };
 
+// Forgot password reset token helpers
+export const getResetToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem("tikianaly_reset_token");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setResetToken = (token: string): void => {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem("tikianaly_reset_token", JSON.stringify(token));
+};
+
+export const clearResetToken = (): void => {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem("tikianaly_reset_token");
+};
+
 export const clearAuthToken = (): void => {
   if (typeof window === "undefined") return;
   localStorage.removeItem("tikianaly_token");
   localStorage.removeItem("tikianaly_user");
   sessionStorage.removeItem("tikianaly_token");
   sessionStorage.removeItem("tikianaly_user");
+  sessionStorage.removeItem("tikianaly_reset_token");
 };
 
 // Request interceptor: Add auth token to requests
@@ -80,7 +102,14 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAuthToken();
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+      const headers = config.headers as Record<string, unknown>;
+      const hasAuthorization =
+        typeof headers.Authorization === "string" ||
+        typeof headers.authorization === "string";
+
+      if (!hasAuthorization) {
+        headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },

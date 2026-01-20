@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import StaggerChildren from "@/animations/staggerChildren";
 import { getAllLeagues } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import { navigate } from "@/lib/router/navigate";
 
 
 interface League {
@@ -41,6 +42,12 @@ export const League = () => {
   const [activeTab, setActiveTab] = useState<"suggestions" | "all">(
     "suggestions"
   );
+
+  const openLeagueProfile = (leagueId: number) => {
+    const id = String(leagueId ?? "").trim();
+    if (!id) return;
+    navigate(`/league/profile/${encodeURIComponent(id)}`);
+  };
 
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [previewLeagues, setPreviewLeagues] = useState<League[]>([]);
@@ -195,7 +202,8 @@ export const League = () => {
                 {suggestions.map((league, idx) => (
                   <div
                     key={league.name + idx}
-                    className="game-block flex flex-col text-center gap-3 theme-text text-sm"
+                    className="game-block flex flex-col text-center gap-3 theme-text text-sm cursor-pointer"
+                    onClick={() => openLeagueProfile(league.id)}
                   >
                     <GetLeagueLogo
                       leagueId={league.id}
@@ -249,7 +257,8 @@ export const League = () => {
                             {leagues.map((league, idx) => (
                               <li
                                 key={`${country}-${league.id}-${idx}`}
-                                className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1"
+                                className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1 cursor-pointer"
+                                onClick={() => openLeagueProfile(league.id)}
                               >
                                 <GetLeagueLogo
                                   leagueId={league.id}
@@ -290,7 +299,8 @@ export const League = () => {
                     {allLeagues.map((league, idx) => (
                       <li
                         key={`${league.id}-${idx}`}
-                        className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
+                        className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4 cursor-pointer"
+                        onClick={() => openLeagueProfile(league.id)}
                       >
                         <GetLeagueLogo
                           leagueId={league.id}

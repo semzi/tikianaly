@@ -5,6 +5,7 @@ import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
 import {
   ArrowLeftIcon,
+  ArrowsRightLeftIcon,
   BellAlertIcon,
   ShareIcon,
   StarIcon,
@@ -228,6 +229,30 @@ const playerProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [isSeasonOpen, setIsSeasonOpen] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [isCompareCollapsed, setIsCompareCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!playerId) return;
+    if (!isMobile) {
+      setIsCompareCollapsed(false);
+      return;
+    }
+
+    setIsCompareCollapsed(false);
+    const t = window.setTimeout(() => setIsCompareCollapsed(true), 5000);
+    return () => window.clearTimeout(t);
+  }, [playerId, isMobile]);
 
   const openTeamProfile = (teamId?: number) => {
     if (!teamId) return;
@@ -746,13 +771,6 @@ const playerProfile = () => {
                   </div>
 
                   <div className="bg-snow-200/20 py-1 px-4">
-                    <p className="sz-8 text-snow-200">Shirt Number</p>
-                    <span className="flex gap-2">
-                      <p className="text-white font-bold">-</p>
-                    </span>
-                  </div>
-
-                  <div className="bg-snow-200/20 py-1 px-4">
                     <p className="sz-8 text-snow-200">Position</p>
                     <span className="flex gap-2">
                       <p className="text-white font-bold">{player?.position ?? "-"}</p>
@@ -845,10 +863,6 @@ const playerProfile = () => {
                     <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
                       <p className="text-[10px] text-snow-200 mb-1">Age</p>
                       <p className="text-white font-bold text-xs">{player?.age ? `${player.age} Yrs` : "-"}</p>
-                    </div>
-                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
-                      <p className="text-[10px] text-snow-200 mb-1">Number</p>
-                      <p className="text-white font-bold text-xs">11</p>
                     </div>
                     <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
                       <p className="text-[10px] text-snow-200 mb-1">Nationality</p>
@@ -1387,6 +1401,41 @@ const playerProfile = () => {
       </div>
 
       {/* Footer */}
+      {playerId ? (
+        <div className="fixed inset-x-0 bottom-20 md:bottom-5 z-[60] flex justify-center px-4 pointer-events-none">
+          <button
+            type="button"
+            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${
+              isMobile && isCompareCollapsed
+                ? "w-14 h-14 rounded-full flex items-center justify-center"
+                : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
+            }`}
+            onClick={() =>
+              navigate(`/player/compare?p1=${encodeURIComponent(String(playerId))}`)
+            }
+            aria-label="Compare this player"
+          >
+            {isMobile && isCompareCollapsed ? (
+              <ArrowsRightLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
+                  <ArrowsRightLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Compare</p>
+                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">
+                    Tap to compare this player with another
+                  </p>
+                </div>
+                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
+                  Open
+                </div>
+              </div>
+            )}
+          </button>
+        </div>
+      ) : null}
       <FooterComp />
     </div>
   );

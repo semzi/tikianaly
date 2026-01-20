@@ -1,11 +1,14 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import FormInput from "@/components/ui/Form/FormInput";
 import Checkbox from "@/components/ui/Form/FormCheckbox";
 import FormButton from "@/components/ui/Form/FormButton";
 import { setAuthToken, clearAuthToken, setStoredUser } from "@/lib/api/axios";
 import { login } from "@/lib/api/endpoints";
+
+type LoginProps = {
+  onForgotPassword?: () => void;
+};
 
 type LoginForm = {
   email: string;
@@ -19,7 +22,7 @@ const INITIAL_FORM: LoginForm = {
   rememberMe: false,
 };
 
-function Login() {
+function Login({ onForgotPassword }: LoginProps) {
   const [formValues, setFormValues] = useState<LoginForm>(INITIAL_FORM);
   const [status, setStatus] = useState<{ type: "success" | "error" | null; message: string }>({
     type: null,
@@ -27,7 +30,6 @@ function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
 
   const isSubmitDisabled = useMemo(() => {
     return !formValues.email.trim() || !formValues.password || isSubmitting;
@@ -89,7 +91,7 @@ function Login() {
       setFormValues((prev) => ({ ...INITIAL_FORM, rememberMe: prev.rememberMe }));
       
       // Only navigate after successful authentication
-      navigate("/");
+      window.location.href = "/";
     } catch (error: any) {
       // Clear any partial auth data on error
       clearAuthToken();
@@ -156,12 +158,13 @@ function Login() {
           />
           <span>Remember Me</span>
         </label>
-        <a
-          href="/forgot-password"
+        <button
+          type="button"
+          onClick={onForgotPassword}
           className="text-brand-primary hover:underline"
         >
           Forgot Password
-        </a>
+        </button>
       </div>
 
       {status.message && (

@@ -1,6 +1,8 @@
 // import  footerLinks  from '/data/footerLink'
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { EnvelopeIcon, PencilSquareIcon, UserIcon } from "@heroicons/react/24/outline";
+import apiClient from "../../lib/api/axios";
+import { useToast } from "../../context/ToastContext";
 const footerLinks = [
   { label: "Community", href: "https://tikianaly.com" },
   { label: "Blog", href: "https://blog.tikianaly.com" },
@@ -10,9 +12,41 @@ const footerLinks = [
 
 export const FooterComp = () => {
   const [showMobileAppPopup, setShowMobileAppPopup] = useState(false);
+  const toast = useToast();
 
-  const handleFeedbackSubmit = (ev: FormEvent) => {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  const handleFeedbackSubmit = async (ev: FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+
+    if (isSubmittingFeedback) return;
+
+    try {
+      setIsSubmittingFeedback(true);
+      await apiClient.post("/api/v1/feedback", {
+        fullName,
+        email,
+        message,
+      });
+
+      toast.show({
+        variant: "success",
+        message: "Feedback submitted successfully.",
+      });
+      setFullName("");
+      setEmail("");
+      setMessage("");
+    } catch (err) {
+      toast.show({
+        variant: "error",
+        message: "Failed to submit feedback. Please try again.",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   useEffect(() => {
@@ -63,6 +97,8 @@ export const FooterComp = () => {
                     <input
                       type="text"
                       placeholder="Jane Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className="w-full bg-transparent outline-none"
                     />
                   </div>
@@ -74,6 +110,9 @@ export const FooterComp = () => {
                     <input
                       type="email"
                       placeholder="example@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                       className="w-full bg-transparent outline-none"
                     />
                   </div>
@@ -87,6 +126,9 @@ export const FooterComp = () => {
                   <textarea
                     rows={4}
                     placeholder="Type your message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
                     className="min-h-[110px] w-full resize-none bg-transparent outline-none"
                   />
                 </div>
@@ -95,9 +137,10 @@ export const FooterComp = () => {
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
+                  disabled={isSubmittingFeedback}
                   className="h-10 rounded bg-brand-secondary px-5 text-sm font-semibold text-white hover:opacity-95"
                 >
-                  Submit
+                  {isSubmittingFeedback ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </form>

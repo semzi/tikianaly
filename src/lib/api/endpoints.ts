@@ -1,6 +1,9 @@
 import apiClient from './axios';
 import { apiCache } from './cache';
 
+export const FOOTBALL_COMMENTARY_SSE_URL =
+  'https://tikianaly-service-backend.onrender.com/api/v1/football/sse/stream-comment';
+
 // Authentication Endpoints
 
 /**
@@ -18,6 +21,41 @@ export const requestOTP = async (data: any) => {
  */
 export const verifyUser = async (data: any) => {
   const response = await apiClient.post('/api/v1/user/verify-user', data);
+  return response.data;
+};
+
+/**
+ * Forgot password: request OTP
+ * @param data - Request data containing email
+ */
+export const forgotPasswordRequestOtp = async (data: { email: string }) => {
+  const response = await apiClient.post('/api/v1/user/forgot-password/otp', data);
+  return response.data;
+};
+
+/**
+ * Forgot password: verify OTP
+ * @param data - OTP value
+ * @param otpToken - Token returned from forgotPasswordRequestOtp
+ */
+export const forgotPasswordVerifyOtp = async (data: { otp: string }, otpToken: string) => {
+  const response = await apiClient.post('/api/v1/user/forgot-password/otp/verify', data, {
+    headers: {
+      Authorization: `Bearer ${otpToken}`,
+    },
+  });
+  return response.data;
+};
+
+export const forgotPasswordResetPassword = async (
+  data: { newPassword: string; confirmPassword: string },
+  resetToken: string
+) => {
+  const response = await apiClient.post('/api/v1/user/forgot-password/otp/reset', data, {
+    headers: {
+      Authorization: `Bearer ${resetToken}`,
+    },
+  });
   return response.data;
 };
 
@@ -71,8 +109,9 @@ export const getAllPlayers = async (page: number = 1, limit: number = 50) => {
  * @param playerName - The name of the player to fetch
  */
 export const getPlayerByName = async (playerName: string) => {
+  const normalized = String(playerName).trim().replace(/\s+/g, " ");
   const response = await apiClient.get(
-    `/api/v1/football/players/name/${encodeURIComponent(playerName)}`
+    `/api/v1/football/players/name/${encodeURIComponent(normalized)}`
   );
   return response.data;
 };
@@ -211,10 +250,21 @@ export const getFixturesByLeague = async (
   const endpoint = '/api/v1/football/fixture/league';
   const params = { leagueId, date, page, limit };
 
-  // Fetch from API (cache removed)
+  // Cache until next local midnight so fixtures reset daily at 00:00
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const ttlMs = Math.max(0, nextMidnight.getTime() - now.getTime());
+
   const response = await apiClient.get(endpoint, { params });
   const data = response.data;
 
+  apiCache.set(endpoint, data, params, ttlMs);
   return data;
 };
 

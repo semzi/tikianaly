@@ -11,7 +11,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import Reset from "./features/auth/pages/reset_password";
 import Dashboard from "./features/dashboard/pages/dashboard";
 import News from "./features/dashboard/pages/news";
-import Forgot from "./features/auth/pages/forgot_password";
 import { League } from "./features/dashboard/pages/league";
 import Favourite from "./features/dashboard/pages/favourites";
 import AccountPage from "./features/account/pages/account";
@@ -24,6 +23,7 @@ import { useEffect } from "react";
 import PlayerProfile from "./features/football/pages/playerProfile";
 import PlayerComparison from "./features/football/pages/playerComparison";
 import TeamProfile from "./features/football/pages/teamProfile";
+import LeagueProfile from "./features/football/pages/leagueProfile";
 import Onboard from "./features/onboarding/pages/onboard";
 import Afcon from "./features/football/pages/afcon";
 import NewsRead from "./features/news/pages/read";
@@ -64,6 +64,34 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <League />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/league/profile"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <LeagueProfile />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/league/profile/:leagueId"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <LeagueProfile />
             </motion.div>
           }
         />
@@ -248,20 +276,6 @@ function AnimatedRoutes() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <ScriptSandbox />
-            </motion.div>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <motion.div
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-            >
-              <Forgot />
             </motion.div>
           }
         />

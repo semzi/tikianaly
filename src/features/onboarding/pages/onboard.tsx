@@ -6,6 +6,11 @@ import { navigate } from "@/lib/router/navigate";
 import { ArrowLeftIcon } from "lucide-react";
 import { FavouriteSelectionOnboard } from "../components/FavouriteSelectionOnboard";
 import popularLeagues from "@/data/favouriteSelect";
+import FormInput from "@/components/ui/Form/FormInput";
+import FormButton from "@/components/ui/Form/FormButton";
+import VerifyOtp from "@/components/auth/VerifyOtp";
+import { clearResetToken, setResetToken } from "@/lib/api/axios";
+import { forgotPasswordRequestOtp, forgotPasswordVerifyOtp } from "@/lib/api/endpoints";
 
 /**
  * Auth Component
@@ -16,6 +21,15 @@ function Onboard() {
   const location = useLocation();
   const isSignup = location.pathname === "/signup";
   const isOnboard = location.pathname === "/onboard";
+  const [authView, setAuthView] = useState<"login" | "forgot" | "verify">("login");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpToken, setOtpToken] = useState<string | null>(null);
+  const [lastVerifiedOtp, setLastVerifiedOtp] = useState<string>("");
+  const [authStatus, setAuthStatus] = useState<{ type: "success" | "error" | null; message: string }>(
+    { type: null, message: "" }
+  );
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,6 +106,105 @@ function Onboard() {
       return newSet;
     });
   };
+
+  const startForgotPassword = () => {
+    setAuthStatus({ type: null, message: "" });
+    setAuthView("forgot");
+  };
+
+  const goBackToLogin = () => {
+    setAuthStatus({ type: null, message: "" });
+    setAuthSubmitting(false);
+    setOtpCode("");
+    setOtpToken(null);
+    setLastVerifiedOtp("");
+    clearResetToken();
+    setAuthView("login");
+  };
+
+  const submitForgotPassword = async () => {
+    const email = forgotEmail.trim();
+    if (!email) {
+      setAuthStatus({ type: "error", message: "Please enter your email address." });
+      return;
+    }
+
+    setAuthSubmitting(true);
+    setAuthStatus({ type: null, message: "" });
+    try {
+      const response = await forgotPasswordRequestOtp({ email });
+      const nextOtpToken = response?.responseObject?.otpToken;
+      if (!nextOtpToken) {
+        throw new Error("OTP request failed: no otpToken returned.");
+      }
+
+      setOtpToken(nextOtpToken);
+      setAuthView("verify");
+      setAuthStatus({ type: "success", message: "OTP sent. Please check your email." });
+    } catch (error: any) {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to request OTP right now.";
+      setAuthStatus({ type: "error", message: apiMessage });
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const submitVerifyOtp = async (code?: string) => {
+    if (authSubmitting) return;
+
+    const email = forgotEmail.trim();
+    const otp = (code ?? otpCode).trim();
+
+    if (!email) {
+      setAuthStatus({ type: "error", message: "Please enter your email address." });
+      setAuthView("forgot");
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setAuthStatus({ type: "error", message: "Please enter the 6-digit OTP." });
+      return;
+    }
+
+    if (!otpToken) {
+      setAuthStatus({ type: "error", message: "OTP session expired. Please request a new code." });
+      setAuthView("forgot");
+      return;
+    }
+
+    if (otp === lastVerifiedOtp) {
+      return;
+    }
+
+    setAuthSubmitting(true);
+    setAuthStatus({ type: null, message: "" });
+    try {
+      setLastVerifiedOtp(otp);
+      const response = await forgotPasswordVerifyOtp({ otp }, otpToken);
+      const resetToken = response?.responseObject?.token;
+      if (!resetToken) {
+        throw new Error("OTP verification failed: no reset token returned.");
+      }
+
+      setResetToken(resetToken);
+      setAuthStatus({ type: "success", message: "OTP Verified. Please reset your password." });
+      navigate("/reset-password");
+    } catch (error: any) {
+      setLastVerifiedOtp("");
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to verify OTP right now.";
+      setAuthStatus({ type: "error", message: apiMessage });
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
   
   return (
     <>
@@ -136,7 +249,110 @@ function Onboard() {
             </>
           ) : (
             <>
-              <Login />
+              {authView === "login" ? (
+                <Login onForgotPassword={startForgotPassword} />
+              ) : authView === "forgot" ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submitForgotPassword();
+                  }}
+                >
+                  <h1 className="font-bold text-[32px] mb-4">Forgot Password</h1>
+
+                  <FormInput
+                    label="Email Address"
+                    type="email"
+                    placeholder="example@gmail.com"
+                    icon="/assets/icons/mail-line-1.png"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+
+                  {authStatus.message && (
+                    <p
+                      className={`mt-4 text-sm ${
+                        authStatus.type === "error" ? "text-ui-negative" : "text-ui-success"
+                      }`}
+                    >
+                      {authStatus.message}
+                    </p>
+                  )}
+
+                  <FormButton
+                    className={`btn-primary ${authSubmitting ? "opacity-60" : ""}`}
+                    label={authSubmitting ? "SENDING..." : "SEND OTP"}
+                    type="submit"
+                    disabled={authSubmitting}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={goBackToLogin}
+                    className="mt-6 text-brand-primary hover:underline"
+                  >
+                    Back to Sign In
+                  </button>
+                </form>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submitVerifyOtp();
+                  }}
+                >
+                  <h1 className="font-bold text-[32px] mb-2">Verify OTP</h1>
+                  <p className="sz-7 text-neutral-n5 mb-6">
+                    Enter the 6-digit code sent to {forgotEmail.trim() || "your email"}.
+                  </p>
+
+                  <VerifyOtp
+                    length={6}
+                    disabled={authSubmitting}
+                    onChange={(c) => setOtpCode(c)}
+                    onComplete={(c) => setOtpCode(c)}
+                  />
+
+                  {authStatus.message && (
+                    <p
+                      className={`mt-4 text-sm ${
+                        authStatus.type === "error" ? "text-ui-negative" : "text-ui-success"
+                      }`}
+                    >
+                      {authStatus.message}
+                    </p>
+                  )}
+
+                  <FormButton
+                    className={`btn-primary mt-6 ${authSubmitting ? "opacity-60" : ""}`}
+                    label={authSubmitting ? "VERIFYING..." : "VERIFY"}
+                    type="submit"
+                    disabled={authSubmitting || otpCode.trim().length !== 6}
+                  />
+
+                  <div className="flex gap-4 mt-6">
+                    <button
+                      type="button"
+                      onClick={goBackToLogin}
+                      className="text-brand-primary hover:underline"
+                    >
+                      Back to Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthStatus({ type: null, message: "" });
+                        submitForgotPassword();
+                      }}
+                      className="text-brand-primary hover:underline"
+                      disabled={authSubmitting}
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
+                </form>
+              )}
               <p className="flex sz-7 text-center justify-center mt-8">
                 Don't have an account?{" "}
                 <Link to="/signup" className=" ml-1 underline text-brand-primary" >

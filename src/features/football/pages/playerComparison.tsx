@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContai
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 type PlayerSeasonRow = {
@@ -84,6 +84,13 @@ type PlayerSlot = {
   filterLeagueName?: string;
   filterTeamId?: string;
   filterTeamName?: string;
+};
+
+type QuickPlayerInfo = {
+  id: string;
+  name: string;
+  country: string;
+  image?: string;
 };
 
 const toNumber = (v: unknown): number => {
@@ -431,10 +438,25 @@ const extractXgFromPlayersStatsResponse = (statsRes: any, playerId: string, seas
 };
 
 export default function PlayerComparison() {
+  const [searchParams] = useSearchParams();
   const [slots, setSlots] = useState<PlayerSlot[]>([
     { loading: false, error: null, player: null },
     { loading: false, error: null, player: null },
   ]);
+
+  const isFulfilled = <T,>(
+    r: PromiseSettledResult<T>
+  ): r is PromiseFulfilledResult<T> => r.status === "fulfilled";
+
+  const QUICK_PLAYER_IDS: Array<string> = [
+    "382",
+    "102697",
+    "377149",
+    "441484",
+    "41310",
+  ];
+
+  const [quickPlayers, setQuickPlayers] = useState<QuickPlayerInfo[]>([]);
 
   const [openFilter, setOpenFilter] = useState<{ slotIndex: number; kind: "season" | "league" | "team" } | null>(null);
 
@@ -454,6 +476,48 @@ export default function PlayerComparison() {
   };
 
   const selectedIds = useMemo(() => slots.map((s) => s.playerId).filter(Boolean) as string[], [slots]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const results = await Promise.allSettled(
+        QUICK_PLAYER_IDS.map(async (id) => {
+          const res: any = await getPlayerById(id);
+          const item = res?.responseObject?.item;
+          const p = Array.isArray(item) ? item[0] : item;
+          const name =
+            [p?.firstname, p?.lastname].filter(Boolean).join(" ") ||
+            String(p?.common_name ?? "").trim() ||
+            "Player";
+          const rawImage = p?.image;
+          const image =
+            typeof rawImage === "string" && rawImage.length
+              ? rawImage.startsWith("data:image")
+                ? rawImage
+                : `data:image/png;base64,${rawImage}`
+              : undefined;
+          return {
+            id: String(p?.id ?? p?.player_id ?? id),
+            name: String(name),
+            country: String(p?.nationality ?? ""),
+            image,
+          } satisfies QuickPlayerInfo;
+        })
+      );
+
+      if (cancelled) return;
+
+      const ok = results.filter(isFulfilled).map((r) => r.value).filter(Boolean);
+
+      setQuickPlayers(ok);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -588,6 +652,28 @@ export default function PlayerComparison() {
       );
     }
   };
+
+  const prefillDoneRef = useRef(false);
+  useEffect(() => {
+    if (prefillDoneRef.current) return;
+
+    const p1 = String(searchParams.get("p1") ?? "").trim();
+    const p2 = String(searchParams.get("p2") ?? "").trim();
+    const p3 = String(searchParams.get("p3") ?? "").trim();
+    if (!p1 && !p2 && !p3) return;
+
+    prefillDoneRef.current = true;
+
+    (async () => {
+      if (p1) await loadPlayer(0, p1);
+      if (p2) await loadPlayer(1, p2);
+      if (p3) {
+        addThirdSlot();
+        await loadPlayer(2, p3);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const removeSlotPlayer = (slotIndex: number) => {
     setSlots((prev) =>
@@ -1020,6 +1106,44 @@ export default function PlayerComparison() {
           </div>
 
           <div className="mt-5">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm font-semibold theme-text">Quick picks</p>
+              <p className="text-xs text-neutral-n5">Tap a player to fill the selected slot</p>
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {quickPlayers.map((p) => {
+                const disabled = selectedIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={disabled}
+                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors ${
+                      disabled
+                        ? "opacity-50 cursor-not-allowed border-snow-200 dark:border-snow-100/10"
+                        : "border-snow-200 dark:border-snow-100/10 hover:bg-snow-100 dark:hover:bg-white/5"
+                    }`}
+                    onClick={() => {
+                      loadPlayer(activeSlotIndex, p.id);
+                      setSearchValue("");
+                      setSearchResults([]);
+                    }}
+                  >
+                    <img
+                      src={p.image || "/loading-state/player.svg"}
+                      className="w-7 h-7 rounded-full object-cover"
+                      alt={p.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/loading-state/player.svg";
+                      }}
+                    />
+                    <span className="theme-text font-semibold">{p.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <label className="text-sm font-semibold theme-text">Search player (fills selected slot)</label>
             <div className="mt-2 relative">
               <input

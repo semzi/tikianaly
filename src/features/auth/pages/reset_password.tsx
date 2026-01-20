@@ -1,6 +1,11 @@
+import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import FormInput from "@/components/ui/Form/FormInput";
 import FormButton from "@/components/ui/Form/FormButton";
 import Logo from "@/components/common/Logo";
+import { clearResetToken, getResetToken } from "@/lib/api/axios";
+import { forgotPasswordResetPassword } from "@/lib/api/endpoints";
 
 /**
  * Login Component
@@ -8,6 +13,52 @@ import Logo from "@/components/common/Logo";
  * Features a split layout with credentials form on the left and decorative image on the right
  */
 function Reset() {
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error" | null; message: string }>(
+    { type: null, message: "" }
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  const isSubmitDisabled = useMemo(() => {
+    return !password || isSubmitting;
+  }, [isSubmitting, password]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus({ type: null, message: "" });
+
+    const resetToken = getResetToken();
+    if (!resetToken) {
+      setStatus({ type: "error", message: "Reset session expired. Please request OTP again." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        newPassword: password,
+        confirmPassword: password,
+      };
+
+      await forgotPasswordResetPassword(payload, resetToken);
+      clearResetToken();
+
+      setStatus({ type: "success", message: "Password reset successful. Please sign in." });
+      navigate("/login");
+    } catch (error: any) {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to reset password right now.";
+      setStatus({ type: "error", message: apiMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       {/* Main container with split layout */}
@@ -17,33 +68,45 @@ function Reset() {
 
         {/* Credentials section - Left side of the split layout */}
         <div className="credentials justify-center mx-auto items-center my-auto px-4 lg:px-[128px] w-full md:w-1/2">
-          <h1 className="font-bold text-[32px] mb-4">Reset Your Password</h1>
+          <form onSubmit={handleSubmit}>
+            <h1 className="font-bold text-[32px] mb-4">Reset Your Password</h1>
 
-          {/* Password input field */}
-          <div>
-            <FormInput
-              label="New Password"
-              type="password"
-              placeholder="•••••••••"
-              icon="/assets/icons/lock-line-1.png"
-              secondIcon= "/assets/icons/eye-line.png"
+            <div>
+              <FormInput
+                label="New Password"
+                type={showPassword ? "text" : "password"}
+                placeholder="•••••••••"
+                icon="/assets/icons/lock-line-1.png"
+                secondIcon={
+                  showPassword
+                    ? "/assets/icons/eye-off-line.png"
+                    : "/assets/icons/eye-line.png"
+                }
+                secondIconAlt={showPassword ? "Hide password" : "Show password"}
+                onSecondIconClick={() => setShowPassword((prev) => !prev)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {status.message && (
+              <p
+                className={`mt-4 text-sm ${
+                  status.type === "error" ? "text-ui-negative" : "text-ui-success"
+                }`}
+              >
+                {status.message}
+              </p>
+            )}
+
+            <FormButton
+              className={`btn-primary mt-6 ${isSubmitting ? "opacity-60" : ""}`}
+              label={isSubmitting ? "RESETTING..." : "RESET PASSWORD"}
+              disabled={isSubmitDisabled}
+              type="submit"
             />
-          </div>
-
-          {/* Password input field */}
-          <div>
-            <FormInput
-              label="Confirm New Password"
-              type="password"
-              placeholder="•••••••••"
-              icon="/assets/icons/lock-line-1.png"
-              secondIcon= "/assets/icons/eye-line.png"
-            />
-          </div>
-
-
-          <FormButton className="btn-primary" label="RESET PASSWORD" />
-
+          </form>
         </div>
 
         {/* Decorative image section - Right side of the split layout */}

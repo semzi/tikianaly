@@ -13,6 +13,7 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   InboxIcon,
+  ArrowUturnLeftIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import Leftbar from "@/components/layout/LeftBar";
@@ -22,6 +23,7 @@ import { Link } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
+import { navigate } from "@/lib/router/navigate";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }) => (
@@ -183,6 +185,18 @@ export const dashboard = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const shouldShowReturnToToday = useMemo(() => {
     if (fixturesMode !== "date") return false;
     try {
@@ -191,6 +205,18 @@ export const dashboard = () => {
       return false;
     }
   }, [fixturesMode, selectedDate]);
+
+  useEffect(() => {
+    if (!shouldShowReturnToToday) return;
+    if (!isMobile) {
+      setIsReturnToTodayCollapsed(false);
+      return;
+    }
+
+    setIsReturnToTodayCollapsed(false);
+    const t = window.setTimeout(() => setIsReturnToTodayCollapsed(true), 5000);
+    return () => window.clearTimeout(t);
+  }, [shouldShowReturnToToday, isMobile]);
 
   const selectedDateKey = useMemo(() => {
     try {
@@ -353,7 +379,7 @@ export const dashboard = () => {
   }, [toast]);
 
   const topLeagueIds = useMemo(
-    () => [1204, 1059, 1399, 1198, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
+    () => [1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1206, 1197, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
     []
   );
   // const topLeagueIds = [1399, 1204, 1269 1352];
@@ -1124,14 +1150,14 @@ export const dashboard = () => {
 
                   return (
                     <div key={leagueId + "-" + leagueIdx} className="block-style">
-                      <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200">
+                      <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937]">
                         <Skeleton className="w-10 h-10" />
                         <Skeleton className="w-32 h-6" />
                       </div>
                       {Array.from({ length: 3 }).map((_, idx) => (
                         <div
                           key={idx}
-                          className="flex justify-around items-center gap-4 border-b-1 px-5 py-3 border-snow-200 last:border-b-0"
+                          className="flex justify-around items-center gap-4 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] last:border-b-0"
                         >
                           <Skeleton className="w-8 h-4" />
                           <div className="flex flex-3/9 justify-end items-center gap-3">
@@ -1163,6 +1189,14 @@ export const dashboard = () => {
                       <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
                         {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
                       </p>
+                      <button
+                        type="button"
+                        className="ml-auto text-brand-secondary hover:opacity-80"
+                        onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                        aria-label="Open league profile"
+                      >
+                        <ArrowRightIcon className="w-5 h-5" />
+                      </button>
                     </div>
                     {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                       (() => {
@@ -1386,6 +1420,14 @@ export const dashboard = () => {
                         ? leagueFixture.fixtures[0].league_name
                         : `League ${leagueFixture.leagueId}`}
                     </p>
+                    <button
+                      type="button"
+                      className="ml-auto text-brand-secondary hover:opacity-80"
+                      onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                      aria-label="Open league profile"
+                    >
+                      <ArrowRightIcon className="w-5 h-5" />
+                    </button>
                   </div>
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
@@ -1524,7 +1566,7 @@ export const dashboard = () => {
                 return (
                   <div
                     key={leagueId + "-" + leagueIdx}
-                    className="bg-white dark:bg-[#161B22] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
+                    className="bg-white dark:bg-[#161B22] border-1 block md:hidden h-fit flex-col border-snow-200 dark:border-[#1F2937] rounded"
                   >
                     <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 items-center">
                       <Skeleton className="w-8 h-8" />
@@ -1533,7 +1575,7 @@ export const dashboard = () => {
                     {Array.from({ length: 3 }).map((_, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
+                        className="flex items-center justify-between border-b-1 border-snow-200 dark:border-[#1F2937] px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                       >
                         <Skeleton className="w-10 h-3" />
                         <div className="flex flex-col flex-1 mx-1 gap-0.5">
@@ -1574,6 +1616,14 @@ export const dashboard = () => {
                     <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
                       {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
                     </p>
+                    <button
+                      type="button"
+                      className="ml-auto text-brand-secondary hover:opacity-80"
+                      onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                      aria-label="Open league profile"
+                    >
+                      <ArrowRightIcon className="w-5 h-5" />
+                    </button>
                   </div>
                   {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
@@ -1774,6 +1824,14 @@ export const dashboard = () => {
                       ? leagueFixture.fixtures[0].league_name
                       : `League ${leagueFixture.leagueId}`}
                   </p>
+                  <button
+                    type="button"
+                    className="ml-auto text-brand-secondary hover:opacity-80"
+                    onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                    aria-label="Open league profile"
+                  >
+                    <ArrowRightIcon className="w-5 h-5" />
+                  </button>
                 </div>
                 {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                   (() => {
@@ -1960,10 +2018,14 @@ export const dashboard = () => {
       <FooterComp />
 
       {shouldShowReturnToToday && (
-        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50">
+        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
           <button
             type="button"
-            className="px-4 text-sm py-2 rounded-full bg-brand-secondary text-white shadow-lg hover:opacity-95"
+            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${
+              isMobile && isReturnToTodayCollapsed
+                ? "w-14 h-14 rounded-full flex items-center justify-center"
+                : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
+            }`}
             onClick={() => {
               setSelectedDate(new Date());
               setFixturesMode("date");
@@ -1975,7 +2037,22 @@ export const dashboard = () => {
               }
             }}
           >
-            Return to Today
+            {isMobile && isReturnToTodayCollapsed ? (
+              <ArrowUturnLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
+                  <ArrowUturnLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Return to Today</p>
+                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">Go back to today's fixtures</p>
+                </div>
+                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
+                  Open
+                </div>
+              </div>
+            )}
           </button>
         </div>
       )}

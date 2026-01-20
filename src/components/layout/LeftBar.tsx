@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { ChevronUpDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { getAllLeagues } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import { navigate } from "@/lib/router/navigate";
 
 // Pulsating skeleton loader component
 const Skeleton = ({ className = "" }: { className?: string }) => (
@@ -30,6 +31,12 @@ const LeagueList: React.FC<LeagueListProps> = ({
   searchQuery,
 }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  const openLeagueProfile = (leagueId: number) => {
+    const id = String(leagueId ?? "").trim();
+    if (!id) return;
+    navigate(`/league/profile/${encodeURIComponent(id)}`);
+  };
 
   const getLeagueLogoId = (league: LeagueItem): string | null => {
     const anyLeague = league as unknown as { leagueId?: unknown; id?: unknown };
@@ -103,7 +110,8 @@ const LeagueList: React.FC<LeagueListProps> = ({
                     const logoId = getLeagueLogoId(league);
                     return logoId ? `${category}-${logoId}-${idx}` : `${category}-league-${idx}`;
                   })()}
-                  className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1"
+                  className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1 cursor-pointer"
+                  onClick={() => openLeagueProfile(league.id)}
                 >
                   <GetLeagueLogo
                     leagueId={league.id}
@@ -127,6 +135,12 @@ export const Leftbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fetchRunIdRef = useRef(0);
+
+  const openLeagueProfile = (leagueId: number) => {
+    const id = String(leagueId ?? "").trim();
+    if (!id) return;
+    navigate(`/league/profile/${encodeURIComponent(id)}`);
+  };
 
   useEffect(() => {
     fetchRunIdRef.current += 1;
@@ -231,7 +245,8 @@ export const Leftbar = () => {
               : leagues.slice(0, 10).map((league, idx) => (
                   <li
                     key={league.id ? `${league.id}-${idx}` : `league-${idx}`}
-                    className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4"
+                    className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4 cursor-pointer"
+                    onClick={() => openLeagueProfile(league.id)}
                   >
                     <GetLeagueLogo
                       leagueId={league.id}

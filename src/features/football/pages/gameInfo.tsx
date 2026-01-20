@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/lib/router/navigate";
-import { getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
+import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { useLocation, useParams } from "react-router-dom";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -36,6 +36,14 @@ import { format } from "date-fns";
 
 export const gameInfo = () => {
   const toast = useToast();
+
+  type CommentaryComment = {
+    comment_id: number;
+    comment: string;
+    important?: boolean;
+    isgoal?: string | boolean;
+    minute?: string;
+  };
 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
@@ -125,7 +133,7 @@ export const gameInfo = () => {
   const [matchInfo, setMatchInfo] = useState<any>(null);
   const [liveFixture, setLiveFixture] = useState<LiveStreamFixture | null>(null);
   const [liveEvents, setLiveEvents] = useState<LiveStreamEvent[]>([]);
-  const [commentaryComments, setCommentaryComments] = useState<Array<{ comment_id: number; comment: string }>>([]);
+  const [commentaryComments, setCommentaryComments] = useState<CommentaryComment[]>([]);
   const [, setStandingsData] = useState<any>(null);
   const [isLoadingMatchInfo, setIsLoadingMatchInfo] = useState(false);
   const [isLoadingFixtureDetails, setIsLoadingFixtureDetails] = useState(false);
@@ -207,23 +215,105 @@ export const gameInfo = () => {
   }, [fixtureIdForRest]);
 
   useEffect(() => {
-    const fetchCommentary = async () => {
-      if (!fixtureIdForRest) return;
+    if (!fixtureIdForRest) return;
+    if (typeof window === "undefined") return;
+
+    let isMounted = true;
+
+    setIsLoadingCommentary(true);
+
+    const url = FOOTBALL_COMMENTARY_SSE_URL;
+    const matchIdNum = Number(String(fixtureIdForRest).trim());
+    if (!Number.isFinite(matchIdNum) || matchIdNum <= 0) return;
+
+    let didReceiveFromStream = false;
+    let didFallbackToRest = false;
+
+    const fetchFromRest = async () => {
+      if (didReceiveFromStream || didFallbackToRest) return;
+      didFallbackToRest = true;
       try {
-        setIsLoadingCommentary(true);
         const res = await getMatchCommentary(fixtureIdForRest);
         const item0 = (res as any)?.responseObject?.item?.[0];
-        const comments = (item0?.comments ?? []) as Array<{ comment_id: number; comment: string }>;
+        const comments = (item0?.comments ?? []) as CommentaryComment[];
+        if (!isMounted) return;
         setCommentaryComments(Array.isArray(comments) ? comments : []);
       } catch (error) {
+        if (!isMounted) return;
         setCommentaryComments([]);
         console.error("Error fetching match commentary:", error);
       } finally {
+        if (!isMounted) return;
         setIsLoadingCommentary(false);
       }
     };
 
-    fetchCommentary();
+    const fallbackTimer = window.setTimeout(() => {
+      void fetchFromRest();
+    }, 2500);
+
+    const es = new EventSource(url);
+
+    const onMessage = (ev: MessageEvent) => {
+      try {
+        const payload = JSON.parse(String(ev.data ?? "{}")) as {
+          matches?: Array<{
+            match_id?: number;
+            comments?: CommentaryComment[];
+          }>;
+        };
+        const match = payload?.matches?.find((m) => Number(m?.match_id) === matchIdNum);
+        const incoming = (match?.comments ?? []) as CommentaryComment[];
+        if (!Array.isArray(incoming) || incoming.length === 0) return;
+
+        didReceiveFromStream = true;
+        window.clearTimeout(fallbackTimer);
+        if (isMounted) setIsLoadingCommentary(false);
+
+        setCommentaryComments((prev) => {
+          const map = new Map<number, CommentaryComment>();
+          (Array.isArray(prev) ? prev : []).forEach((c) => {
+            const id = Number((c as any)?.comment_id);
+            if (Number.isFinite(id)) map.set(id, c);
+          });
+          incoming.forEach((c) => {
+            const id = Number((c as any)?.comment_id);
+            if (!Number.isFinite(id)) return;
+            map.set(id, c);
+          });
+          return Array.from(map.values());
+        });
+      } catch {
+        return;
+      }
+    };
+
+    const onError = () => {
+      try {
+        window.clearTimeout(fallbackTimer);
+        if (!didReceiveFromStream) {
+          void fetchFromRest();
+        }
+        es.close();
+      } catch {
+        return;
+      }
+    };
+
+    es.addEventListener("message", onMessage as any);
+    es.addEventListener("error", onError);
+
+    return () => {
+      try {
+        isMounted = false;
+        window.clearTimeout(fallbackTimer);
+        es.removeEventListener("message", onMessage as any);
+        es.removeEventListener("error", onError);
+        es.close();
+      } catch {
+        return;
+      }
+    };
   }, [fixtureIdForRest]);
 
   const toInt = (v: unknown) => {
@@ -2128,15 +2218,25 @@ export const gameInfo = () => {
                   .map((c, idx) => (
                     <div key={c.comment_id ?? idx} className="flex gap-5 md:gap-12">
                       <div className="flex flex-col items-center">
-                        <div className="bg-snow-200 p-2">
-                          <span className="text-sm font-medium">#{c.comment_id}</span>
+                        <div className="bg-snow-200 dark:bg-[#1F2937] p-2 min-w-[60px] flex justify-center">
+                          <span className="text-sm font-medium theme-text">
+                            {String(c.minute ?? "").trim() || "-"}
+                          </span>
                         </div>
                         {idx !== commentaryComments.length - 1 && (
                           <div className="flex-1 border-l-2 border-dashed border-snow-200"></div>
                         )}
                       </div>
 
-                      <div className="flex-1 block-style mb-12 w-full">
+                      <div
+                        className={`flex-1 block-style mb-12 w-full ${
+                          String((c as any)?.isgoal ?? "")
+                            .toLowerCase()
+                            .trim() === "true" || (c as any)?.isgoal === true
+                            ? "border border-amber-400/40 shadow-[0_0_18px_rgba(251,191,36,0.35)] animate-pulse"
+                            : ""
+                        }`}
+                      >
                         <p className="text-xs md:text-base dark:text-snow-200 text-neutral-n3 mb-2">
                           {c.comment}
                         </p>

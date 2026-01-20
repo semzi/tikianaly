@@ -415,7 +415,7 @@ function Signup() {
 
       setFormValues(INITIAL_FORM);
       setAcceptTerms(false);
-      navigate("/onboard");
+      navigate("/login");
     } catch (error: any) {
       const apiMessage =
         error?.response?.data?.message ||
