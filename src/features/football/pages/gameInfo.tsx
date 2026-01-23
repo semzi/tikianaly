@@ -9,6 +9,7 @@ import {
   ShareIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/lib/router/navigate";
 import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId } from "@/lib/api/endpoints";
@@ -392,6 +393,63 @@ export const gameInfo = () => {
   const pageTitle = `${matchTitleCore} | Game Info | TikiAnaly`;
   const pageDescription = `Live score, lineups, stats and timeline for ${matchTitleCore}.`;
 
+  const matchStartIso = (() => {
+    try {
+      const raw =
+        (displayFixture as any)?.date ??
+        (fixtureDetails as any)?.date ??
+        (matchInfo as any)?.match?.date ??
+        (matchInfo as any)?.match?.match_date ??
+        null;
+      if (!raw) return null;
+      const d = new Date(String(raw));
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    } catch {
+      return null;
+    }
+  })();
+
+  const sportsEventJsonLd = (() => {
+    const home = displayHomeTeamName.trim();
+    const away = displayAwayTeamName.trim();
+    const name = home && away ? `${home} vs ${away}` : "Match";
+
+    const venueName = String(
+      (displayFixture as any)?.venue?.name ??
+        (fixtureDetails as any)?.venue?.name ??
+        (matchInfo as any)?.match?.venue ??
+        ""
+    ).trim();
+    const venueCity = String(
+      (displayFixture as any)?.venue?.city ??
+        (fixtureDetails as any)?.venue?.city ??
+        (matchInfo as any)?.match?.venue_city ??
+        ""
+    ).trim();
+    const location = venueName
+      ? {
+          "@type": "Place",
+          name: venueName,
+          address: venueCity ? { "@type": "PostalAddress", addressLocality: venueCity } : undefined,
+        }
+      : undefined;
+
+    const obj: any = {
+      "@context": "https://schema.org",
+      "@type": "SportsEvent",
+      name,
+      startDate: matchStartIso ?? undefined,
+      url: canonicalUrl || undefined,
+      image: shareImageUrl || undefined,
+      description: pageDescription,
+      location,
+      homeTeam: home ? { "@type": "SportsTeam", name: home } : undefined,
+      awayTeam: away ? { "@type": "SportsTeam", name: away } : undefined,
+    };
+
+    return JSON.stringify(obj);
+  })();
+
   const PINNED_STORAGE_KEY = "dashboard_pinned_fixtures_v1";
   const readPinnedStore = (): Record<string, Array<string | number>> => {
     try {
@@ -524,6 +582,37 @@ export const gameInfo = () => {
       ? (matchInfo as any)?.teams?.away?.score?.goals
       : (liveFixture as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.score ?? ""
   ).trim();
+
+  const penaltyInfo = (() => {
+    const homePen = Number(
+      String(
+        (displayFixture as any)?.localteam?.pen_score ??
+          (fixtureDetails as any)?.localteam?.pen_score ??
+          ""
+      ).trim()
+    );
+    const awayPen = Number(
+      String(
+        (displayFixture as any)?.visitorteam?.pen_score ??
+          (fixtureDetails as any)?.visitorteam?.pen_score ??
+          ""
+      ).trim()
+    );
+    const hasScores = Number.isFinite(homePen) && Number.isFinite(awayPen) && (homePen > 0 || awayPen > 0);
+
+    let winner: "localteam" | "visitorteam" | null = null;
+    if (Number.isFinite(homePen) && Number.isFinite(awayPen)) {
+      if (homePen > awayPen) winner = "localteam";
+      if (awayPen > homePen) winner = "visitorteam";
+    }
+
+    return {
+      show: hasScores,
+      homePen: Number.isFinite(homePen) ? homePen : null,
+      awayPen: Number.isFinite(awayPen) ? awayPen : null,
+      winner,
+    };
+  })();
 
   const displayLeagueId =
     (liveFixture as any)?.league_id ??
@@ -868,8 +957,9 @@ export const gameInfo = () => {
       if (r === "L") return "bg-[#f51a1b]";
       return "bg-snow-200 dark:bg-smoke-100";
     };
+    const ordered = [...results].reverse();
     return (
-      <div className={`flex ${justify} gap-1`}>{results.map((r, i) => (
+      <div className={`flex ${justify} gap-1`}>{ordered.map((r, i) => (
         <span key={`${r}-${i}`} className={`w-2 h-2 rounded-full ${color(r)}`} />
       ))}</div>
     );
@@ -1545,6 +1635,7 @@ export const gameInfo = () => {
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={shareImageUrl} />
+        <script type="application/ld+json">{sportsEventJsonLd}</script>
       </Helmet>
 
       {isShareOpen ? (
@@ -1743,6 +1834,12 @@ export const gameInfo = () => {
                     aria-label={`Open ${displayHomeTeamName} profile`}
                   >
                     {displayHomeTeamName}
+                    {penaltyInfo.show && penaltyInfo.winner === "localteam" ? (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                        <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                        PEN
+                      </span>
+                    ) : null}
                   </button>
                 </div>
                 <div className="mt-1">
@@ -1763,6 +1860,12 @@ export const gameInfo = () => {
                     aria-label={`Open ${displayAwayTeamName} profile`}
                   >
                     {displayAwayTeamName}
+                    {penaltyInfo.show && penaltyInfo.winner === "visitorteam" ? (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                        <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                        PEN
+                      </span>
+                    ) : null}
                   </button>
                   <TeamLogoWithRedCardBadge
                     teamId={displayAwayTeamId}
@@ -1783,6 +1886,9 @@ export const gameInfo = () => {
                 <p className="text-[32px] leading-none">-</p>
                 <p className="leading-none">{displayAwayScore}</p>
               </div>
+              {penaltyInfo.show && (penaltyInfo.homePen != null || penaltyInfo.awayPen != null) ? (
+                <p className="mt-1 text-[11px] font-bold theme-text">PEN {penaltyInfo.homePen ?? "-"}-{penaltyInfo.awayPen ?? "-"}</p>
+              ) : null}
               <p className="mt-1 text-[11px] opacity-90">{displayStatusText}</p>
             </div>
           </div>
@@ -1801,6 +1907,12 @@ export const gameInfo = () => {
                     aria-label={`Open ${displayHomeTeamName} profile`}
                   >
                     {displayHomeTeamName}
+                    {penaltyInfo.show && penaltyInfo.winner === "localteam" ? (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                        <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                        PEN
+                      </span>
+                    ) : null}
                   </button>
                   <TeamLogoWithRedCardBadge
                     teamId={displayHomeTeamId}
@@ -1840,6 +1952,9 @@ export const gameInfo = () => {
                   <p>-</p>
                   <p className="leading-none">{displayAwayScore}</p>
                 </div>
+                {penaltyInfo.show && (penaltyInfo.homePen != null || penaltyInfo.awayPen != null) ? (
+                  <p className="mt-1 text-center text-[11px] font-bold theme-text">PEN {penaltyInfo.homePen ?? "-"}-{penaltyInfo.awayPen ?? "-"}</p>
+                ) : null}
                 <p className="text-center block md:hidden">{displayStatusText}</p>
               </div>
 
@@ -1859,6 +1974,12 @@ export const gameInfo = () => {
                     aria-label={`Open ${displayAwayTeamName} profile`}
                   >
                     {displayAwayTeamName}
+                    {penaltyInfo.show && penaltyInfo.winner === "visitorteam" ? (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                        <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                        PEN
+                      </span>
+                    ) : null}
                   </button>
                 </div>
                 <div className="mt-1">

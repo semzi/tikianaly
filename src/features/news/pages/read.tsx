@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { Send } from "lucide-react";
+import { Helmet } from "react-helmet";
 
 import {
   commentOnPost,
@@ -99,6 +100,15 @@ export default function BlogPostClient({
   // (only fetching single post by id; no listing needed)
 
   const effectiveId = urlId ?? id;
+
+  const canonicalUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    } catch {
+      return "";
+    }
+  }, []);
 
   // fetch the post when we have the effective id
   useEffect(() => {
@@ -258,8 +268,63 @@ export default function BlogPostClient({
     return { __html: html };
   };
 
+  const pageTitle = `${post?.title ?? "News"} | TikiAnaly`;
+  const pageDescription = String(post?.content ?? "").replace(/\s+/g, " ").trim().slice(0, 180);
+  const shareImage = post?.imageUrl || "/logo.webp";
+  const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
+
+  const newsArticleJsonLd = (() => {
+    const headline = String(post?.title ?? "").trim() || "News";
+    const authorName = String(post?.writer ?? "TikiAnaly").trim() || "TikiAnaly";
+    const publishedIso = (() => {
+      try {
+        const raw = post?.createdAt;
+        if (!raw) return null;
+        const d = new Date(String(raw));
+        return Number.isNaN(d.getTime()) ? null : d.toISOString();
+      } catch {
+        return null;
+      }
+    })();
+
+    const obj: any = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      headline,
+      image: shareImageUrl || undefined,
+      datePublished: publishedIso ?? undefined,
+      dateModified: publishedIso ?? undefined,
+      author: { "@type": "Person", name: authorName },
+      publisher: {
+        "@type": "Organization",
+        name: "TikiAnaly",
+        logo: { "@type": "ImageObject", url: "https://tikianaly.com/logo.webp" },
+      },
+      mainEntityOfPage: canonicalUrl || undefined,
+      url: canonicalUrl || undefined,
+      description: pageDescription || undefined,
+    };
+
+    return JSON.stringify(obj);
+  })();
+
   return (
     <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription || "Latest football news and analysis."} />
+        {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+        {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription || "Latest football news and analysis."} />
+        <meta property="og:image" content={shareImageUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription || "Latest football news and analysis."} />
+        <meta name="twitter:image" content={shareImageUrl} />
+        <script type="application/ld+json">{newsArticleJsonLd}</script>
+      </Helmet>
       <PageHeader />
       <div className="flex bg-white dark:bg-[#0d1117] flex-col lg:flex-row gap-8 page-padding-x py-8">
         <div className="w-full md:w-7/10 lg:w-7/10">

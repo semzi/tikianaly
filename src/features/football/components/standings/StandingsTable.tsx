@@ -341,6 +341,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
       .replace(/[^WDL]/g, "");
     const chars = form.slice(0, 5).split("");
     while (chars.length < 5) chars.push("-");
+    chars.reverse();
 
     const colorFor = (c: string) => {
       if (c === "W") return "bg-ui-success";

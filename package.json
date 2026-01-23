@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run generate-sitemap",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",
-    "test:scripts": "jest --runInBand --testPathPattern=tests/scripts\\.test\\.js"
+    "test:scripts": "jest --runInBand --testPathPattern=tests/scripts\\.test\\.js",
+    "generate-sitemap": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
