@@ -10,10 +10,18 @@ const SITE_URL = (process.env.SITE_URL || "https://tikianaly.com").replace(/\/+$
 const BLOG_API_BASE = "https://tikianaly-blog.onrender.com/api/v1";
 const FOOTBALL_API_BASE = "https://tikianaly-service-backend.onrender.com";
 
-const FIXTURE_LEAGUE_LIMIT = Number(process.env.SITEMAP_FIXTURE_LEAGUE_LIMIT ?? 20);
-const FIXTURE_DAYS_PAST = Number(process.env.SITEMAP_FIXTURE_DAYS_PAST ?? 1);
-const FIXTURE_DAYS_FUTURE = Number(process.env.SITEMAP_FIXTURE_DAYS_FUTURE ?? 3);
-const FIXTURE_LIMIT_PER_LEAGUE_PER_DAY = Number(process.env.SITEMAP_FIXTURE_LIMIT_PER_LEAGUE_PER_DAY ?? 100);
+const ENABLE_FIXTURES = String(process.env.SITEMAP_ENABLE_FIXTURES ?? "0") === "1";
+const FIXTURE_LEAGUE_LIMIT = Number(process.env.SITEMAP_FIXTURE_LEAGUE_LIMIT ?? 6);
+const FIXTURE_DAYS_PAST = Number(process.env.SITEMAP_FIXTURE_DAYS_PAST ?? 0);
+const FIXTURE_DAYS_FUTURE = Number(process.env.SITEMAP_FIXTURE_DAYS_FUTURE ?? 1);
+const FIXTURE_LIMIT_PER_LEAGUE_PER_DAY = Number(process.env.SITEMAP_FIXTURE_LIMIT_PER_LEAGUE_PER_DAY ?? 50);
+const FIXTURE_URL_CAP = Number(process.env.SITEMAP_FIXTURE_URL_CAP ?? 500);
+const FIXTURE_CONCURRENCY = Number(process.env.SITEMAP_FIXTURE_CONCURRENCY ?? 6);
+
+const POSTS_CAP = Number(process.env.SITEMAP_POSTS_CAP ?? 200);
+const PLAYERS_CAP = Number(process.env.SITEMAP_PLAYERS_CAP ?? 300);
+const TEAMS_CAP = Number(process.env.SITEMAP_TEAMS_CAP ?? 300);
+const LEAGUES_CAP = Number(process.env.SITEMAP_LEAGUES_CAP ?? 120);
 
 const DEFAULT_LIMIT = 100;
 
@@ -57,7 +65,7 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function fetchAllPaged({ urlBuilder, limit = DEFAULT_LIMIT, pickItems, pickTotalPages }) {
+async function fetchAllPaged({ urlBuilder, limit = DEFAULT_LIMIT, pickItems, pickTotalPages, maxItems }) {
   const items = [];
   let page = 1;
   let totalPages = null;
@@ -71,6 +79,12 @@ async function fetchAllPaged({ urlBuilder, limit = DEFAULT_LIMIT, pickItems, pic
 
     const pageItems = pickItems(data) || [];
     items.push(...pageItems);
+
+    if (typeof maxItems === "number" && Number.isFinite(maxItems) && maxItems > 0) {
+      if (items.length >= maxItems) {
+        return items.slice(0, maxItems);
+      }
+    }
 
     if (totalPages == null) {
       const maybeTotal = pickTotalPages?.(data);
@@ -98,6 +112,7 @@ async function getAllBlogPosts() {
     limit: 50,
     pickItems: (data) => data?.responseObject?.items,
     pickTotalPages: (data) => data?.responseObject?.totalPages,
+    maxItems: POSTS_CAP,
   });
 }
 
@@ -108,6 +123,7 @@ async function getAllPlayers() {
     limit: 100,
     pickItems: (data) => data?.responseObject?.items,
     pickTotalPages: (data) => data?.responseObject?.totalPages,
+    maxItems: PLAYERS_CAP,
   });
 }
 
@@ -118,6 +134,7 @@ async function getAllTeams() {
     limit: 100,
     pickItems: (data) => data?.responseObject?.items,
     pickTotalPages: (data) => data?.responseObject?.totalPages,
+    maxItems: TEAMS_CAP,
   });
 }
 
@@ -128,6 +145,7 @@ async function getAllLeagues() {
     limit: 100,
     pickItems: (data) => data?.responseObject?.items,
     pickTotalPages: (data) => data?.responseObject?.totalPages,
+    maxItems: LEAGUES_CAP,
   });
 }
 
@@ -192,6 +210,26 @@ async function getFixturesByLeagueAndDate(leagueId, date, limit = FIXTURE_LIMIT_
     String(leagueId)
   )}&date=${encodeURIComponent(String(date))}&page=1&limit=${encodeURIComponent(String(limit))}`;
   return fetchJson(url);
+}
+
+async function runWithConcurrency(tasks, concurrency, worker) {
+  const c = Math.max(1, Math.floor(Number(concurrency) || 1));
+  let idx = 0;
+  const results = [];
+
+  const runners = Array.from({ length: c }).map(async () => {
+    while (idx < tasks.length) {
+      const current = tasks[idx++];
+      try {
+        const out = await worker(current);
+        results.push(out);
+      } catch {
+      }
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
 }
 
 async function main() {
@@ -265,21 +303,25 @@ async function main() {
     .filter(Boolean)
     .slice(0, Number.isFinite(FIXTURE_LEAGUE_LIMIT) ? FIXTURE_LEAGUE_LIMIT : 0);
 
-  if (fixtureLeagueIds.length > 0 && FIXTURE_DAYS_PAST + FIXTURE_DAYS_FUTURE >= 0) {
+  if (ENABLE_FIXTURES && fixtureLeagueIds.length > 0 && FIXTURE_DAYS_PAST + FIXTURE_DAYS_FUTURE >= 0) {
     const dates = [...dateRangeYmd({ daysPast: FIXTURE_DAYS_PAST, daysFuture: FIXTURE_DAYS_FUTURE })];
     const fixtureIds = new Set();
 
+    const tasks = [];
     for (const leagueId of fixtureLeagueIds) {
       for (const date of dates) {
-        try {
-          const res = await getFixturesByLeagueAndDate(leagueId, date);
-          for (const id of extractFixtureIdsFromResponse(res)) {
-            fixtureIds.add(id);
-          }
-        } catch {
-        }
+        tasks.push({ leagueId, date });
       }
     }
+
+    await runWithConcurrency(tasks, FIXTURE_CONCURRENCY, async ({ leagueId, date }) => {
+      if (fixtureIds.size >= FIXTURE_URL_CAP) return;
+      const res = await getFixturesByLeagueAndDate(leagueId, date);
+      for (const id of extractFixtureIdsFromResponse(res)) {
+        fixtureIds.add(id);
+        if (fixtureIds.size >= FIXTURE_URL_CAP) break;
+      }
+    });
 
     for (const fixtureId of fixtureIds) {
       dynamicUrls.push({
