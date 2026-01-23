@@ -9,7 +9,7 @@ import {
   ShareIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
-import { InformationCircleIcon } from "@heroicons/react/24/solid";
+import { InformationCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
@@ -956,7 +956,12 @@ const TeamProfile = () => {
                                     onClick={() => openPlayerProfile(p?.id)}
                                     aria-label={`Open ${String(p?.name ?? "Player")} profile`}
                                   >
-                                    {p?.name ?? "-"}
+                                    <span className="inline-flex items-center gap-1">
+                                      <span className="truncate">{p?.name ?? "-"}</span>
+                                      {String(p?.injured ?? "").toLowerCase() === "true" && (
+                                        <PlusCircleIcon className="h-4 w-4 text-red-500" aria-label="Injured" />
+                                      )}
+                                    </span>
                                   </button>
                                 </div>
                               </td>

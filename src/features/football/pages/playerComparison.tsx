@@ -886,7 +886,7 @@ export default function PlayerComparison() {
           </Link>
         </div>
 
-        <div className="block-style my-6">
+        <div className="my-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-lg font-semibold theme-text">Selected players</p>
             <div className="flex items-center gap-2">
@@ -911,7 +911,7 @@ export default function PlayerComparison() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
             {slots.map((slot, idx) => {
               const isActive = activeSlotIndex === idx;
               const hasPlayer = Boolean(slot.playerId);
@@ -1224,7 +1224,7 @@ export default function PlayerComparison() {
           </div>
         </div>
 
-        <div className="block-style my-6">
+        <div className="my-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-lg font-semibold theme-text">Comparison</p>
           </div>
@@ -1250,7 +1250,7 @@ export default function PlayerComparison() {
                 <p className="text-lg font-semibold theme-text">Key attributes</p>
                 <p className="text-sm text-neutral-n5">Market value, clubs played, trophies.</p>
 
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
                   {slots.map((s, idx) => (
                     <div
                       key={`ka-${idx}`}
@@ -1292,7 +1292,7 @@ export default function PlayerComparison() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
                 {slots.map((s, idx) => (
                   <div
                     key={`tot-${idx}`}
@@ -1505,7 +1505,7 @@ export default function PlayerComparison() {
               {slots.length >= 2 ? (
                 <div className="mt-6">
                   <p className="text-sm font-semibold theme-text mb-3">Differences (vs Player 1)</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
                     {slots.map((s, idx) => {
                       const diff = differencesBySlot[idx] ?? { goals: 0, assists: 0, xg: 0 };
                       const name = playerDisplayName(s.player) || `Player ${idx + 1}`;
@@ -1570,7 +1570,7 @@ export default function PlayerComparison() {
                 <p className="text-lg font-semibold theme-text">Transfer fee / price history</p>
                 <p className="text-sm text-neutral-n5">Based on player transfer records.</p>
 
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
                   {slots.map((s, idx) => {
                     const series = transferFeeSeriesBySlot[idx] ?? [];
                     const hasData = series.length > 0;

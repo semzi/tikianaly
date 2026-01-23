@@ -122,12 +122,14 @@ const LeagueProfile = () => {
     return s || "-";
   }, [league]);
 
-  const pageTitle = useMemo(() => `${leagueName} | League`, [leagueName]);
+  const pageTitle = useMemo(() => `${leagueName} | League Profile | TikiAnaly`, [leagueName]);
+  const pageDescription = useMemo(() => `Standings and league details for ${leagueName}.`, [leagueName]);
 
   return (
     <div className="dark:bg-[#0D1117] min-h-screen">
       <Helmet>
         <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
       </Helmet>
       <PageHeader />
 
@@ -155,22 +157,26 @@ const LeagueProfile = () => {
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-2">
               <div className="flex items-center gap-4">
                 {resolvedLeagueId ? (
-                  <GetLeagueLogo
-                    leagueId={resolvedLeagueId}
-                    alt={leagueName}
-                    className="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-white/10 p-2"
-                  />
+                  <div className="bg-white p-4   rounded-2xl">
+                    <GetLeagueLogo
+                      leagueId={resolvedLeagueId}
+                      alt={leagueName}
+                      className="w-20 h-20 md:w-28 md:h-28"
+                    />
+                  </div>
                 ) : (
-                  <img
-                    src="/loading-state/shield.svg"
-                    alt=""
-                    className="w-20 h-20 md:w-28 md:h-28 rounded-2xl bg-white/10 p-2"
-                  />
+                  <div className="bg-white p-2 rounded-2xl">
+                    <img
+                      src="/loading-state/shield.svg"
+                      alt=""
+                      className="w-20 h-20 md:w-28 md:h-28"
+                    />
+                  </div>
                 )}
 
                 <div className="min-w-0">
-                  <p className="font-extrabold text-2xl md:text-3xl text-white truncate">{leagueName}</p>
-                  <p className="text-snow-200 text-sm md:text-base truncate">
+                  <p className="font-extrabold text-2xl md:text-3xl text-white whitespace-normal break-words">{leagueName}</p>
+                  <p className="text-snow-200 text-sm md:text-base whitespace-normal break-words">
                     {leagueCategory}{leagueCountry !== "-" ? ` / ${leagueCountry}` : ""}
                   </p>
                 </div>

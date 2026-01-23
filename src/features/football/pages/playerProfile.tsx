@@ -36,6 +36,75 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
   />
 );
 
+const PlayerProfileHeaderSkeleton = () => {
+  return (
+    <>
+      <div className="hidden md:flex justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex gap-4">
+            <Skeleton className="h-40 w-40 rounded-2xl bg-snow-200/30 dark:bg-white/10" />
+            <div className="self-end flex items-center gap-2">
+              <Skeleton className="w-12 h-12 rounded-full bg-snow-200/30 dark:bg-white/10" />
+              <span className="block">
+                <Skeleton className="h-4 w-40 mb-2 bg-snow-200/30 dark:bg-white/10" />
+                <Skeleton className="h-3 w-28 bg-snow-200/30 dark:bg-white/10" />
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <Skeleton className="h-8 w-64 bg-snow-200/30 dark:bg-white/10" />
+            <Skeleton className="h-7 w-7 rounded-full bg-snow-200/30 dark:bg-white/10" />
+          </div>
+        </div>
+
+        <div className="flex-col flex items-end justify-between">
+          <Skeleton className="h-10 w-32 rounded bg-snow-200/30 dark:bg-white/10" />
+          <div className="grid grid-cols-4 gap-x-2 gap-y-4 justify-end">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="bg-snow-200/20 py-1 px-4">
+                <Skeleton className="h-3 w-20 mb-2 bg-snow-200/30 dark:bg-white/10" />
+                <Skeleton className="h-5 w-16 bg-snow-200/30 dark:bg-white/10" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="md:hidden flex flex-col gap-3 pt-2 pb-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-20 w-20 rounded-xl bg-snow-200/30 dark:bg-white/10 flex-shrink-0" />
+          <div className="flex flex-col gap-2 flex-1 min-w-0">
+            <Skeleton className="h-7 w-40 bg-snow-200/30 dark:bg-white/10" />
+            <Skeleton className="h-7 w-44 bg-snow-200/30 dark:bg-white/10" />
+          </div>
+          <Skeleton className="h-9 w-10 rounded bg-snow-200/30 dark:bg-white/10 flex-shrink-0" />
+        </div>
+
+        <div className="flex mt-2 items-center gap-2 pl-0">
+          <Skeleton className="w-8 h-8 rounded-full bg-snow-200/30 dark:bg-white/10 flex-shrink-0" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-32 bg-snow-200/30 dark:bg-white/10" />
+            <Skeleton className="h-3 w-24 bg-snow-200/30 dark:bg-white/10" />
+          </div>
+        </div>
+
+        <div className="relative -mx-4 px-4">
+          <div className="overflow-x-auto hide-scrollbar">
+            <div className="flex gap-2 min-w-max">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                  <Skeleton className="h-3 w-16 mb-2 bg-snow-200/30 dark:bg-white/10" />
+                  <Skeleton className="h-4 w-20 bg-snow-200/30 dark:bg-white/10" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
  const PlayerProfileSkeleton = ({ tab }: { tab: string }) => {
    return (
      <>
@@ -704,8 +773,10 @@ const playerProfile = () => {
               </div>
             </div>
 
+            {loading && !player && !error ? <PlayerProfileHeaderSkeleton /> : null}
+
             {/* Desktop Layout */}
-            <div className="hidden md:flex justify-between">
+            <div className={`hidden md:flex justify-between ${loading && !player && !error ? "hidden" : ""}`}>
               {/* ---------------------------- */}
               <div className="flex flex-col gap-1">
                 <div className="flex gap-4">
@@ -803,7 +874,7 @@ const playerProfile = () => {
             </div>
 
             {/* Mobile Layout */}
-            <div className="md:hidden flex flex-col gap-3 pt-2 pb-4">
+            <div className={`md:hidden flex flex-col gap-3 pt-2 pb-4 ${loading && !player && !error ? "hidden" : ""}`}>
               {/* Player Image and Name Section - Vertically Centered */}
               <div className="flex items-center gap-4">
                 {/* Small Image on Left */}

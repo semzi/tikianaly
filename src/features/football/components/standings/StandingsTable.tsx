@@ -286,57 +286,54 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
     return "";
   };
 
-  const getZoneMeta = (description?: string) => {
-    const d = (description ?? "").toLowerCase();
-    if (!d.trim()) return null;
-
-    if (d.includes("relegation")) {
-      return { label: description ?? "Relegation", borderClass: "border-l-[3px] border-ui-negative" };
-    }
-
-    if (d.includes("champions league")) {
-      return {
-        label: description ?? "UEFA Champions League",
-        borderClass: "border-l-[3px] border-ui-success",
-      };
-    }
-
-    if (d.includes("europa league")) {
-      return {
-        label: description ?? "UEFA Europa League",
-        borderClass: "border-l-[3px] border-yellow-500",
-      };
-    }
-
-    if (d.includes("conference league")) {
-      return {
-        label: description ?? "UEFA Conference League",
-        borderClass: "border-l-[3px] border-blue-500",
-      };
-    }
-
-    if (d.includes("promotion")) {
-      return { label: description ?? "Promotion", borderClass: "border-l-[3px] border-ui-success" };
-    }
-
-    return { label: description ?? "", borderClass: "border-l-[3px] border-snow-200 dark:border-white/20" };
-  };
-
-  const legendItems = useMemo(() => {
+  const zoneLegend = useMemo(() => {
+    const labels: string[] = [];
     const seen = new Set<string>();
-    const items: Array<{ label: string; borderClass: string }> = [];
 
     data.forEach((row) => {
-      const meta = getZoneMeta(row.description);
-      if (!meta) return;
-      const key = meta.label.trim();
-      if (!key || seen.has(key)) return;
+      const label = String(row.description ?? "").trim();
+      if (!label) return;
+      const key = label.toLowerCase();
+      if (seen.has(key)) return;
       seen.add(key);
-      items.push({ label: meta.label, borderClass: meta.borderClass });
+      labels.push(label);
     });
 
-    return items;
+    const count = labels.length;
+    if (count === 0) return [] as Array<{ label: string; borderClass: string }>;
+
+    const extraPalette = [
+      "border-purple-500",
+      "border-orange-500",
+      "border-pink-500",
+      "border-teal-500",
+      "border-indigo-500",
+      "border-lime-500",
+    ];
+
+    const colorForIndex = (idx: number) => {
+      if (idx === 0) return "border-ui-success";
+      if (idx === 1) return "border-blue-500";
+      if (idx === 2) return "border-yellow-500";
+      if (count >= 4 && idx === count - 1) return "border-ui-negative";
+      const offset = Math.max(0, idx - 3);
+      return extraPalette[offset % extraPalette.length];
+    };
+
+    return labels.map((label, idx) => ({
+      label,
+      borderClass: `border-l-[3px] ${colorForIndex(idx)}`,
+    }));
   }, [data]);
+
+  const getZoneBorderClass = (description?: string) => {
+    const label = String(description ?? "").trim();
+    if (!label) return "";
+    const found = zoneLegend.find((x) => x.label.toLowerCase() === label.toLowerCase());
+    return found?.borderClass ?? "";
+  };
+
+  const legendItems = zoneLegend;
 
   const renderRecentForm = (recentForm?: string) => {
     const form = (typeof recentForm === "string" ? recentForm : "")
@@ -368,7 +365,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
   const renderRows = (rowItems: StandingsRow[], paddingX: string) => (
     <div className="flex flex-col gap-2">
       {rowItems.map((team) => {
-        const borderClass = getZoneMeta(team.description)?.borderClass ?? "";
+        const borderClass = getZoneBorderClass(team.description);
         const highlightBg = getHighlightBgClass(team.teamId);
 
         return (
@@ -482,60 +479,42 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
           <div className="block lg:hidden">
             <div className="block-style">
               <div className="flex">
-                <div className="w-[220px] shrink-0">
-                  <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
-                    <div className="text-center">#</div>
-                    <div>Team</div>
-                  </div>
+                <div className="w-[88px] shrink-0">
+                  <div className="px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap flex items-center justify-center" />
                   <div className="flex flex-col gap-0">
                     {data.map((team) => (
                       <div
-                        key={`mobile-team-${team.position}-${team.team}`}
-                        className={`grid grid-cols-[40px_1fr] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
+                        key={`mobile-logo-${team.position}-${team.team}`}
+                        className={`px-2 h-10 flex items-center gap-2 whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
                       >
-                        <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
+                        <div className="w-6 text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
                           {team.position}
                         </div>
-                        <div className="flex items-center gap-2 min-w-0">
-                          {team.teamId ? (
-                            <GetTeamLogo
-                              teamId={team.teamId}
-                              alt={team.team}
-                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                            />
-                          ) : (
-                            <img
-                              src={team.logo || "/loading-state/shield.svg"}
-                              alt={team.team}
-                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                              }}
-                            />
-                          )}
-                          {team.teamId ? (
-                            <button
-                              type="button"
-                              className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
-                              onClick={() => openTeamProfile(team.teamId)}
-                              aria-label={`Open ${team.team} profile`}
-                            >
-                              {team.team}
-                            </button>
-                          ) : (
-                            <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                              {team.team}
-                            </span>
-                          )}
-                        </div>
+                        {team.teamId ? (
+                          <GetTeamLogo
+                            teamId={team.teamId}
+                            alt={team.team}
+                            className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                          />
+                        ) : (
+                          <img
+                            src={team.logo || "/loading-state/shield.svg"}
+                            alt={team.team}
+                            className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
+                            }}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-x-auto hide-scrollbar">
-                  <div className="min-w-[680px]">
-                    <div className="grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                  <div className="min-w-[860px]">
+                    <div className="grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                      <div>Team</div>
                       <div className="text-center">P</div>
                       <div className="text-center">W</div>
                       <div className="text-center">D</div>
@@ -549,9 +528,25 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                     <div className="flex flex-col gap-0">
                       {data.map((team) => (
                         <div
-                          key={`mobile-stats-${team.position}-${team.team}`}
-                          className={`grid grid-cols-[40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-4 h-10 items-center whitespace-nowrap ${getZoneMeta(team.description)?.borderClass ?? ""} ${getHighlightBgClass(team.teamId)}`}
+                          key={`mobile-scroll-${team.position}-${team.team}`}
+                          className={`grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 h-10 items-center whitespace-nowrap ${getHighlightBgClass(team.teamId)}`}
                         >
+                          <div className="min-w-0">
+                            {team.teamId ? (
+                              <button
+                                type="button"
+                                className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                                onClick={() => openTeamProfile(team.teamId)}
+                                aria-label={`Open ${team.team} profile`}
+                              >
+                                {team.team}
+                              </button>
+                            ) : (
+                              <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                                {team.team}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
                             {team.played}
                           </div>
@@ -637,25 +632,10 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
         {legendItems.length ? (
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             {legendItems.map((item) => {
-              const colorClass =
-                item.borderClass
-                  .split(" ")
-                  .find(
-                    (c) =>
-                      c.startsWith("border-") &&
-                      !c.startsWith("border-l") &&
-                      !c.startsWith("border-r") &&
-                      !c.startsWith("border-t") &&
-                      !c.startsWith("border-b")
-                  ) ?? "border-snow-200";
-              const textColorClass = colorClass.replace("border-", "text-");
-
               return (
                 <div key={item.label} className="flex items-center gap-3">
-                  <div className={`w-[3px] h-6 ${colorClass.replace("border-", "bg-")}`} />
-                  <span className={`text-sm ${textColorClass}`}>
-                    {item.label}
-                  </span>
+                  <div className={`h-6 w-0 ${item.borderClass}`} />
+                  <span className="text-sm text-neutral-n4 dark:text-snow-200">{item.label}</span>
                 </div>
               );
             })}

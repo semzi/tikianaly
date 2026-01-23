@@ -22,6 +22,7 @@ export const getMatchUiInfo = (input: { status?: unknown; timer?: unknown }): Ma
     statusLower === "ft" ||
     statusLower === "aet" ||
     statusLower === "pen" ||
+    statusLower.startsWith("pen") ||
     statusLower === "postponed" ||
     statusLower === "cancelled" ||
     statusLower === "canceled"

@@ -16,6 +16,7 @@ import {
   ArrowUturnLeftIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
 import { Link } from "react-router-dom";
@@ -144,6 +145,28 @@ export const dashboard = () => {
     if (ui.state === "ht") return "HT";
     if (ui.state === "timer") return `${ui.minutes}'`;
     return getDateModeTimeLabel(game);
+  };
+
+  const getPenaltyInfo = (game: any) => {
+    const rawStatus = String(game?.status ?? "").trim().toLowerCase();
+    const homePen = Number(String(game?.localteam?.pen_score ?? "").trim());
+    const awayPen = Number(String(game?.visitorteam?.pen_score ?? "").trim());
+    const hasPensByScore = Number.isFinite(homePen) && Number.isFinite(awayPen) && (homePen > 0 || awayPen > 0);
+    const hasPensByStatus = rawStatus === "pen" || rawStatus.startsWith("pen");
+    const show = hasPensByScore || hasPensByStatus;
+
+    let winner: "localteam" | "visitorteam" | null = null;
+    if (Number.isFinite(homePen) && Number.isFinite(awayPen)) {
+      if (homePen > awayPen) winner = "localteam";
+      if (awayPen > homePen) winner = "visitorteam";
+    }
+
+    return {
+      show,
+      homePen: Number.isFinite(homePen) ? homePen : null,
+      awayPen: Number.isFinite(awayPen) ? awayPen : null,
+      winner,
+    };
   };
 
   const getDateModeTimeLabel = (game: any) => {
@@ -379,7 +402,7 @@ export const dashboard = () => {
   }, [toast]);
 
   const topLeagueIds = useMemo(
-    () => [1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1206, 1197, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
+    () => [1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1206, 1197, 2129, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
     []
   );
   // const topLeagueIds = [1399, 1204, 1269 1352];
@@ -815,6 +838,7 @@ export const dashboard = () => {
                         {pinnedFixturesWithLive.map((game: any, idx: number) => {
                           const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                           const events = Array.isArray(game?.events) ? game.events : [];
+                          const pen = getPenaltyInfo(game);
                           const normalizeTeamKey = (raw: unknown) => {
                             const t = String(raw ?? "").trim().toLowerCase();
                             if (!t) return "";
@@ -880,7 +904,15 @@ export const dashboard = () => {
                                       <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
                                       <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
                                         <IndicatorCard count={homeRedCards} variant="red" />
-                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <p className="inline-flex items-center gap-1">
+                                          {game.localteam?.name ?? game?.localteam_name ?? "Home"}
+                                          {pen.show && pen.winner === "localteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
+                                        </p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
                                           <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
@@ -895,7 +927,15 @@ export const dashboard = () => {
                                           <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
-                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <p className="inline-flex items-center gap-1">
+                                          {game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
+                                          {pen.show && pen.winner === "visitorteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
+                                        </p>
                                         <IndicatorCard count={awayRedCards} variant="red" />
                                       </div>
                                     </>
@@ -951,7 +991,15 @@ export const dashboard = () => {
                                     <>
                                       <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
                                         <IndicatorCard count={homeRedCards} variant="red" />
-                                        <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
+                                        <p className="inline-flex items-center gap-1">
+                                          {game.localteam?.name ?? game?.localteam_name ?? "Home"}
+                                          {pen.show && pen.winner === "localteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
+                                        </p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
                                           <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
@@ -965,7 +1013,15 @@ export const dashboard = () => {
                                           <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
-                                        <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
+                                        <p className="inline-flex items-center gap-1">
+                                          {game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
+                                          {pen.show && pen.winner === "visitorteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
+                                        </p>
                                         <IndicatorCard count={awayRedCards} variant="red" />
                                       </div>
                                     </>
@@ -1040,6 +1096,12 @@ export const dashboard = () => {
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.localteam?.name ?? game?.localteam_name ?? "Home"}
+                                          {pen.show && pen.winner === "localteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
                                         </span>
                                         <span className="inline-flex items-center gap-1">
                                           <IndicatorCard count={homeRedCards} variant="red" />
@@ -1065,6 +1127,12 @@ export const dashboard = () => {
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
+                                          {pen.show && pen.winner === "visitorteam" ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                              PEN
+                                            </span>
+                                          ) : null}
                                         </span>
                                         <span className="inline-flex items-center gap-1">
                                           <IndicatorCard count={awayRedCards} variant="red" />
@@ -1202,6 +1270,7 @@ export const dashboard = () => {
                       (() => {
                         const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                         const events = Array.isArray(game?.events) ? game.events : [];
+                        const pen = getPenaltyInfo(game);
                         const normalizeTeamKey = (raw: unknown) => {
                           const t = String(raw ?? "").trim().toLowerCase();
                           if (!t) return "";
@@ -1267,7 +1336,15 @@ export const dashboard = () => {
                             <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
                             <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
                               <IndicatorCard count={homeRedCards} variant="red" />
-                              <p>{game.localteam.name}</p>
+                              <p className="inline-flex items-center gap-1">
+                                {game.localteam.name}
+                                {pen.show && pen.winner === "localteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </p>
                               <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
@@ -1278,7 +1355,15 @@ export const dashboard = () => {
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                               <IndicatorCard count={awayStreams} variant="stream" />
-                              <p>{game.visitorteam.name}</p>
+                              <p className="inline-flex items-center gap-1">
+                                {game.visitorteam.name}
+                                {pen.show && pen.winner === "visitorteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </p>
                               <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
@@ -1326,7 +1411,15 @@ export const dashboard = () => {
                           <>
                             <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
                               <IndicatorCard count={homeRedCards} variant="red" />
-                              <p>{game.localteam.name}</p>
+                              <p className="inline-flex items-center gap-1">
+                                {game.localteam.name}
+                                {pen.show && pen.winner === "localteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </p>
                               <IndicatorCard count={homeStreams} variant="stream" />
                               <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                             </div>
@@ -1336,12 +1429,19 @@ export const dashboard = () => {
                             <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                               <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                               <IndicatorCard count={awayStreams} variant="stream" />
-                              <p>{game.visitorteam.name}</p>
+                              <p className="inline-flex items-center gap-1">
+                                {game.visitorteam.name}
+                                {pen.show && pen.winner === "visitorteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </p>
                               <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
                         )}
-
                       </Link>
 
                         <button
@@ -1433,6 +1533,7 @@ export const dashboard = () => {
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                       const events = Array.isArray(game?.events) ? game.events : [];
+                      const pen = getPenaltyInfo(game);
                       const normalizeTeamKey = (raw: unknown) => {
                         const t = String(raw ?? "").trim().toLowerCase();
                         if (!t) return "";
@@ -1501,7 +1602,15 @@ export const dashboard = () => {
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                             <IndicatorCard count={awayStreams} variant="stream" />
-                            <p>{game.visitorteam.name}</p>
+                            <p className="inline-flex items-center gap-1">
+                              {game.visitorteam.name}
+                              {pen.show && pen.winner === "visitorteam" ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                  PEN
+                                </span>
+                              ) : null}
+                            </p>
                             <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
@@ -1521,7 +1630,15 @@ export const dashboard = () => {
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                             <IndicatorCard count={awayStreams} variant="stream" />
-                            <p>{game.visitorteam.name}</p>
+                            <p className="inline-flex items-center gap-1">
+                              {game.visitorteam.name}
+                              {pen.show && pen.winner === "visitorteam" ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                  PEN
+                                </span>
+                              ) : null}
+                            </p>
                             <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
@@ -1529,7 +1646,15 @@ export const dashboard = () => {
                         <>
                           <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
                             <IndicatorCard count={homeRedCards} variant="red" />
-                            <p>{game.localteam.name}</p>
+                            <p className="inline-flex items-center gap-1">
+                              {game.localteam.name}
+                              {pen.show && pen.winner === "localteam" ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                  PEN
+                                </span>
+                              ) : null}
+                            </p>
                             <IndicatorCard count={homeStreams} variant="stream" />
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                           </div>
@@ -1539,7 +1664,15 @@ export const dashboard = () => {
                           <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                             <IndicatorCard count={awayStreams} variant="stream" />
-                            <p>{game.visitorteam.name}</p>
+                            <p className="inline-flex items-center gap-1">
+                              {game.visitorteam.name}
+                              {pen.show && pen.winner === "visitorteam" ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                  PEN
+                                </span>
+                              ) : null}
+                            </p>
                             <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>
@@ -1629,6 +1762,7 @@ export const dashboard = () => {
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                       const events = Array.isArray(game?.events) ? game.events : [];
+                      const pen = getPenaltyInfo(game);
                       const normalizeTeamKey = (raw: unknown) => {
                         const t = String(raw ?? "").trim().toLowerCase();
                         if (!t) return "";
@@ -1695,7 +1829,9 @@ export const dashboard = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
                             <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                            <span className={`text-sm font-medium dark:text-white text-neutral-n4 ${
+                              pen.show && pen.winner === "localteam" ? "font-bold text-brand-secondary" : ""
+                            }`}>
                               {game.localteam.name}
                             </span>
                             <span className="inline-flex items-center gap-1">
@@ -1720,8 +1856,14 @@ export const dashboard = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
                             <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                            <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                            <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                               {game.visitorteam.name}
+                              {pen.show && pen.winner === "visitorteam" ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                  PEN
+                                </span>
+                              ) : null}
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <IndicatorCard count={awayRedCards} variant="red" />
@@ -1837,6 +1979,7 @@ export const dashboard = () => {
                   (() => {
                     const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                     const events = Array.isArray(game?.events) ? game.events : [];
+                    const pen = getPenaltyInfo(game);
                     const normalizeTeamKey = (raw: unknown) => {
                       const t = String(raw ?? "").trim().toLowerCase();
                       if (!t) return "";
@@ -1903,8 +2046,14 @@ export const dashboard = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
                         <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                        <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                           {game.localteam.name}
+                          {pen.show && pen.winner === "localteam" ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                              PEN
+                            </span>
+                          ) : null}
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <IndicatorCard count={homeRedCards} variant="red" />
@@ -1920,8 +2069,14 @@ export const dashboard = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
                         <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                        <span className="text-sm font-medium dark:text-white text-neutral-n4">
+                        <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                           {game.visitorteam.name}
+                          {pen.show && pen.winner === "visitorteam" ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                              PEN
+                            </span>
+                          ) : null}
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <IndicatorCard count={awayRedCards} variant="red" />
