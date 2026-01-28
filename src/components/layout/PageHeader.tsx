@@ -656,7 +656,6 @@ export const PageHeader = () => {
 
   const navigationItems = [
     { label: "News", href: "/news" },
-    { label: "Favourite", href: "/favourites" },
     { label: "Privacy Policy", href: "/privacy-policy" },
   ];
 

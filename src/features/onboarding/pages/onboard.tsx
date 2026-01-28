@@ -4,8 +4,6 @@ import Login from "@/features/auth/pages/login";
 import Signup from "@/features/auth/pages/signup";
 import { navigate } from "@/lib/router/navigate";
 import { ArrowLeftIcon } from "lucide-react";
-import { FavouriteSelectionOnboard } from "../components/FavouriteSelectionOnboard";
-import popularLeagues from "@/data/favouriteSelect";
 import FormInput from "@/components/ui/Form/FormInput";
 import FormButton from "@/components/ui/Form/FormButton";
 import VerifyOtp from "@/components/auth/VerifyOtp";
@@ -32,10 +30,6 @@ function Onboard() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(
-    new Set(popularLeagues.filter(item => item.fav).map(item => item.name))
-  );
   const onboardingImages = [
     "/onboarding/onboarding1.svg",
     "/onboarding/onboarding2.svg", 
@@ -87,25 +81,9 @@ function Onboard() {
     return () => clearInterval(interval);
   }, [onboardingImages.length]);
 
-  // Loading state for favorites
   useEffect(() => {
-    if (isOnboard) {
-      const timer = setTimeout(() => setLoading(false), 2);
-      return () => clearTimeout(timer);
-    }
+    if (isOnboard) navigate("/signup");
   }, [isOnboard]);
-
-  const toggleItemSelection = (itemName: string) => {
-    setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemName)) {
-        newSet.delete(itemName);
-      } else {
-        newSet.add(itemName);
-      }
-      return newSet;
-    });
-  };
 
   const startForgotPassword = () => {
     setAuthStatus({ type: null, message: "" });
@@ -230,14 +208,7 @@ function Onboard() {
           <ArrowLeftIcon className="text-black h-5" />
           <p className="text-black hidden md:block">Back</p>
         </button>
-          {isOnboard ? (
-            <FavouriteSelectionOnboard
-              loading={loading}
-              items={popularLeagues}
-              selectedItems={selectedItems}
-              toggleItemSelection={toggleItemSelection}
-            />
-          ) : isSignup ? (
+          {isSignup ? (
             <>
               <Signup />
               <p className="flex sz-7 text-center justify-center mt-8">

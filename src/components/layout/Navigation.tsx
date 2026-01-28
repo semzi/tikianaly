@@ -1,7 +1,7 @@
 import { HomeIcon as HomeIconSolid } from "@heroicons/react/20/solid"
 import { HomeIcon as HomeIconOutline } from "@heroicons/react/24/outline"
-import { HeartIcon as HeartIconOutline } from "@heroicons/react/24/outline"
-import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid"
+// import { HeartIcon as HeartIconOutline } from "@heroicons/react/24/outline"
+// import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid"
 import { UserCircleIcon as UserCircleIconOutline } from "@heroicons/react/24/outline"
 import { UserCircleIcon as UserCircleIconSolid } from "@heroicons/react/24/solid"
 import { BookOpenIcon as BookOpenIconOutline } from "@heroicons/react/24/outline"
@@ -40,7 +40,7 @@ const Navigation = () => {
                   </>
                 )}
             </NavLink>
-            <NavLink to="/favourites" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
+            {/* <NavLink to="/favourites" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="absolute top-[-10px] h-[2px] w-10 bg-brand-primary"></span>}
@@ -48,7 +48,7 @@ const Navigation = () => {
                     <p className="text-xs">Favourite</p>
                   </>
                 )}
-            </NavLink>
+            </NavLink> */}
             <NavLink to="/login" className={({ isActive }) => `flex  dark:text-smoke-200 items-center flex-col relative${isActive ? ' text-brand-primary' : ''}` }>
                 {({ isActive }) => (
                   <>

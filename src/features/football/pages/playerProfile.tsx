@@ -6,9 +6,9 @@ import MonthlyRatingChart from "@/visualization/MonthlyRatingChart";
 import {
   ArrowLeftIcon,
   ArrowsRightLeftIcon,
-  BellAlertIcon,
+  DocumentDuplicateIcon,
   ShareIcon,
-  StarIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   CheckBadgeIcon,
@@ -20,6 +20,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { getPlayerById } from "@/lib/api/endpoints";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { Helmet } from "react-helmet";
+import { useToast } from "@/context/ToastContext";
 import {
   Line,
   LineChart,
@@ -105,97 +106,97 @@ const PlayerProfileHeaderSkeleton = () => {
   );
 };
 
- const PlayerProfileSkeleton = ({ tab }: { tab: string }) => {
-   return (
-     <>
-       <div className="my-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-         <div className="flex items-center gap-2">
-           <Skeleton className="h-4 w-16" />
-           <Skeleton className="h-10 w-36" />
-         </div>
-         <div className="flex gap-2 flex-wrap">
-           <div className="bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 rounded px-3 py-2">
-             <Skeleton className="h-3 w-16 mb-2" />
-             <Skeleton className="h-5 w-14" />
-           </div>
-           <div className="bg-ui-success/10 border border-ui-success/20 rounded px-3 py-2">
-             <Skeleton className="h-3 w-12 mb-2" />
-             <Skeleton className="h-5 w-10" />
-           </div>
-           <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded px-3 py-2">
-             <Skeleton className="h-3 w-14 mb-2" />
-             <Skeleton className="h-5 w-12" />
-           </div>
-           <div className="bg-orange-500/10 border border-orange-500/20 rounded px-3 py-2">
-             <Skeleton className="h-3 w-10 mb-2" />
-             <Skeleton className="h-5 w-10" />
-           </div>
-         </div>
-       </div>
+const PlayerProfileSkeleton = ({ tab }: { tab: string }) => {
+  return (
+    <>
+      <div className="my-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-10 w-36" />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <div className="bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 rounded px-3 py-2">
+            <Skeleton className="h-3 w-16 mb-2" />
+            <Skeleton className="h-5 w-14" />
+          </div>
+          <div className="bg-ui-success/10 border border-ui-success/20 rounded px-3 py-2">
+            <Skeleton className="h-3 w-12 mb-2" />
+            <Skeleton className="h-5 w-10" />
+          </div>
+          <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded px-3 py-2">
+            <Skeleton className="h-3 w-14 mb-2" />
+            <Skeleton className="h-5 w-12" />
+          </div>
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded px-3 py-2">
+            <Skeleton className="h-3 w-10 mb-2" />
+            <Skeleton className="h-5 w-10" />
+          </div>
+        </div>
+      </div>
 
-       <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-         <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
-           <Skeleton className="h-4 w-28" />
-           <Skeleton className="h-20 w-full" />
-           <Skeleton className="h-20 w-full" />
-         </div>
+      <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
+        <div className="flex flex-2 gap-3 flex-col edge-lighting block-style">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
 
-         <div className="flex flex-col gap-5 flex-5">
-           {tab === "matches" ? (
-             <div className="block-style">
-               <Skeleton className="h-5 w-40 mb-4" />
-               <div className="space-y-3">
-                 {Array.from({ length: 6 }).map((_, i) => (
-                   <div key={i} className="flex items-center gap-3">
-                     <Skeleton className="h-10 w-10 rounded-full" />
-                     <div className="flex-1">
-                       <Skeleton className="h-4 w-48 mb-2" />
-                       <Skeleton className="h-3 w-32" />
-                     </div>
-                     <Skeleton className="h-6 w-16" />
-                   </div>
-                 ))}
-               </div>
-             </div>
-           ) : (
-             <>
-               <div className="block-style space-y-3">
-                 <Skeleton className="h-5 w-48" />
-                 <Skeleton className="h-14 w-full" />
-               </div>
+        <div className="flex flex-col gap-5 flex-5">
+          {tab === "matches" ? (
+            <div className="block-style">
+              <Skeleton className="h-5 w-40 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-48 mb-2" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="block-style space-y-3">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-14 w-full" />
+              </div>
 
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                   <Skeleton className="h-3 w-20 mb-2" />
-                   <Skeleton className="h-5 w-12" />
-                 </div>
-                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                   <Skeleton className="h-3 w-20 mb-2" />
-                   <Skeleton className="h-5 w-12" />
-                 </div>
-                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                   <Skeleton className="h-3 w-20 mb-2" />
-                   <Skeleton className="h-5 w-12" />
-                 </div>
-                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                   <Skeleton className="h-3 w-20 mb-2" />
-                   <Skeleton className="h-5 w-12" />
-                 </div>
-               </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                  <Skeleton className="h-3 w-20 mb-2" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+                <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                  <Skeleton className="h-3 w-20 mb-2" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+                <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                  <Skeleton className="h-3 w-20 mb-2" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+                <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                  <Skeleton className="h-3 w-20 mb-2" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+              </div>
 
-               <div className="block-style">
-                 <Skeleton className="h-5 w-44 mb-4" />
-                 <Skeleton className="h-64 w-full" />
-               </div>
-             </>
-           )}
-         </div>
-       </div>
+              <div className="block-style">
+                <Skeleton className="h-5 w-44 mb-4" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
-       <div className="h-8" />
-     </>
-   );
- };
+      <div className="h-8" />
+    </>
+  );
+};
 
 const playerProfile = () => {
   const tabs = [
@@ -203,7 +204,7 @@ const playerProfile = () => {
     // { id: "matches", label: "Matches" },
     { id: "career", label: "Career" },
   ];
-  
+
   // Get initial tab from URL hash (fallback to "profile")
   const getTabFromHash = () => {
     if (typeof window === "undefined") return "profile";
@@ -211,12 +212,13 @@ const playerProfile = () => {
     return tabs.find((tab) => tab.id === hash) ? hash : "profile";
   };
 
-  const [activeTab, setActiveTab] = useState(getTabFromHash);
-
+  const toast = useToast();
   const { playerId: playerIdParam } = useParams<{ playerId?: string }>();
   const [searchParams] = useSearchParams();
   const playerIdFromQuery = searchParams.get("id") ?? undefined;
   const playerId = playerIdParam ?? playerIdFromQuery;
+
+  const [activeTab, setActiveTab] = useState(getTabFromHash);
 
   type PlayerSeasonRow = {
     league?: string;
@@ -672,6 +674,34 @@ const playerProfile = () => {
   const pageTitle = `${playerDisplayName} | Player Profile | TikiAnaly`;
   const pageDescription = `Stats, matches and career details for ${playerDisplayName}.`;
 
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
+
+  const copyShareUrl = async () => {
+    try {
+      if (!canonicalUrl) throw new Error("Missing URL");
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(canonicalUrl);
+      } else if (typeof document !== "undefined") {
+        const el = document.createElement("textarea");
+        el.value = canonicalUrl;
+        el.setAttribute("readonly", "true");
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+
+      setHasCopiedShareUrl(true);
+      toast.show({ variant: "success", message: "Link copied to clipboard" });
+    } catch {
+      toast.show({ variant: "error", message: "Could not copy link. Please copy it manually." });
+    }
+  };
+
   const playerImageUrl = useMemo(() => {
     if (!player?.image) return undefined;
     const raw = String(player.image);
@@ -731,6 +761,63 @@ const playerProfile = () => {
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
+      {isShareOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share link"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setIsShareOpen(false);
+              setHasCopiedShareUrl(false);
+            }}
+          />
+
+          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0D1117] border border-snow-200 dark:border-snow-100/10 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+              <div className="min-w-0">
+                <p className="theme-text font-bold text-base">Share this profile</p>
+                <p className="text-neutral-m6 text-sm mt-1">
+                  Copy the link below to share this page with friends or on social media.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg p-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                onClick={() => {
+                  setIsShareOpen(false);
+                  setHasCopiedShareUrl(false);
+                }}
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5 theme-text" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-center gap-3 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-snow-100/50 dark:bg-white/5 px-3 py-2">
+                <input
+                  value={canonicalUrl}
+                  readOnly
+                  className="w-full bg-transparent text-sm theme-text outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-3 py-2 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <DocumentDuplicateIcon className="h-4 w-4" />
+                  {hasCopiedShareUrl ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -768,8 +855,17 @@ const playerProfile = () => {
               </div>
 
               <div className="flex gap-4">
-                <BellAlertIcon className="text-white h-5" />
-                <ShareIcon className="text-white h-5" />
+                <button
+                  type="button"
+                  className="hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    setIsShareOpen(true);
+                    setHasCopiedShareUrl(false);
+                  }}
+                  aria-label="Share"
+                >
+                  <ShareIcon className="text-white h-5" />
+                </button>
               </div>
             </div>
 
@@ -816,11 +912,6 @@ const playerProfile = () => {
               {/* ----------------------------- */}
 
               <div className="flex-col flex items-end justify-between">
-                <div className="py-2 animate-bounce px-9 h-fit w-fit align-end rounded bg-neutral-n2 flex gap-3 items-center cursor-pointer hover:bg-neutral-n4 hover:scale-110 transition-all">
-                  <p className="text-white ">Follow</p>
-                  <StarIcon className="w-5 text-ui-pending" />
-                </div>
-
                 <div className="grid grid-cols-4 gap-x-2 gap-y-4 justify-end">
                   <div className="bg-snow-200/20 py-1 px-4">
                     <p className="sz-8 text-snow-200">Nationality</p>
@@ -893,11 +984,6 @@ const playerProfile = () => {
                     {player?.lastname ?? playerDisplayName.split(" ").slice(1).join(" ") ?? ""}
                     <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
                   </p>
-                </div>
-                {/* Follow Icon Button on Right */}
-                <div className="px-4 py-1.5 rounded bg-neutral-n1 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-n4 transition-all flex-shrink-0">
-                  <StarIcon className="w-4 text-ui-pending" />
-                  <span className="text-[9px] text-white font-medium mt-0.5">17.5k</span>
                 </div>
               </div>
 

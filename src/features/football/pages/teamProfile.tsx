@@ -5,9 +5,9 @@ import { getPlayerById, getTeamById } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
-  BellAlertIcon,
+  DocumentDuplicateIcon,
   ShareIcon,
-  StarIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { InformationCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
@@ -25,6 +25,7 @@ import {
   YAxis,
 } from "recharts";
 import { Helmet } from "react-helmet";
+import { useToast } from "@/context/ToastContext";
 
 type TeamTransferRow = {
   id?: string;
@@ -321,6 +322,7 @@ const positionRank = (pos?: string): number => {
 };
 
 const TeamProfile = () => {
+  const toast = useToast();
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "squad", label: "Squad" },
@@ -415,6 +417,34 @@ const TeamProfile = () => {
   const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
   const pageTitle = `${teamName} | Team Profile | TikiAnaly`;
   const pageDescription = `Squad, transfers, venue and stats for ${teamName}.`;
+
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
+
+  const copyShareUrl = async () => {
+    try {
+      if (!canonicalUrl) throw new Error("Missing URL");
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(canonicalUrl);
+      } else if (typeof document !== "undefined") {
+        const el = document.createElement("textarea");
+        el.value = canonicalUrl;
+        el.setAttribute("readonly", "true");
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+
+      setHasCopiedShareUrl(true);
+      toast.show({ variant: "success", message: "Link copied to clipboard" });
+    } catch {
+      toast.show({ variant: "error", message: "Could not copy link. Please copy it manually." });
+    }
+  };
 
   // const teamImageUrl = useMemo(() => {
   //   if (!team?.image) return undefined;
@@ -636,6 +666,63 @@ const TeamProfile = () => {
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
+      {isShareOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share link"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setIsShareOpen(false);
+              setHasCopiedShareUrl(false);
+            }}
+          />
+
+          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0D1117] border border-snow-200 dark:border-snow-100/10 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+              <div className="min-w-0">
+                <p className="theme-text font-bold text-base">Share this profile</p>
+                <p className="text-neutral-m6 text-sm mt-1">
+                  Copy the link below to share this page with friends or on social media.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg p-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                onClick={() => {
+                  setIsShareOpen(false);
+                  setHasCopiedShareUrl(false);
+                }}
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5 theme-text" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-center gap-3 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-snow-100/50 dark:bg-white/5 px-3 py-2">
+                <input
+                  value={canonicalUrl}
+                  readOnly
+                  className="w-full bg-transparent text-sm theme-text outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-3 py-2 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <DocumentDuplicateIcon className="h-4 w-4" />
+                  {hasCopiedShareUrl ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -676,12 +763,17 @@ const TeamProfile = () => {
               </div>
 
               <div className="flex z-10 gap-5 items-center">
-                <div className="cursor-pointer hover:scale-105 transition-all">
-                  <BellAlertIcon className="w-5 text-white" />
-                </div>
-                <div className="cursor-pointer hover:scale-105 transition-all">
+                <button
+                  type="button"
+                  className="cursor-pointer hover:scale-105 transition-all"
+                  onClick={() => {
+                    setIsShareOpen(true);
+                    setHasCopiedShareUrl(false);
+                  }}
+                  aria-label="Share"
+                >
                   <ShareIcon className="w-5 text-white" />
-                </div>
+                </button>
               </div>
             </div>
 
@@ -702,11 +794,6 @@ const TeamProfile = () => {
               </div>
 
               <div className="flex-col flex items-end justify-between">
-                <div className="py-2 px-9 h-fit w-fit align-end rounded bg-neutral-n2 flex gap-3 items-center cursor-pointer hover:bg-neutral-n4 hover:scale-110 transition-all">
-                  <p className="text-white ">Follow</p>
-                  <StarIcon className="w-5 text-ui-pending" />
-                </div>
-
                 <div className="grid grid-cols-4 gap-x-2 gap-y-4 justify-end">
                   <div className="bg-snow-200/20 py-1 px-4">
                     <p className="sz-8 text-snow-200">Founded</p>
@@ -745,10 +832,6 @@ const TeamProfile = () => {
                   <p className="text-[11px] text-snow-200 truncate">{team?.country ?? "-"}</p>
                 </div>
 
-                <div className="px-4 py-1.5 rounded bg-neutral-n1 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-n4 transition-all flex-shrink-0">
-                  <StarIcon className="w-4 text-ui-pending" />
-                  <span className="text-[9px] text-white font-medium mt-0.5">Follow</span>
-                </div>
               </div>
             </div>
           </div>

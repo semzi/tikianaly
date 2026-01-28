@@ -5,13 +5,15 @@ import { getLeagueById } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
-  BellAlertIcon,
+  DocumentDuplicateIcon,
   ShareIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import { Helmet } from "react-helmet";
+import { useToast } from "@/context/ToastContext";
 
 type LeagueApiItem = {
   id?: number;
@@ -35,6 +37,7 @@ type LeagueApiResponse = {
 };
 
 const LeagueProfile = () => {
+  const toast = useToast();
   const tabs = [{ id: "standings", label: "Standings" }];
 
   const getTabFromHash = () => {
@@ -122,11 +125,100 @@ const LeagueProfile = () => {
     return s || "-";
   }, [league]);
 
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}${window.location.search}`
+    : "";
+
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
+
+  const copyShareUrl = async () => {
+    try {
+      if (!canonicalUrl) throw new Error("Missing URL");
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(canonicalUrl);
+      } else if (typeof document !== "undefined") {
+        const el = document.createElement("textarea");
+        el.value = canonicalUrl;
+        el.setAttribute("readonly", "true");
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+
+      setHasCopiedShareUrl(true);
+      toast.show({ variant: "success", message: "Link copied to clipboard" });
+    } catch {
+      toast.show({ variant: "error", message: "Could not copy link. Please copy it manually." });
+    }
+  };
+
   const pageTitle = useMemo(() => `${leagueName} | League Profile | TikiAnaly`, [leagueName]);
   const pageDescription = useMemo(() => `Standings and league details for ${leagueName}.`, [leagueName]);
 
   return (
     <div className="dark:bg-[#0D1117] min-h-screen">
+      {isShareOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share link"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setIsShareOpen(false);
+              setHasCopiedShareUrl(false);
+            }}
+          />
+
+          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0D1117] border border-snow-200 dark:border-snow-100/10 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 px-5 pt-5">
+              <div className="min-w-0">
+                <p className="theme-text font-bold text-base">Share this profile</p>
+                <p className="text-neutral-m6 text-sm mt-1">
+                  Copy the link below to share this page with friends or on social media.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg p-2 hover:bg-snow-100 dark:hover:bg-white/5"
+                onClick={() => {
+                  setIsShareOpen(false);
+                  setHasCopiedShareUrl(false);
+                }}
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5 theme-text" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-center gap-3 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-snow-100/50 dark:bg-white/5 px-3 py-2">
+                <input
+                  value={canonicalUrl}
+                  readOnly
+                  className="w-full bg-transparent text-sm theme-text outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-3 py-2 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  <DocumentDuplicateIcon className="h-4 w-4" />
+                  {hasCopiedShareUrl ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -149,8 +241,17 @@ const LeagueProfile = () => {
               </div>
 
               <div className="flex gap-4">
-                <BellAlertIcon className="text-white h-5" />
-                <ShareIcon className="text-white h-5" />
+                <button
+                  type="button"
+                  className="hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    setIsShareOpen(true);
+                    setHasCopiedShareUrl(false);
+                  }}
+                  aria-label="Share"
+                >
+                  <ShareIcon className="text-white h-5" />
+                </button>
               </div>
             </div>
 
