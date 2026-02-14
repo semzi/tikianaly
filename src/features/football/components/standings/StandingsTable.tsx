@@ -49,6 +49,8 @@ export type GoalServeStandingsResponse = {
   };
 };
 
+type StandingsViewMode = "short" | "long" | "recent";
+
 type LeagueStandingRow = {
   team_id?: number;
   team_name?: string;
@@ -90,6 +92,23 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
   const [apiData, setApiData] = useState<StandingsByLeagueResponse | null>(null);
   const [apiError, setApiError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<StandingsViewMode>(() => {
+    try {
+      const stored = localStorage.getItem("standings_view_mode_v1");
+      if (stored === "short" || stored === "long" || stored === "recent") return stored;
+    } catch {
+      // ignore storage errors
+    }
+    return "short";
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("standings_view_mode_v1", viewMode);
+    } catch {
+      // ignore storage errors
+    }
+  }, [viewMode]);
 
   const openTeamProfile = (teamId?: number) => {
     if (!teamId) return;
@@ -363,82 +382,89 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
     );
   };
 
-  const renderRows = (rowItems: StandingsRow[], paddingX: string) => (
-    <div className="flex flex-col gap-2">
-      {rowItems.map((team) => {
-        const borderClass = getZoneBorderClass(team.description);
-        const highlightBg = getHighlightBgClass(team.teamId);
+  const renderRows = (rowItems: StandingsRow[], paddingX: string, mode: StandingsViewMode) => {
+    const gridClass =
+      mode === "long"
+        ? "grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px]"
+        : mode === "recent"
+          ? "grid-cols-[40px_1fr_40px_50px_50px_90px]"
+          : "grid-cols-[40px_1fr_40px_50px_50px]";
 
-        return (
-          <div
-            key={`${team.position}-${team.team}`}
-            className={`grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 ${paddingX} items-center relative whitespace-nowrap ${borderClass} ${highlightBg}`}
-          >
-            <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
-              {team.position}
+    const showLong = mode === "long";
+    const showForm = mode === "long" || mode === "recent";
+
+    return (
+      <div className="flex flex-col gap-2">
+        {rowItems.map((team) => {
+          const borderClass = getZoneBorderClass(team.description);
+          const highlightBg = getHighlightBgClass(team.teamId);
+
+          return (
+            <div
+              key={`${team.position}-${team.team}`}
+              className={`grid ${gridClass} gap-3 ${paddingX} items-center relative whitespace-nowrap ${borderClass} ${highlightBg}`}
+            >
+              <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
+                {team.position}
+              </div>
+              <div className="flex items-center gap-3 min-w-0">
+                {team.teamId ? (
+                  <GetTeamLogo
+                    teamId={team.teamId}
+                    alt={team.team}
+                    className="w-8 h-8 rounded-full object-contain flex-shrink-0"
+                  />
+                ) : (
+                  <img
+                    src={team.logo || "/loading-state/shield.svg"}
+                    alt={team.team}
+                    className="w-8 h-8 rounded-full object-contain flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
+                    }}
+                  />
+                )}
+                {team.teamId ? (
+                  <button
+                    type="button"
+                    className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                    onClick={() => openTeamProfile(team.teamId)}
+                    aria-label={`Open ${team.team} profile`}
+                  >
+                    {team.team}
+                  </button>
+                ) : (
+                  <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                    {team.team}
+                  </span>
+                )}
+              </div>
+
+              <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.played}</div>
+
+              {showLong ? (
+                <>
+                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.wins}</div>
+                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.draws}</div>
+                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.losses}</div>
+                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.goalsFor}</div>
+                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.goalsAgainst}</div>
+                </>
+              ) : null}
+
+              <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
+              </div>
+              <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
+                {team.points}
+              </div>
+              {showForm ? <div className="text-center">{renderRecentForm(team.recentForm)}</div> : null}
             </div>
-            <div className="flex items-center gap-3 min-w-0">
-              {team.teamId ? (
-                <GetTeamLogo
-                  teamId={team.teamId}
-                  alt={team.team}
-                  className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-                />
-              ) : (
-                <img
-                  src={team.logo || "/loading-state/shield.svg"}
-                  alt={team.team}
-                  className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                  }}
-                />
-              )}
-              {team.teamId ? (
-                <button
-                  type="button"
-                  className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
-                  onClick={() => openTeamProfile(team.teamId)}
-                  aria-label={`Open ${team.team} profile`}
-                >
-                  {team.team}
-                </button>
-              ) : (
-                <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                  {team.team}
-                </span>
-              )}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.played}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.wins}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.draws}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.losses}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.goalsFor}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.goalsAgainst}
-            </div>
-            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-              {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
-            </div>
-            <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
-              {team.points}
-            </div>
-            <div className="text-center">{renderRecentForm(team.recentForm)}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="my-8">
@@ -449,6 +475,30 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
         <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">No records at the Moment check back later</div>
       ) : null}
 
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+        <button
+          type="button"
+          className={`filter-btn dark:border-[#1F2937] ${viewMode === "short" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
+          onClick={() => setViewMode("short")}
+        >
+          Short form
+        </button>
+        <button
+          type="button"
+          className={`filter-btn dark:border-[#1F2937] ${viewMode === "long" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
+          onClick={() => setViewMode("long")}
+        >
+          Long form
+        </button>
+        <button
+          type="button"
+          className={`filter-btn dark:border-[#1F2937] ${viewMode === "recent" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
+          onClick={() => setViewMode("recent")}
+        >
+          Recent form
+        </button>
+      </div>
+
       {isLoading ? (
         <>
           <StandingsSkeletonDesktop />
@@ -458,39 +508,167 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
 
       {!isLoading ? (
         <>
-          <div className="hidden lg:block block-style overflow-x-auto">
+          <div className={`hidden lg:block block-style ${viewMode === "long" ? "overflow-x-auto" : "overflow-x-hidden"}`}>
             <div className="min-w-full">
-              <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
-                <div className="text-center">#</div>
-                <div>Team</div>
-                <div className="text-center">P</div>
-                <div className="text-center">W</div>
-                <div className="text-center">D</div>
-                <div className="text-center">L</div>
-                <div className="text-center">GF</div>
-                <div className="text-center">GA</div>
-                <div className="text-center">GD</div>
-                <div className="text-center">PTS</div>
-                <div className="text-center">Form</div>
-              </div>
-              {renderRows(data, "px-6")}
+              {viewMode === "long" ? (
+                <div className="grid grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                  <div className="text-center">#</div>
+                  <div>Team</div>
+                  <div className="text-center">P</div>
+                  <div className="text-center">W</div>
+                  <div className="text-center">D</div>
+                  <div className="text-center">L</div>
+                  <div className="text-center">GF</div>
+                  <div className="text-center">GA</div>
+                  <div className="text-center">GD</div>
+                  <div className="text-center">PTS</div>
+                  <div className="text-center">Form</div>
+                </div>
+              ) : viewMode === "recent" ? (
+                <div className="grid grid-cols-[40px_1fr_40px_50px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                  <div className="text-center">#</div>
+                  <div>Team</div>
+                  <div className="text-center">P</div>
+                  <div className="text-center">GD</div>
+                  <div className="text-center">PTS</div>
+                  <div className="text-center">Form</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-[40px_1fr_40px_50px_50px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                  <div className="text-center">#</div>
+                  <div>Team</div>
+                  <div className="text-center">P</div>
+                  <div className="text-center">GD</div>
+                  <div className="text-center">PTS</div>
+                </div>
+              )}
+              {renderRows(data, "px-6", viewMode)}
             </div>
           </div>
 
           <div className="block lg:hidden">
-            <div className="block-style">
-              <div className="flex">
-                <div className="w-[88px] shrink-0">
-                  <div className="px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap flex items-center justify-center" />
-                  <div className="flex flex-col gap-0">
-                    {data.map((team) => (
-                      <div
-                        key={`mobile-logo-${team.position}-${team.team}`}
-                        className={`px-2 h-10 flex items-center gap-2 whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
-                      >
-                        <div className="w-6 text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
-                          {team.position}
+            {viewMode === "long" ? (
+              <div className="block-style">
+                <div className="flex">
+                  <div className="w-[88px] shrink-0">
+                    <div className="px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap flex items-center justify-center" />
+                    <div className="flex flex-col gap-0">
+                      {data.map((team) => (
+                        <div
+                          key={`mobile-logo-${team.position}-${team.team}`}
+                          className={`px-2 h-10 flex items-center gap-2 whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
+                        >
+                          <div className="w-6 text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
+                            {team.position}
+                          </div>
+                          {team.teamId ? (
+                            <GetTeamLogo
+                              teamId={team.teamId}
+                              alt={team.team}
+                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                            />
+                          ) : (
+                            <img
+                              src={team.logo || "/loading-state/shield.svg"}
+                              alt={team.team}
+                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
+                              }}
+                            />
+                          )}
                         </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-x-auto hide-scrollbar">
+                    <div className="min-w-[860px]">
+                      <div className="grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                        <div>Team</div>
+                        <div className="text-center">P</div>
+                        <div className="text-center">W</div>
+                        <div className="text-center">D</div>
+                        <div className="text-center">L</div>
+                        <div className="text-center">GF</div>
+                        <div className="text-center">GA</div>
+                        <div className="text-center">GD</div>
+                        <div className="text-center">PTS</div>
+                        <div className="text-center">Form</div>
+                      </div>
+                      <div className="flex flex-col gap-0">
+                        {data.map((team) => (
+                          <div
+                            key={`mobile-scroll-${team.position}-${team.team}`}
+                            className={`grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 h-10 items-center whitespace-nowrap ${getHighlightBgClass(team.teamId)}`}
+                          >
+                            <div className="min-w-0">
+                              {team.teamId ? (
+                                <button
+                                  type="button"
+                                  className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                                  onClick={() => openTeamProfile(team.teamId)}
+                                  aria-label={`Open ${team.team} profile`}
+                                >
+                                  {team.team}
+                                </button>
+                              ) : (
+                                <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                                  {team.team}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.played}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.wins}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.draws}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.losses}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.goalsFor}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.goalsAgainst}</div>
+                            <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                              {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
+                            </div>
+                            <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">{team.points}</div>
+                            <div className="text-center">{renderRecentForm(team.recentForm)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="block-style overflow-x-hidden">
+                {viewMode === "recent" ? (
+                  <div className="grid grid-cols-[32px_1fr_36px_44px_44px_70px] gap-2 px-3 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                    <div className="text-center">#</div>
+                    <div>Team</div>
+                    <div className="text-center">P</div>
+                    <div className="text-center">GD</div>
+                    <div className="text-center">PTS</div>
+                    <div className="text-center">Form</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-[32px_1fr_36px_44px_44px] gap-2 px-3 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                    <div className="text-center">#</div>
+                    <div>Team</div>
+                    <div className="text-center">P</div>
+                    <div className="text-center">GD</div>
+                    <div className="text-center">PTS</div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-0">
+                  {data.map((team) => (
+                    <div
+                      key={`mobile-compact-${team.position}-${team.team}`}
+                      className={`grid ${
+                        viewMode === "recent"
+                          ? "grid-cols-[32px_1fr_36px_44px_44px_70px]"
+                          : "grid-cols-[32px_1fr_36px_44px_44px]"
+                      } gap-2 px-3 h-10 items-center whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
+                    >
+                      <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">{team.position}</div>
+                      <div className="flex items-center gap-2 min-w-0">
                         {team.teamId ? (
                           <GetTeamLogo
                             teamId={team.teamId}
@@ -507,79 +685,32 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                             }}
                           />
                         )}
+                        {team.teamId ? (
+                          <button
+                            type="button"
+                            className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                            onClick={() => openTeamProfile(team.teamId)}
+                            aria-label={`Open ${team.team} profile`}
+                          >
+                            {team.team}
+                          </button>
+                        ) : (
+                          <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
+                            {team.team}
+                          </span>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-x-auto hide-scrollbar">
-                  <div className="min-w-[860px]">
-                    <div className="grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
-                      <div>Team</div>
-                      <div className="text-center">P</div>
-                      <div className="text-center">W</div>
-                      <div className="text-center">D</div>
-                      <div className="text-center">L</div>
-                      <div className="text-center">GF</div>
-                      <div className="text-center">GA</div>
-                      <div className="text-center">GD</div>
-                      <div className="text-center">PTS</div>
-                      <div className="text-center">Form</div>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.played}</div>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                        {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
+                      </div>
+                      <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">{team.points}</div>
+                      {viewMode === "recent" ? <div className="text-center">{renderRecentForm(team.recentForm)}</div> : null}
                     </div>
-                    <div className="flex flex-col gap-0">
-                      {data.map((team) => (
-                        <div
-                          key={`mobile-scroll-${team.position}-${team.team}`}
-                          className={`grid grid-cols-[220px_40px_40px_40px_40px_50px_50px_50px_50px_90px] gap-3 px-2 h-10 items-center whitespace-nowrap ${getHighlightBgClass(team.teamId)}`}
-                        >
-                          <div className="min-w-0">
-                            {team.teamId ? (
-                              <button
-                                type="button"
-                                className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
-                                onClick={() => openTeamProfile(team.teamId)}
-                                aria-label={`Open ${team.team} profile`}
-                              >
-                                {team.team}
-                              </button>
-                            ) : (
-                              <span className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate">
-                                {team.team}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.played}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.wins}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.draws}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.losses}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.goalsFor}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.goalsAgainst}
-                          </div>
-                          <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
-                          </div>
-                          <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
-                            {team.points}
-                          </div>
-                          <div className="text-center">{renderRecentForm(team.recentForm)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </>
       ) : null}

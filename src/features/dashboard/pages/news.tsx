@@ -112,7 +112,7 @@ const News = () => {
               {loading ? (
                 <SkeletonPost />
               ) : trendingPost ? (
-                <Link to={`/news/read/${trendingPost._id}`} className="block relative h-full w-full">
+                <Link to={`/news/read/${trendingPost.id}`} className="block relative h-full w-full">
                   <div
                     className="absolute inset-0 bg-cover bg-top"
                     style={{ backgroundImage: `url('${trendingPost.imageUrl || "/logo.webp"}')` }}
@@ -155,7 +155,7 @@ const News = () => {
                 ? sidePosts.map((news, idx) => (
                     <Link
                       key={idx}
-                      to={`/news/read/${news._id}`}
+                      to={`/news/read/${news.id}`}
                       className="flex items-center border-b border-snow-100 dark:border-[#1F2937] pb-3 gap-3 text-neutral-n4 hover:bg-gray-200 dark:hover:bg-[#1F2937] rounded transition"
                     >
                       <div
@@ -189,7 +189,7 @@ const News = () => {
             ? remainingPosts.map((news, idx) => (
                 <Link
                   key={idx}
-                  to={`/news/read/${news._id}`}
+                  to={`/news/read/${news.id}`}
                   className="flex items-center p-3 gap-3 mb-2 rounded transition-colors border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#161B22] hover:bg-snow-100 dark:hover:bg-[#1F2937] text-neutral-n4"
                 >
                   <img
