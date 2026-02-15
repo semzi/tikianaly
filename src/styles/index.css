@@ -197,6 +197,9 @@ input::-ms-clear {
   .secondary-gradient{
      @apply  bg-[linear-gradient(to_top,rgb(230,44,35),#ed7a28)] ;
   }
+  .secondary{
+    @apply bg-gradient-to-b from-brand-secondary to-brand-secondary/60;
+  }
 }
 
 .gradient-text {
