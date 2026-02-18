@@ -500,4 +500,3 @@ export const clearPlayersCache = (page?: number, limit?: number) => {
 export const clearAllCache = () => {
   apiCache.clearAll();
 };
-
