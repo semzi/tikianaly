@@ -30,8 +30,8 @@ const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
 const ScriptSandbox = lazy(() => import("./features/dev/pages/ScriptSandbox"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
-const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
-const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
+// const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
+// const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
 const Community = lazy(() => import("./features/community/pages/Community"));
 // Animation variants (can tweak)
 const pageVariants = {
@@ -149,7 +149,7 @@ function AnimatedRoutes() {
             </m.div>
           }
             />
-            <Route
+            {/* <Route
           path="/basketball"
           element={
             <m.div
@@ -176,7 +176,7 @@ function AnimatedRoutes() {
               <BasketballMatchDetail />
             </m.div>
           }
-            />
+            /> */}
             <Route
           path="/account"
           element={
