@@ -3,7 +3,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/features/dashboard/components/Category";
 import { getFixtureDetails, getFixturesByLeague } from "@/lib/api/endpoints";
-import { closeLiveStream, subscribeDashboardLiveFixtures } from "@/lib/api/livestream";
+import {
+  closeLiveStream,
+  subscribeDashboardLiveFixtures,
+  type DashboardLiveFixture,
+} from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -559,8 +563,9 @@ export const dashboard = () => {
 
         closeLiveStream(liveEventSourceRef.current);
         liveEventSourceRef.current = subscribeDashboardLiveFixtures({
-          onUpdate: (liveItems) => {
-            setSseRevision((x) => x + 1);
+          onUpdate: (liveItems: DashboardLiveFixture[]) => {
+            if (!Array.isArray(liveItems)) return;
+            setSseRevision((v) => v + 1);
             if (fixturesMode === "live") {
               const nextByStaticId = new Map<string, any>();
               const nextByMatchId = new Map<string, any>();
@@ -640,9 +645,6 @@ export const dashboard = () => {
               return changed ? next : prev;
             });
           },
-          onError: (err) => {
-            console.warn("Live fixtures SSE error:", err);
-          },
         });
 
         if (fixturesMode === "live") {
@@ -667,17 +669,7 @@ export const dashboard = () => {
               response?.error === "Fixture list is empty."
             ) {
               // Silently ignore empty fixture lists for specific league IDs
-            } else {
-              console.warn(
-                `No fixtures or unexpected response for leagueId ${leagueId}. Full response:`,
-                response
-              );
             }
-          } catch (leagueError) {
-            console.warn(
-              `Failed to fetch fixtures for leagueId ${leagueId} (continuing with others):`,
-              leagueError
-            );
           } finally {
             markLeagueDone(leagueId);
           }

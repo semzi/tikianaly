@@ -5,6 +5,8 @@ interface GetTeamLogoProps {
   teamId?: string | number;
   alt?: string;
   className?: string;
+  width?: number;
+  height?: number;
 }
 
 interface TeamApiItem {
@@ -21,7 +23,13 @@ interface TeamApiResponse {
 const teamLogoMemoryCache = new Map<string, string>();
 const teamLogoStorageKey = (id: string) => `team_logo_image_${id}`;
 
-const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => {
+const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
+  teamId,
+  alt,
+  className,
+  width = 32,
+  height = 32,
+}) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,16 +127,36 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({ teamId, alt, className }) => 
     return (
       <div
         className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`}
-        style={{ minWidth: "20px", minHeight: "20px" }}
+        style={{ minWidth: width, minHeight: height }}
       />
     );
   }
 
   if (error || !logoUrl) {
-    return <img src={"/loading-state/shield.svg"} alt={`${safeAlt} - No Logo`} className={`object-contain ${className ?? ""}`} />;
+    return (
+      <img
+        src={"/loading-state/shield.svg"}
+        alt={`${safeAlt} - No Logo`}
+        loading="lazy"
+        decoding="async"
+        width={width}
+        height={height}
+        className={`object-contain ${className ?? ""}`}
+      />
+    );
   }
 
-  return <img src={logoUrl} alt={safeAlt} className={`object-contain ${className ?? ""}`} />;
+  return (
+    <img
+      src={logoUrl}
+      alt={safeAlt}
+      loading="lazy"
+      decoding="async"
+      width={width}
+      height={height}
+      className={`object-contain ${className ?? ""}`}
+    />
+  );
 };
 
 export default GetTeamLogo;

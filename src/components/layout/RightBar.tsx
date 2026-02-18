@@ -6,6 +6,23 @@ const SkeletonBlock = ({ className = "" }: { className?: string }) => (
   <div className={`animate-pulse bg-gray-300 dark:bg-[#1F2937] rounded ${className}`} />
 );
 
+const toPlainText = (value: unknown) => {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[`*_#[\]()>!-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const truncateWords = (value: unknown, maxWords: number) => {
+  const text = toPlainText(value);
+  if (!text) return "";
+  const words = text.split(" ").filter(Boolean);
+  if (words.length <= maxWords) return text;
+  return `${words.slice(0, maxWords).join(" ")}...`;
+};
+
 export const RightBar = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +84,6 @@ export const RightBar = () => {
                 </p>
                 <div className="flex dark:text-snow-200 gap-2 sz-8 ">
                   <span>{featuredPost.timeAgo || ""}</span>
-                  
                   <span>{featuredPost.readTime || ""}</span>
                 </div>
               </Link>
@@ -84,7 +100,7 @@ export const RightBar = () => {
                           : ""
                       }`}
                     >
-                      <SkeletonBlock className="w-50 h-20" />
+                      <SkeletonBlock className="w-24 h-[54px] flex-shrink-0" />
                       <div className="flex-1">
                         <SkeletonBlock className="w-full h-4 mb-2" />
                         <SkeletonBlock className="w-1/2 h-3" />
@@ -102,14 +118,14 @@ export const RightBar = () => {
                       }`}
                     >
                       <div
-                        className="image w-50 bg-cover bg-center h-20 rounded"
+                        className="image w-24 h-[54px] flex-shrink-0 bg-cover bg-center rounded"
                         style={{
                           backgroundImage: `url('${news.imageUrl || "/logo.webp"}')`,
                         }}
                       ></div>
                       <div>
                         <p className="sz-8 dark:text-snow-200 font-[500]">
-                          {news.title}
+                          {truncateWords((news as any)?.title, 9)}
                         </p>
                         <span className="sz-8 dark:text-white">
                           {news.timeAgo || ""}

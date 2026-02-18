@@ -115,7 +115,6 @@ export const FavouriteSelection = ({
 
     try {
       setSubmitting(true);
-      console.log("Saving favourites payloads:", payloads);
 
       const results = await Promise.allSettled(payloads.map((payload) => addFavorite(payload)));
 
@@ -128,8 +127,6 @@ export const FavouriteSelection = ({
       const fulfilledValues = results
         .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
         .map((r) => r.value);
-
-      console.log("addFavorite responses:", fulfilledValues);
 
       const unsuccessful = fulfilledValues.filter((v) => v?.success === false);
       if (unsuccessful.length > 0) {
@@ -251,15 +248,6 @@ export const FavouriteSelection = ({
                   key={itemIdentifier + idx}
                   onClick={() => {
                     if (!isLoggedIn) return;
-                    console.log("FavouriteSelection item click:", {
-                      identifier: itemIdentifier,
-                      id: item.id,
-                      player_id: item.player_id,
-                      effectiveId: getEffectiveItemId(item),
-                      type: item.type,
-                      name: item.name,
-                      wasSelected: isSelected,
-                    });
                     toggleItemSelection(itemIdentifier);
                   }}
                   className={`flex flex-col items-center justify-center gap-3 text-center rounded-lg p-4 transition-all min-h-[120px] ${

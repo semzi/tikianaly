@@ -5,6 +5,8 @@ interface GetPlayerImageProps {
   playerId: string | number;
   alt: string;
   className?: string;
+  width?: number;
+  height?: number;
 }
 
 interface PlayerApiItem {
@@ -21,7 +23,13 @@ interface PlayerApiResponse {
 const playerImageMemoryCache = new Map<string, string>();
 const playerImageStorageKey = (id: string) => `player_image_${id}`;
 
-const GetPlayerImage: React.FC<GetPlayerImageProps> = ({ playerId, alt, className }) => {
+const GetPlayerImage: React.FC<GetPlayerImageProps> = ({
+  playerId,
+  alt,
+  className,
+  width = 48,
+  height = 48,
+}) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -113,16 +121,36 @@ const GetPlayerImage: React.FC<GetPlayerImageProps> = ({ playerId, alt, classNam
     return (
       <div
         className={`animate-pulse bg-gray-300 rounded-full object-cover ${className ?? ""}`}
-        style={{ minWidth: "20px", minHeight: "20px" }}
+        style={{ minWidth: width, minHeight: height }}
       />
     );
   }
 
   if (!imageUrl) {
-    return <img src={"/loading-state/player.svg"} alt={`${alt} - No Image`} className={`object-cover ${className ?? ""}`} />;
+    return (
+      <img
+        src={"/loading-state/player.svg"}
+        alt={`${alt} - No Image`}
+        loading="lazy"
+        decoding="async"
+        width={width}
+        height={height}
+        className={`object-cover ${className ?? ""}`}
+      />
+    );
   }
 
-  return <img src={imageUrl} alt={alt} className={`object-cover ${className ?? ""}`} />;
+  return (
+    <img
+      src={imageUrl}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      width={width}
+      height={height}
+      className={`object-cover ${className ?? ""}`}
+    />
+  );
 };
 
 export default GetPlayerImage;

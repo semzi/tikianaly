@@ -1,7 +1,4 @@
-import GitCompare from "lucide-react/dist/esm/icons/git-compare";
-import Moon from "lucide-react/dist/esm/icons/moon";
-import Sun from "lucide-react/dist/esm/icons/sun";
-import UserIcon from "lucide-react/dist/esm/icons/user";
+import { GitCompare, Moon, Sun, User as UserIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -469,8 +466,8 @@ export const PageHeader = () => {
 
   const navigationItems = [
     { label: "News", href: "/news" },
-    { label: "Community", href: "/community" },
-    { label: "Favourite", href: "/favourites" },
+    // { label: "Community", href: "/community" },
+    // { label: "Favourite", href: "/favourites" },
     { label: "Privacy Policy", href: "/privacy-policy" },
   ];
 

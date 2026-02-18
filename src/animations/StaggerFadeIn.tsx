@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 import React from "react";
 import type { ReactNode } from "react";
 
@@ -32,17 +32,19 @@ export default function StaggerFadeIn({
   };
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.2 }}
-    >
-      {React.Children.map(children, (child, i) => (
-        <motion.div key={i} variants={item}>
-          {child}
-        </motion.div>
-      ))}
-    </motion.div>
+    <LazyMotion features={domAnimation}>
+      <m.div
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        {React.Children.map(children, (child, i) => (
+          <m.div key={i} variants={item}>
+            {child}
+          </m.div>
+        ))}
+      </m.div>
+    </LazyMotion>
   );
 }
