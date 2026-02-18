@@ -201,8 +201,9 @@ export const gameInfo = () => {
         setIsLoadingMatchInfo(true);
         setMatchLoadError("");
         const res = await getMatchInfo(fixtureIdForRest);
-        const item0 = (res as any)?.responseObject?.item?.[0];
-        setMatchInfo(item0 ?? (res as any)?.responseObject ?? res);
+        const item = (res as any)?.responseObject?.item;
+        const normalizedItem = Array.isArray(item) ? item[0] : item;
+        setMatchInfo(normalizedItem ?? (res as any)?.responseObject ?? res);
       } catch (error) {
         setMatchInfo(null);
         setMatchLoadError("match_info");
@@ -235,7 +236,8 @@ export const gameInfo = () => {
       didFallbackToRest = true;
       try {
         const res = await getMatchCommentary(fixtureIdForRest);
-        const item0 = (res as any)?.responseObject?.item?.[0];
+        const item = (res as any)?.responseObject?.item;
+        const item0 = Array.isArray(item) ? item[0] : item;
         const comments = (item0?.comments ?? []) as CommentaryComment[];
         if (!isMounted) return;
         setCommentaryComments(Array.isArray(comments) ? comments : []);
@@ -1585,7 +1587,9 @@ export const gameInfo = () => {
         try {
           setIsLoadingFixtureDetails(true);
           const response = await getFixtureDetails(fixtureIdForRest);
-          setFixtureDetails(response.responseObject.item[0]);
+          const item = (response as any)?.responseObject?.item;
+          const normalizedItem = Array.isArray(item) ? item[0] : item;
+          setFixtureDetails(normalizedItem ?? null);
         } catch (error) {
           setFixtureDetails(null);
           console.error("Error fetching fixture details:", error);
