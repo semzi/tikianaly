@@ -1,48 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://tikianaly.com/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
+    <loc>https://www.tikianaly.com/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/news</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <loc>https://www.tikianaly.com/news/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/league</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
+    <loc>https://www.tikianaly.com/league/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/league/profile</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://www.tikianaly.com/onboard/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/player/profile</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://www.tikianaly.com/basketball/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/player/compare</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://www.tikianaly.com/favourites/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/team/profile</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://www.tikianaly.com/privacy-policy/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/football/afcon</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://www.tikianaly.com/player/compare/</loc>
   </url>
   <url>
-    <loc>https://tikianaly.com/privacy-policy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
+    <loc>https://www.tikianaly.com/player/profile/</loc>
+  </url>
+  <url>
+    <loc>https://www.tikianaly.com/team/profile/</loc>
+  </url>
+  <url>
+    <loc>https://www.tikianaly.com/football/afcon/</loc>
   </url>
 </urlset>

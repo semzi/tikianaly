@@ -1,4 +1,7 @@
-import { GitCompare, Moon, Sun, UserIcon } from "lucide-react";
+import GitCompare from "lucide-react/dist/esm/icons/git-compare";
+import Moon from "lucide-react/dist/esm/icons/moon";
+import Sun from "lucide-react/dist/esm/icons/sun";
+import UserIcon from "lucide-react/dist/esm/icons/user";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -8,17 +11,9 @@ import {
   ArrowRightIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { clearAuthToken, getStoredUser } from "@/lib/api/axios";
-import {
-  getLeagueById,
-  getLeagueByName,
-  getPlayerById,
-  getPlayerByName,
-  getTeamById,
-  getTeamByName,
-} from "@/lib/api/endpoints";
+import { clearAuthToken } from "@/lib/api/axios";
+import { getLeagueByName, getPlayerByName, getTeamByName } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
-import useProfileAvatar from "@/hooks/useProfileAvatar";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,149 +39,6 @@ export const PageHeader = () => {
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchRequestIdRef = useRef(0);
-  const searchCacheRef = useRef<Map<string, { ts: number; items: any[] }>>(new Map());
-
-  const QUICK_PLAYER_IDS = [
-    382, 102697, 377149, 441484, 41310,
-  ];
-  const QUICK_TEAM_IDS = [
-    9260, 9259, 10285, 10303, 16110, 9002, 9092,
-  ];
-  const QUICK_LEAGUE_IDS = [
-    1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282,
-  ];
-
-  type QuickPlayerInfo = { id: number; name?: string; image?: string; country?: string };
-  type QuickTeamInfo = { id: number; name?: string; image?: string; country?: string };
-  type QuickLeagueInfo = { id: number; name?: string; category?: string };
-
-  const [quickPlayersById, setQuickPlayersById] = useState<Record<string, QuickPlayerInfo>>({});
-  const [quickTeamsById, setQuickTeamsById] = useState<Record<string, QuickTeamInfo>>({});
-  const [quickLeaguesById, setQuickLeaguesById] = useState<Record<string, QuickLeagueInfo>>({});
-
-  const quickPlayersRef = useRef<Record<string, QuickPlayerInfo>>({});
-  const quickTeamsRef = useRef<Record<string, QuickTeamInfo>>({});
-  const quickLeaguesRef = useRef<Record<string, QuickLeagueInfo>>({});
-
-  const quickPickStorageKey = (kind: "player" | "team" | "league", id: string) =>
-    `quick_pick_${kind}_${id}`;
-
-  const readQuickPickFromStorage = <T,>(kind: "player" | "team" | "league", id: string): T | null => {
-    try {
-      const raw = sessionStorage.getItem(quickPickStorageKey(kind, id));
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? (parsed as T) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const writeQuickPickToStorage = (kind: "player" | "team" | "league", id: string, value: unknown) => {
-    try {
-      sessionStorage.setItem(quickPickStorageKey(kind, id), JSON.stringify(value));
-    } catch {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    const preload = async () => {
-      const batch = async <T,>(items: T[], size: number, run: (x: T) => Promise<void>) => {
-        for (let i = 0; i < items.length; i += size) {
-          const slice = items.slice(i, i + size);
-          await Promise.allSettled(slice.map(run));
-          await new Promise((r) => setTimeout(r, 0));
-        }
-      };
-
-      const playerIds = QUICK_PLAYER_IDS.slice(0, 20).map((x) => String(x));
-      const teamIds = QUICK_TEAM_IDS.slice(0, 20).map((x) => String(x));
-      const leagueIds = QUICK_LEAGUE_IDS.slice(0, 20).map((x) => String(x));
-
-      await batch(playerIds, 6, async (id) => {
-        if (quickPlayersRef.current[id]) return;
-        const stored = readQuickPickFromStorage<QuickPlayerInfo>("player", id);
-        if (stored) {
-          quickPlayersRef.current[id] = stored;
-          setQuickPlayersById((prev) => ({ ...prev, [id]: stored }));
-          return;
-        }
-        const res: any = await getPlayerById(id);
-        const item = res?.responseObject?.item;
-        const p = Array.isArray(item) ? item[0] : item;
-        const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || String(p?.common_name ?? "").trim();
-        const rawImage = p?.image;
-        const image =
-          typeof rawImage === "string" && rawImage.length
-            ? rawImage.startsWith("data:image")
-              ? rawImage
-              : `data:image/png;base64,${rawImage}`
-            : undefined;
-        const info: QuickPlayerInfo = {
-          id: Number(id),
-          name: String(name || "Player"),
-          country: String(p?.nationality ?? ""),
-          image,
-        };
-        quickPlayersRef.current[id] = info;
-        writeQuickPickToStorage("player", id, info);
-        setQuickPlayersById((prev) => ({ ...prev, [id]: info }));
-      });
-
-      await batch(teamIds, 6, async (id) => {
-        if (quickTeamsRef.current[id]) return;
-        const stored = readQuickPickFromStorage<QuickTeamInfo>("team", id);
-        if (stored) {
-          quickTeamsRef.current[id] = stored;
-          setQuickTeamsById((prev) => ({ ...prev, [id]: stored }));
-          return;
-        }
-        const res: any = await getTeamById(id);
-        const item = res?.responseObject?.item;
-        const t = Array.isArray(item) ? item[0] : item;
-        const rawImage = t?.image;
-        const image =
-          typeof rawImage === "string" && rawImage.length
-            ? rawImage.startsWith("data:image")
-              ? rawImage
-              : `data:image/png;base64,${rawImage}`
-            : undefined;
-        const info: QuickTeamInfo = {
-          id: Number(id),
-          name: String(t?.name ?? "Team"),
-          country: String(t?.country ?? ""),
-          image,
-        };
-        quickTeamsRef.current[id] = info;
-        writeQuickPickToStorage("team", id, info);
-        setQuickTeamsById((prev) => ({ ...prev, [id]: info }));
-      });
-
-      await batch(leagueIds, 6, async (id) => {
-        if (quickLeaguesRef.current[id]) return;
-        const stored = readQuickPickFromStorage<QuickLeagueInfo>("league", id);
-        if (stored) {
-          quickLeaguesRef.current[id] = stored;
-          setQuickLeaguesById((prev) => ({ ...prev, [id]: stored }));
-          return;
-        }
-        const res: any = await getLeagueById(id);
-        const item = res?.responseObject?.item;
-        const l = Array.isArray(item) ? item[0] : item;
-        const info: QuickLeagueInfo = {
-          id: Number(id),
-          name: String(l?.name ?? "League"),
-          category: String(l?.category ?? l?.country ?? "") || undefined,
-        };
-        quickLeaguesRef.current[id] = info;
-        writeQuickPickToStorage("league", id, info);
-        setQuickLeaguesById((prev) => ({ ...prev, [id]: info }));
-      });
-    };
-
-    void preload();
-  }, []);
 
   const normalizeItemsToArray = (items: unknown): any[] => {
     if (Array.isArray(items)) return items;
@@ -237,13 +89,6 @@ export const PageHeader = () => {
         return;
       }
 
-      if (r.kind === "league") {
-        setOpenMenu(null);
-        closeSearch();
-        navigate(`/league/profile/${r.id}`);
-        return;
-      }
-
       setSearchValue(r?.name ?? "");
     },
     [navigate]
@@ -291,20 +136,6 @@ export const PageHeader = () => {
       return;
     }
 
-    if (q.length < 2) {
-      setSearchLoading(false);
-      setDemoResults([]);
-      return;
-    }
-
-    const cacheKey = `${searchScope}::${q.toLowerCase()}`;
-    const cached = searchCacheRef.current.get(cacheKey);
-    if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
-      setDemoResults(cached.items as any);
-      setSearchLoading(false);
-      return;
-    }
-
     setSearchLoading(true);
     const requestId = ++searchRequestIdRef.current;
 
@@ -346,11 +177,7 @@ export const PageHeader = () => {
               };
             });
 
-            setDemoResults((prev) => {
-              const next = mergeSearchResults(prev, players);
-              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
-              return next;
-            });
+            setDemoResults((prev) => mergeSearchResults(prev, players));
           })
           .catch(() => {
             // ignore
@@ -379,11 +206,7 @@ export const PageHeader = () => {
               };
             });
 
-            setDemoResults((prev) => {
-              const next = mergeSearchResults(prev, teams);
-              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
-              return next;
-            });
+            setDemoResults((prev) => mergeSearchResults(prev, teams));
           })
           .catch(() => {
             // ignore
@@ -403,11 +226,7 @@ export const PageHeader = () => {
               };
             });
 
-            setDemoResults((prev) => {
-              const next = mergeSearchResults(prev, leagues);
-              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
-              return next;
-            });
+            setDemoResults((prev) => mergeSearchResults(prev, leagues));
           })
           .catch(() => {
             // ignore
@@ -450,7 +269,6 @@ export const PageHeader = () => {
                 : [];
 
             setDemoResults(normalized);
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
             setSearchLoading(false);
           } catch {
             if (requestId !== searchRequestIdRef.current) return;
@@ -492,7 +310,6 @@ export const PageHeader = () => {
                 : [];
 
             setDemoResults(normalized);
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
             setSearchLoading(false);
           } catch {
             if (requestId !== searchRequestIdRef.current) return;
@@ -525,7 +342,6 @@ export const PageHeader = () => {
                 : [];
 
             setDemoResults(normalized);
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
             setSearchLoading(false);
           } catch {
             if (requestId !== searchRequestIdRef.current) return;
@@ -556,12 +372,13 @@ export const PageHeader = () => {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Load user profile from storage
+  // Load user profile from localStorage
   const loadUserProfile = useCallback(() => {
     if (typeof window === "undefined") return;
     try {
-      const parsed = getStoredUser();
-      if (parsed) {
+      const stored = localStorage.getItem("tikianaly_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
         setUserProfile({
           name: parsed.name || "",
           email: parsed.email || "",
@@ -594,10 +411,6 @@ export const PageHeader = () => {
     email: "",
     avatar: "",
   };
-
-  const { avatarUrl } = useProfileAvatar({
-    seed: profile?.email || profile?.name || "user",
-  });
 
   // Truncate email if too long
   const truncateEmail = (email: string, maxLength: number = 20): string => {
@@ -656,6 +469,8 @@ export const PageHeader = () => {
 
   const navigationItems = [
     { label: "News", href: "/news" },
+    { label: "Community", href: "/community" },
+    { label: "Favourite", href: "/favourites" },
     { label: "Privacy Policy", href: "/privacy-policy" },
   ];
 
@@ -697,109 +512,6 @@ export const PageHeader = () => {
   );
 
   const shouldShowDemoPanel = searchShow && searchValue.trim().length > 0;
-
-  const renderQuickPickSkeleton = (key: string, wClass: string) => (
-    <div
-      key={key}
-      className={`inline-flex items-center gap-2 rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white/50 dark:bg-white/5 px-3 py-1.5 ${wClass}`}
-    >
-      <div className="h-4 w-4 rounded-full bg-snow-200 dark:bg-white/10 animate-pulse" />
-      <div className="h-3 w-24 rounded bg-snow-200 dark:bg-white/10 animate-pulse" />
-    </div>
-  );
-
-  const renderQuickPicks = (wrapperClassName: string) => (
-    <div className={wrapperClassName}>
-      <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide theme-text md:text-white">
-          Quick picks
-        </p>
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold theme-text md:text-white">Players</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {QUICK_PLAYER_IDS.slice(0, 20).map((id) => (
-              quickPlayersById[String(id)]?.name ? (
-                <button
-                  key={`quick-player-${id}`}
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white/60 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold theme-text hover:bg-snow-100 dark:hover:bg-white/10 transition-colors"
-                  onClick={() => navigate(`/player/profile/${encodeURIComponent(String(id))}`)}
-                >
-                  <img
-                    src={
-                      quickPlayersById[String(id)]?.image ||
-                      "/loading-state/player.svg"
-                    }
-                    alt={quickPlayersById[String(id)]?.name ?? "Player"}
-                    className="h-4 w-4 rounded-full object-cover bg-snow-200 dark:bg-white/10"
-                  />
-                  <span className="max-w-[180px] truncate">
-                    {quickPlayersById[String(id)]?.name}
-                  </span>
-                </button>
-              ) : (
-                renderQuickPickSkeleton(`quick-player-skel-${id}`, "")
-              )
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold theme-text md:text-white">Teams</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {QUICK_TEAM_IDS.slice(0, 20).map((id) => (
-              quickTeamsById[String(id)]?.name ? (
-                <button
-                  key={`quick-team-${id}`}
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white/60 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold theme-text hover:bg-snow-100 dark:hover:bg-white/10 transition-colors"
-                  onClick={() => navigate(`/team/profile/${encodeURIComponent(String(id))}`)}
-                >
-                  <img
-                    src={
-                      quickTeamsById[String(id)]?.image ||
-                      "/loading-state/shield.svg"
-                    }
-                    alt={quickTeamsById[String(id)]?.name ?? "Team"}
-                    className="h-4 w-4 rounded-sm object-contain bg-transparent"
-                  />
-                  <span className="max-w-[180px] truncate">
-                    {quickTeamsById[String(id)]?.name}
-                  </span>
-                </button>
-              ) : (
-                renderQuickPickSkeleton(`quick-team-skel-${id}`, "")
-              )
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold theme-text md:text-white">Leagues</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {QUICK_LEAGUE_IDS.slice(0, 20).map((id) => (
-              quickLeaguesById[String(id)]?.name ? (
-                <button
-                  key={`quick-league-id-${id}`}
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white/60 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold theme-text hover:bg-snow-100 dark:hover:bg-white/10 transition-colors"
-                  onClick={() => navigate(`/league/profile/${encodeURIComponent(String(id))}`)}
-                >
-                  <GetLeagueLogo leagueId={id} alt={quickLeaguesById[String(id)]?.name ?? "League"} className="h-4 w-4 object-contain" />
-                  <span className="max-w-[180px] truncate">
-                    {quickLeaguesById[String(id)]?.name}
-                  </span>
-                </button>
-              ) : (
-                renderQuickPickSkeleton(`quick-league-skel-${id}`, "")
-              )
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderDemoSearchPanel = (panelClassName: string, forceLight = false) => {
     if (!shouldShowDemoPanel) return null;
@@ -869,6 +581,8 @@ export const PageHeader = () => {
                       leagueId={r.id}
                       alt={r.name}
                       className="h-10 w-10 rounded-none object-contain"
+                      width={40}
+                      height={40}
                     />
                   ) : (
                     <img
@@ -888,6 +602,8 @@ export const PageHeader = () => {
                             : "bg-snow-200"
                           : "bg-transparent"
                       }`}
+                      width={40}
+                      height={40}
                       onError={(e) => {
                         const img = e.currentTarget;
                         img.onerror = null;
@@ -1053,19 +769,14 @@ export const PageHeader = () => {
                   <XMarkIcon className="h-6 w-6" />
                 </button>
               </div>
-              <div className="mt-2 max-h-[70vh] overflow-y-auto pr-1">
-                {renderDemoSearchPanel("")}
-                {!shouldShowDemoPanel ? renderQuickPicks("mt-4") : null}
-              </div>
+              {renderDemoSearchPanel("mt-2")}
             </div>
           </div>
         </div>
       )}
       {isMobile && searchShow && (
         <div
-          className={`fixed inset-0 z-[9999] ${
-            theme === "dark" ? "bg-[#0D1117] text-white" : "bg-white text-brand-primary"
-          }`}
+          className="fixed inset-0 z-[9999] bg-white text-brand-primary"
         >
           <div
             className="mx-auto h-full w-full max-w-lg px-4 pb-6 pt-4 overflow-y-auto"
@@ -1074,11 +785,7 @@ export const PageHeader = () => {
               <div className="flex-1">{renderSearchInput("text-base")}</div>
               <button
                 type="button"
-                className={`rounded-md p-2 ${
-                  theme === "dark"
-                    ? "text-white/90 hover:bg-white/10"
-                    : "text-brand-primary hover:bg-snow-100"
-                }`}
+                className="rounded-md p-2 text-brand-primary hover:bg-snow-100"
                 onClick={() => {
                   setOpenMenu(null);
                   closeSearch();
@@ -1093,8 +800,6 @@ export const PageHeader = () => {
             <div className="mt-3">
               {renderDemoSearchPanel("", true)}
             </div>
-
-            {!shouldShowDemoPanel ? renderQuickPicks("mt-4") : null}
 
             {!shouldShowDemoPanel ? (
               <div className="mt-6 text-sm text-neutral-n5">Type to search…</div>
@@ -1112,16 +817,22 @@ export const PageHeader = () => {
                 src="\logos\whitelogo.png"
                 className="w-28"
                 alt="TikiAnaly Logo"
+                width={1535}
+                height={601}
               />
             </a>
             <div className="flex items-center gap-3 text-white/80">
-              <MagnifyingGlassIcon
-                className="h-5 w-5"
+              <button
+                type="button"
+                className="bg-transparent transition-colors"
                 onClick={() => {
                   setOpenMenu(null);
                   setSearchShow(true);
                 }}
-              />
+                aria-label="Open search"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5" />
+              </button>
               <button
                 type="button"
                 className="bg-transparent transition-colors"
@@ -1159,43 +870,26 @@ export const PageHeader = () => {
               </button>
               <div className="relative" ref={mobileMenuRef}>
                 <button
-                  className={`flex h-8 w-8 items-center justify-center rounded-full overflow-hidden ${
-                    userProfile && avatarUrl ? "bg-transparent" : "bg-white text-brand-primary"
-                  }`}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-brand-primary"
                   onClick={() => toggleMenu("mobile")}
                   aria-haspopup="true"
                   aria-expanded={openMenu === "mobile"}
+                  aria-label="Open account menu"
                 >
-                  {userProfile && avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Profile"
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <UserIcon className="h-4" />
-                  )}
+                  <UserIcon className="h-4" />
                 </button>
                 {openMenu === "mobile" && (
-                  <div className="absolute right-0 z-[1000] mt-3 w-64 rounded-2xl border border-snow-200 bg-white dark:bg-[#161B22] p-4 theme-text shadow-lg">
+                  <div className="absolute right-0 z-[1000] mt-3 w-64 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-lg">
                     {userProfile ? (
                       <>
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center">
-                            {avatarUrl ? (
-                              <img
-                                src={avatarUrl}
-                                alt="Profile"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
-                                {(profile.name || "U").charAt(0).toUpperCase()}
-                              </div>
-                            )}
+                            <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
+                              {(profile.name || "U").charAt(0).toUpperCase()}
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{profile.name}</p>
+                            <p className="text-sm font-semibold truncate">{profile.name}</p>
                             <p className="text-xs text-neutral-n5 truncate" title={profile.email || ""}>
                               {truncateEmail(profile.email || "", 18)}
                             </p>
@@ -1259,6 +953,8 @@ export const PageHeader = () => {
                     src="\logos\whitelogo.png"
                     className="w-35 md:w-40"
                     alt="TikiAnaly Logo"
+                    width={1535}
+                    height={601}
                   />
                 </a>
                 {renderNavLinks(
@@ -1268,21 +964,27 @@ export const PageHeader = () => {
               {/* Right Section */}
               <div className="flex items-center gap-4 md:gap-6">
                 <div className="hidden items-center gap-2 rounded border p-2 md:flex md:border-none">
-                  <img src="/assets/icons/Vector.png" alt="" className="h-4 w-4" />
+                  <img src="/assets/icons/Vector.png" alt="" className="h-[14px] w-[14px]" width={20} height={20} />
                   <img
                     src="/assets/icons/United Kingdom.png"
                     alt=""
-                    className="h-5 w-5"
+                    className="h-[15px] w-[15px]"
+                    width={21}
+                    height={22}
                   />
                   <p className="text-sm font-semibold md:text-base">ENG</p>
                 </div>
-                <MagnifyingGlassIcon
-                  className="h-5"
+                <button
+                  type="button"
+                  className="bg-transparent transition-colors"
                   onClick={() => {
                     setOpenMenu(null);
                     setSearchShow(true);
                   }}
-                />
+                  aria-label="Open search"
+                >
+                  <MagnifyingGlassIcon className="h-5" />
+                </button>
                 <button
                   type="button"
                   className="bg-transparent transition-colors"
@@ -1320,43 +1022,26 @@ export const PageHeader = () => {
                 </button>
                 <div className="relative hidden lg:flex" ref={desktopMenuRef}>
                   <button
-                    className={`flex h-9 w-9 items-center justify-center rounded-full overflow-hidden ${
-                      userProfile && avatarUrl ? "bg-transparent p-0" : "bg-white p-2 text-brand-primary"
-                    }`}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white p-2 text-brand-primary"
                     onClick={() => toggleMenu("desktop")}
                     aria-haspopup="true"
                     aria-expanded={openMenu === "desktop"}
+                    aria-label="Open account menu"
                   >
-                    {userProfile && avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt="Profile"
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserIcon className="h-5" />
-                    )}
+                    <UserIcon className="h-5" />
                   </button>
                   {openMenu === "desktop" && (
-                    <div className="absolute z-[1000] right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white dark:bg-[#161B22] p-4 theme-text shadow-2xl">
+                    <div className="absolute z-[1000] right-0 top-12 w-72 rounded-2xl border border-snow-200 bg-white p-4 text-brand-primary shadow-2xl">
                       {userProfile ? (
                         <>
                           <div className="flex items-center gap-4">
                             <div className="h-14 w-14 overflow-hidden rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
-                              {avatarUrl ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt="Profile"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
-                                  {(profile.name || "U").charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                              <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-brand-primary">
+                                {(profile.name || "U").charAt(0).toUpperCase()}
+                              </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-base font-medium truncate">{profile.name}</p>
+                              <p className="text-base font-semibold truncate">{profile.name}</p>
                               <p className="text-sm text-neutral-n5 truncate" title={profile.email || ""}>
                                 {truncateEmail(profile.email || "", 22)}
                               </p>

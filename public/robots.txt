@@ -1,26 +1,7 @@
 User-agent: *
-
-# Google
-User-agent: Googlebot
 Allow: /
 
-# Bing / Copilot / ChatGPT browsing
-User-agent: Bingbot
-Allow: /
-
-# Apple (Safari, Siri, Spotlight)
-User-agent: Applebot
-Allow: /
-
-# DuckDuckGo
-User-agent: DuckDuckBot
-Allow: /
-
-# AI Crawlers
-User-agent: GPTBot
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
-Sitemap: https://tikianaly.com/sitemap.xml
+Sitemap: https://www.tikianaly.com/sitemap.xml
+Sitemap: https://www.tikianaly.com/sitemap-news.xml
+Sitemap: https://www.tikianaly.com/sitemap-index-image.xml
+Sitemap: https://www.tikianaly.com/sitemap-index-video.xml
