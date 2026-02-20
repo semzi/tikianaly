@@ -70,7 +70,7 @@ export const RightBar = () => {
               </div>
             ) : featuredPost ? (
               <Link
-                to={`/news/read/${featuredPost._id}`}
+                to={`/news/read/${featuredPost.id}`}
                 className="flex text-neutral-n4 flex-col gap-y-3 mb-5"
               >
                 <div
