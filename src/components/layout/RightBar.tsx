@@ -109,8 +109,8 @@ export const RightBar = () => {
                   ))
                 : sidePosts.map((news, idx) => (
                     <Link
-                      key={news?._id ?? idx}
-                      to={`/news/read/${news._id}`}
+                      key={news?.id ?? idx}
+                      to={`/news/read/${news.id}`}
                       className={`flex items-center gap-3 text-neutral-n4 ${
                         idx === 0
                           ? "border-y-1 dark:border-[#1F2937] border-snow-200 py-5"

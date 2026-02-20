@@ -486,6 +486,17 @@ export default function PlayerComparison() {
           const res: any = await getPlayerById(id);
           const item = res?.responseObject?.item;
           const p = Array.isArray(item) ? item[0] : item;
+          
+          // Debug: Log the structure of the player response
+          console.log(`Quick player ${id} response:`, {
+            id: p?.id,
+            player_id: p?.player_id,
+            firstname: p?.firstname,
+            lastname: p?.lastname,
+            common_name: p?.common_name,
+            allKeys: p ? Object.keys(p) : 'null'
+          });
+          
           const name =
             [p?.firstname, p?.lastname].filter(Boolean).join(" ") ||
             String(p?.common_name ?? "").trim() ||
@@ -498,7 +509,7 @@ export default function PlayerComparison() {
                 : `data:image/png;base64,${rawImage}`
               : undefined;
           return {
-            id: String(p?.id ?? p?.player_id ?? id),
+            id: String(p?.player_id ?? p?.id ?? id),
             name: String(name),
             country: String(p?.nationality ?? ""),
             image,
@@ -600,6 +611,8 @@ export default function PlayerComparison() {
   }, [searchValue]);
 
   const loadPlayer = async (slotIndex: number, id: string) => {
+    console.log(`Loading player ${id} into slot ${slotIndex}`);
+    
     setSlots((prev) =>
       prev.map((s, idx) =>
         idx === slotIndex
@@ -611,6 +624,14 @@ export default function PlayerComparison() {
     try {
       const res = (await getPlayerById(id)) as PlayerApiResponse;
       const item = normalizeItem(res?.responseObject?.item);
+      
+      // Debug: Log what we received
+      console.log(`Player ${id} loaded:`, {
+        receivedId: item?.id,
+        receivedPlayerId: item?.player_id,
+        name: item?.firstname && item?.lastname ? `${item.firstname} ${item.lastname}` : item?.common_name,
+        allKeys: item ? Object.keys(item) : 'null'
+      });
 
       const defaultSeason = uniqSeasonsFromPlayer(item)[0] ?? "";
       const leagues = defaultSeason ? getLeagueOptionsForSeason(item, defaultSeason) : [];
