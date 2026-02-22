@@ -560,7 +560,6 @@ export const getLiveBasketballMatches = async (page: number = 1) => {
   const endpoint = "/api/v1/basketball/live";
   const params = { page };
   const response = await apiClient.get(endpoint, { params });
-  console.log("live matches:", response);
   return response.data;
 };
 
@@ -594,9 +593,12 @@ export const searchBasketballFixturesByStatus = async (
  * Fetch basketball fixtures by date
  * @param date - Date in YYYY-MM-DD format
  */
-export const getBasketballFixturesByDate = async (date: string) => {
+export const getBasketballFixturesByDate = async (
+  date: string,
+  page: number = 1,
+) => {
   const endpoint = `/api/v1/basketball/fixtures/date`;
-  const params = { date };
+  const params = { date, page };
   const response = await apiClient.get(endpoint, { params });
   return response.data;
 };

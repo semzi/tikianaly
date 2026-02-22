@@ -97,7 +97,7 @@ const BasketballPage = () => {
 
         if (activeTab === "live") {
           console.log("Fetching live matches...");
-          const data = await getLiveBasketballMatches();
+          const data = await getLiveBasketballMatches(currentPage);
           if (data && data.success && data.responseObject) {
             let allLiveMatches = data.responseObject.items || [];
             if (selectedLeagueId) {
@@ -106,13 +106,17 @@ const BasketballPage = () => {
               );
             }
             setMatches(allLiveMatches);
+            setTotalPages(data.responseObject.totalPages || 1);
+            setHasNextPage(data.responseObject.hasNextPage || false);
+            setHasPreviousPage(data.responseObject.hasPreviousPage || false);
+            setCurrentPage(data.responseObject.page || 1);
           } else {
             setMatches([]);
+            setTotalPages(1);
+            setHasNextPage(false);
+            setHasPreviousPage(false);
+            setCurrentPage(1);
           }
-          setTotalPages(1);
-          setHasNextPage(false);
-          setHasPreviousPage(false);
-          setCurrentPage(1);
         } else if (activeTab === "fixtures") {
           const formattedDate = selectedDate
             ? format(selectedDate, "yyyy-MM-dd")
@@ -120,7 +124,10 @@ const BasketballPage = () => {
 
           // Try fetching by date first
           try {
-            data = await getBasketballFixturesByDate(formattedDate);
+            data = await getBasketballFixturesByDate(
+              formattedDate,
+              currentPage,
+            );
           } catch (err) {
             console.error("Error fetching fixtures by date:", err);
             // Fallback or empty state
@@ -162,7 +169,10 @@ const BasketballPage = () => {
             : "";
 
           try {
-            data = await getBasketballFixturesByDate(formattedDate);
+            data = await getBasketballFixturesByDate(
+              formattedDate,
+              currentPage,
+            );
 
             if (
               data &&
@@ -180,10 +190,10 @@ const BasketballPage = () => {
                 items = items.filter((m) => m.league_id === selectedLeagueId);
               }
               setMatches(items);
-              setTotalPages(1);
-              setHasNextPage(false);
-              setHasPreviousPage(false);
-              setCurrentPage(1);
+              setTotalPages(data.responseObject.totalPages || 1);
+              setHasNextPage(data.responseObject.hasNextPage || false);
+              setHasPreviousPage(data.responseObject.hasPreviousPage || false);
+              setCurrentPage(data.responseObject.page || 1);
             } else {
               // Fallback to general results search if no specific date results found
               data = await searchBasketballFixturesByStatus(
@@ -596,8 +606,10 @@ const BasketballPage = () => {
               </div>
             )}
 
-            {/* Pagination (only for fixtures/results) */}
-            {(activeTab === "fixtures" || activeTab === "results") &&
+            {/* Pagination (only for live/fixtures/results) */}
+            {(activeTab === "live" ||
+              activeTab === "fixtures" ||
+              activeTab === "results") &&
               totalPages > 1 && (
                 <div className="flex items-center justify-between block-style">
                   <button
