@@ -1,8 +1,8 @@
-import apiClient from './axios';
-import { apiCache } from './cache';
+import apiClient from "./axios";
+import { apiCache } from "./cache";
 
 export const FOOTBALL_COMMENTARY_SSE_URL =
-  'https://tikianaly-service-backend.onrender.com/api/v1/football/sse/stream-comment';
+  "https://tikianaly-service-backend.onrender.com/api/v1/football/sse/stream-comment";
 
 // Authentication Endpoints
 
@@ -11,7 +11,7 @@ export const FOOTBALL_COMMENTARY_SSE_URL =
  * @param data - Request data containing email or phone
  */
 export const requestOTP = async (data: any) => {
-  const response = await apiClient.post('/api/v1/user/request-otp', data);
+  const response = await apiClient.post("/api/v1/user/request-otp", data);
   return response.data;
 };
 
@@ -20,7 +20,7 @@ export const requestOTP = async (data: any) => {
  * @param data - Request data containing email/phone and OTP
  */
 export const verifyUser = async (data: any) => {
-  const response = await apiClient.post('/api/v1/user/verify-user', data);
+  const response = await apiClient.post("/api/v1/user/verify-user", data);
   return response.data;
 };
 
@@ -29,7 +29,10 @@ export const verifyUser = async (data: any) => {
  * @param data - Request data containing email
  */
 export const forgotPasswordRequestOtp = async (data: { email: string }) => {
-  const response = await apiClient.post('/api/v1/user/forgot-password/otp', data);
+  const response = await apiClient.post(
+    "/api/v1/user/forgot-password/otp",
+    data,
+  );
   return response.data;
 };
 
@@ -38,24 +41,35 @@ export const forgotPasswordRequestOtp = async (data: { email: string }) => {
  * @param data - OTP value
  * @param otpToken - Token returned from forgotPasswordRequestOtp
  */
-export const forgotPasswordVerifyOtp = async (data: { otp: string }, otpToken: string) => {
-  const response = await apiClient.post('/api/v1/user/forgot-password/otp/verify', data, {
-    headers: {
-      Authorization: `Bearer ${otpToken}`,
+export const forgotPasswordVerifyOtp = async (
+  data: { otp: string },
+  otpToken: string,
+) => {
+  const response = await apiClient.post(
+    "/api/v1/user/forgot-password/otp/verify",
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${otpToken}`,
+      },
     },
-  });
+  );
   return response.data;
 };
 
 export const forgotPasswordResetPassword = async (
   data: { newPassword: string; confirmPassword: string },
-  resetToken: string
+  resetToken: string,
 ) => {
-  const response = await apiClient.post('/api/v1/user/forgot-password/otp/reset', data, {
-    headers: {
-      Authorization: `Bearer ${resetToken}`,
+  const response = await apiClient.post(
+    "/api/v1/user/forgot-password/otp/reset",
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${resetToken}`,
+      },
     },
-  });
+  );
   return response.data;
 };
 
@@ -64,7 +78,7 @@ export const forgotPasswordResetPassword = async (
  * @param data - User registration data
  */
 export const addUser = async (data: any) => {
-  const response = await apiClient.post('/api/v1/user/add-user', data);
+  const response = await apiClient.post("/api/v1/user/add-user", data);
   return response.data;
 };
 
@@ -73,7 +87,7 @@ export const addUser = async (data: any) => {
  * @param data - Login credentials (email/phone and password)
  */
 export const login = async (data: any) => {
-  const response = await apiClient.post('/api/v1/user/login', data);
+  const response = await apiClient.post("/api/v1/user/login", data);
   return response.data;
 };
 
@@ -85,7 +99,7 @@ export const login = async (data: any) => {
  * @param limit - Number of items per page
  */
 export const getAllPlayers = async (page: number = 1, limit: number = 50) => {
-  const endpoint = '/api/v1/football/players/all-players';
+  const endpoint = "/api/v1/football/players/all-players";
   const params = { page, limit };
 
   // Check cache first
@@ -111,7 +125,7 @@ export const getAllPlayers = async (page: number = 1, limit: number = 50) => {
 export const getPlayerByName = async (playerName: string) => {
   const normalized = String(playerName).trim().replace(/\s+/g, " ");
   const response = await apiClient.get(
-    `/api/v1/football/players/name/${encodeURIComponent(normalized)}`
+    `/api/v1/football/players/name/${encodeURIComponent(normalized)}`,
   );
   return response.data;
 };
@@ -121,7 +135,9 @@ export const getPlayerByName = async (playerName: string) => {
  * @param playerId - The ID of the player to fetch
  */
 export const getPlayerById = async (playerId: string | number) => {
-  const response = await apiClient.get(`/api/v1/football/players/id/${playerId}`);
+  const response = await apiClient.get(
+    `/api/v1/football/players/id/${playerId}`,
+  );
   return response.data;
 };
 
@@ -130,7 +146,7 @@ export const getPlayerById = async (playerId: string | number) => {
  * @param data - Request data containing player IDs
  */
 export const getPlayersStats = async (data: any) => {
-  const response = await apiClient.post('/api/v1/football/players/stats', data);
+  const response = await apiClient.post("/api/v1/football/players/stats", data);
   return response.data;
 };
 
@@ -142,7 +158,7 @@ export const getPlayersStats = async (data: any) => {
  * @param limit - Number of items per page
  */
 export const getAllTeams = async (page: number = 1, limit: number = 50) => {
-  const endpoint = '/api/v1/football/teams/all-teams';
+  const endpoint = "/api/v1/football/teams/all-teams";
   const params = { page, limit };
 
   // Check cache first
@@ -167,7 +183,7 @@ export const getAllTeams = async (page: number = 1, limit: number = 50) => {
  */
 export const getTeamByName = async (teamName: string) => {
   const response = await apiClient.get(
-    `/api/v1/football/teams/name/${encodeURIComponent(teamName)}`
+    `/api/v1/football/teams/name/${encodeURIComponent(teamName)}`,
   );
   return response.data;
 };
@@ -189,7 +205,7 @@ export const getTeamById = async (teamId: string | number) => {
  * @param limit - Number of items per page
  */
 export const getAllLeagues = async (page: number = 1, limit: number = 50) => {
-  const endpoint = '/api/v1/football/leagues/all-leagues';
+  const endpoint = "/api/v1/football/leagues/all-leagues";
   const params = { page, limit };
 
   // Check cache first
@@ -214,7 +230,7 @@ export const getAllLeagues = async (page: number = 1, limit: number = 50) => {
  */
 export const getLeagueByName = async (leagueName: string) => {
   const response = await apiClient.get(
-    `/api/v1/football/leagues/name/${encodeURIComponent(leagueName)}`
+    `/api/v1/football/leagues/name/${encodeURIComponent(leagueName)}`,
   );
   return response.data;
 };
@@ -224,11 +240,15 @@ export const getLeagueByName = async (leagueName: string) => {
  * @param leagueId - The ID of the league to fetch
  */
 export const getLeagueById = async (leagueId: string | number) => {
-  const response = await apiClient.get(`/api/v1/football/leagues/id/${leagueId}`);
+  const response = await apiClient.get(
+    `/api/v1/football/leagues/id/${leagueId}`,
+  );
   return response.data;
 };
 export const getStandingsByLeagueId = async (leagueId: string | number) => {
-  const response = await apiClient.get(`/api/v1/football/standing/league?leagueId=${leagueId}`);
+  const response = await apiClient.get(
+    `/api/v1/football/standing/league?leagueId=${leagueId}`,
+  );
   return response.data;
 };
 
@@ -245,9 +265,9 @@ export const getFixturesByLeague = async (
   leagueId: string | number,
   date: string,
   page: number = 1,
-  limit: number = 100
+  limit: number = 100,
 ) => {
-  const endpoint = '/api/v1/football/fixture/league';
+  const endpoint = "/api/v1/football/fixture/league";
   const params = { leagueId, date, page, limit };
 
   // Cache until next local midnight so fixtures reset daily at 00:00
@@ -274,19 +294,19 @@ export const getFixturesByLeague = async (
  */
 export const getFixtureDetails = async (fixtureId: string | number) => {
   const response = await apiClient.get(
-    `/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`
+    `/api/v1/football/fixture/get-fixture?fixtureId=${fixtureId}`,
   );
   return response.data;
 };
 
 export const getMatchInfo = async (matchId: string | number) => {
   const response = await apiClient.get(
-    `/api/v1/football/match/match-info?matchId=${encodeURIComponent(String(matchId))}`
+    `/api/v1/football/match/match-info?matchId=${encodeURIComponent(String(matchId))}`,
   );
   return response.data;
 };
 
- type FootballHeadToHeadSummary = {
+type FootballHeadToHeadSummary = {
   _id: null | string;
   matchesPlayed: number;
   teamA_wins: number;
@@ -296,9 +316,9 @@ export const getMatchInfo = async (matchId: string | number) => {
   teamA_goalsAgainst: number;
   teamB_goalsFor: number;
   teamB_goalsAgainst: number;
- };
+};
 
- type FootballHeadToHeadMatch = {
+type FootballHeadToHeadMatch = {
   fixture_id: number;
   homeTeamId: number;
   awayTeamId: number;
@@ -307,27 +327,30 @@ export const getMatchInfo = async (matchId: string | number) => {
   teamA_goals: number;
   teamB_goals: number;
   scoreline: string;
- };
+};
 
- export type FootballHeadToHeadItem = {
+export type FootballHeadToHeadItem = {
   summary: FootballHeadToHeadSummary;
   matches: FootballHeadToHeadMatch[];
- };
+};
 
- export const postTeamHeadToHead = async (teamA: string | number, teamB: string | number) => {
-  const response = await apiClient.post('/api/v1/football/teams/head-to-head', {
+export const postTeamHeadToHead = async (
+  teamA: string | number,
+  teamB: string | number,
+) => {
+  const response = await apiClient.post("/api/v1/football/teams/head-to-head", {
     teamA: String(teamA),
     teamB: String(teamB),
   });
   return response.data as ApiResponse<{ item: FootballHeadToHeadItem }>;
- };
+};
 
- type FootballCommentaryComment = {
+type FootballCommentaryComment = {
   comment_id: number;
   comment: string;
- };
+};
 
- type FootballCommentaryItem = {
+type FootballCommentaryItem = {
   _id: string;
   match_id: number;
   __v: number;
@@ -336,16 +359,16 @@ export const getMatchInfo = async (matchId: string | number) => {
   league_id: number;
   static_id: number;
   updatedAt: string;
- };
+};
 
- export const getMatchCommentary = async (matchId: string | number) => {
+export const getMatchCommentary = async (matchId: string | number) => {
   const response = await apiClient.get(
-    `/api/v1/football/commentary/comment?matchId=${encodeURIComponent(String(matchId))}`
+    `/api/v1/football/commentary/comment?matchId=${encodeURIComponent(String(matchId))}`,
   );
   return response.data as ApiResponse<{ item: FootballCommentaryItem[] }>;
- };
+};
 
- type FootballLiveFixtureEvent = {
+type FootballLiveFixtureEvent = {
   eventid: string;
   type: string;
   extra_min: string;
@@ -356,15 +379,15 @@ export const getMatchInfo = async (matchId: string | number) => {
   assist: string;
   assistid: string;
   result: string;
- };
+};
 
- type FootballLiveFixtureTeam = {
+type FootballLiveFixtureTeam = {
   id: string;
   name: string;
   goals: string;
- };
+};
 
- export type FootballLiveFixture = {
+export type FootballLiveFixture = {
   _id: string;
   match_id: string;
   __v: number;
@@ -393,21 +416,21 @@ export const getMatchInfo = async (matchId: string | number) => {
   updatedAt: string;
   venue: unknown;
   visitorteam: FootballLiveFixtureTeam;
- };
+};
 
- type ApiResponse<T> = {
+type ApiResponse<T> = {
   success?: boolean;
   message?: string;
   responseObject?: T;
   error?: any;
- };
+};
 
- export const getLiveFixtures = async (): Promise<
+export const getLiveFixtures = async (): Promise<
   ApiResponse<FootballLiveFixture | FootballLiveFixture[]>
- > => {
-  const response = await apiClient.get('/api/v1/football/fixture/live');
+> => {
+  const response = await apiClient.get("/api/v1/football/fixture/live");
   return response.data;
- };
+};
 
 // Football Favorites Endpoints
 
@@ -416,7 +439,10 @@ export const getMatchInfo = async (matchId: string | number) => {
  * @param data - Filter criteria for favorites
  */
 export const filterFavorites = async (data: any) => {
-  const response = await apiClient.post('/api/v1/football/filter-favorites', data);
+  const response = await apiClient.post(
+    "/api/v1/football/filter-favorites",
+    data,
+  );
   return response.data;
 };
 
@@ -425,7 +451,7 @@ export const filterFavorites = async (data: any) => {
  * @param data - Favorite item data to add
  */
 export const addFavorite = async (data: any) => {
-  const response = await apiClient.post('/api/v1/football/add-favorites', data);
+  const response = await apiClient.post("/api/v1/football/add-favorites", data);
   return response.data;
 };
 
@@ -434,7 +460,9 @@ export const addFavorite = async (data: any) => {
  * @param params - Optional query parameters
  */
 export const getFavorites = async (params?: any) => {
-  const response = await apiClient.get('/api/v1/football/get-favorites', { params });
+  const response = await apiClient.get("/api/v1/football/get-favorites", {
+    params,
+  });
   return response.data;
 };
 
@@ -443,7 +471,9 @@ export const getFavorites = async (params?: any) => {
  * @param id - The ID of the favorite to delete
  */
 export const deleteFavorite = async (id: string | number) => {
-  const response = await apiClient.delete(`/api/v1/football/delete-favorites/${id}`);
+  const response = await apiClient.delete(
+    `/api/v1/football/delete-favorites/${id}`,
+  );
   return response.data;
 };
 
@@ -455,7 +485,7 @@ export const deleteFavorite = async (id: string | number) => {
  * @param limit - Optional limit to clear specific limit cache
  */
 export const clearTeamsCache = (page?: number, limit?: number) => {
-  const endpoint = '/api/v1/football/teams/all-teams';
+  const endpoint = "/api/v1/football/teams/all-teams";
   if (page !== undefined && limit !== undefined) {
     apiCache.clear(endpoint, { page, limit });
   } else {
@@ -470,7 +500,7 @@ export const clearTeamsCache = (page?: number, limit?: number) => {
  * @param limit - Optional limit to clear specific limit cache
  */
 export const clearLeaguesCache = (page?: number, limit?: number) => {
-  const endpoint = '/api/v1/football/leagues/all-leagues';
+  const endpoint = "/api/v1/football/leagues/all-leagues";
   if (page !== undefined && limit !== undefined) {
     apiCache.clear(endpoint, { page, limit });
   } else {
@@ -485,7 +515,7 @@ export const clearLeaguesCache = (page?: number, limit?: number) => {
  * @param limit - Optional limit to clear specific limit cache
  */
 export const clearPlayersCache = (page?: number, limit?: number) => {
-  const endpoint = '/api/v1/football/players/all-players';
+  const endpoint = "/api/v1/football/players/all-players";
   if (page !== undefined && limit !== undefined) {
     apiCache.clear(endpoint, { page, limit });
   } else {
@@ -499,4 +529,178 @@ export const clearPlayersCache = (page?: number, limit?: number) => {
  */
 export const clearAllCache = () => {
   apiCache.clearAll();
+};
+
+// Basketball Endpoints
+
+/**
+ * Fetch all basketball leagues
+ */
+export const getBasketballLeagues = async () => {
+  const endpoint = "/api/v1/basketball/leagues/all-leagues";
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Fetch a basketball league by ID
+ * @param leagueId - The ID of the league to fetch
+ */
+export const getBasketballLeagueById = async (leagueId: string | number) => {
+  const endpoint = `/api/v1/basketball/leagues/id/${leagueId}`;
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Fetch live basketball matches
+ * @param page - Page number for pagination
+ */
+export const getLiveBasketballMatches = async (page: number = 1) => {
+  const endpoint = "/api/v1/basketball/live";
+  const params = { page };
+  const response = await apiClient.get(endpoint, { params });
+  console.log("live matches:", response);
+  return response.data;
+};
+
+/**
+ * Fetch basketball fixtures
+ * @param page - Page number for pagination
+ */
+export const getBasketballFixtures = async (page: number = 1) => {
+  const endpoint = "/api/v1/basketball/fixtures";
+  const params = { page };
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Search basketball fixtures by status
+ * @param status - Match status (e.g., 'finished', 'not started')
+ * @param page - Page number
+ */
+export const searchBasketballFixturesByStatus = async (
+  status: string,
+  page: number = 1,
+) => {
+  const endpoint = `/api/v1/basketball/fixtures/search/${status}`;
+  const params = { page };
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Fetch basketball fixtures by date
+ * @param date - Date in YYYY-MM-DD format
+ */
+export const getBasketballFixturesByDate = async (date: string) => {
+  const endpoint = `/api/v1/basketball/fixtures/date`;
+  const params = { date };
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Fetch Play-by-Play data for a basketball match
+ * @param matchId - The ID of the match
+ */
+export const getBasketballMatchPlayByPlay = async (
+  matchId: string | number,
+) => {
+  const endpoint = `/api/v1/basketball/match/${matchId}/pbp`;
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Fetch basketball standings
+ * @param filter - League or team ID filter
+ */
+export const getBasketballStandings = async (
+  filterOrParams?:
+    | string
+    | number
+    | { league_id?: string | number; team_id?: string | number },
+) => {
+  let endpoint = "/api/v1/basketball/standings";
+  let params = {};
+
+  if (
+    typeof filterOrParams === "string" ||
+    typeof filterOrParams === "number"
+  ) {
+    endpoint = `${endpoint}/${filterOrParams}`;
+  } else if (typeof filterOrParams === "object") {
+    params = filterOrParams;
+  }
+
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Fetch all basketball teams
+ */
+export const getBasketballTeams = async (page: number = 1) => {
+  const endpoint = "/api/v1/basketball/teams";
+  const params = { page };
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Fetch a basketball team by ID or name
+ * @param filter - Team ID or name
+ */
+export const getBasketballTeamDetail = async (filter: string | number) => {
+  const endpoint = `/api/v1/basketball/teams/${filter}`;
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Fetch all basketball players
+ */
+export const getBasketballPlayers = async (page: number = 1) => {
+  const endpoint = "/api/v1/basketball/players";
+  const params = { page };
+  const response = await apiClient.get(endpoint, { params });
+  return response.data;
+};
+
+/**
+ * Fetch a basketball player by ID or name
+ * @param filter - Player ID or name
+ */
+export const getBasketballPlayerDetail = async (filter: string | number) => {
+  const endpoint = `/api/v1/basketball/players/${filter}`;
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Compare two basketball teams
+ * @param data - Comparison data containing team IDs
+ */
+export const compareBasketballTeams = async (data: {
+  teamA: string | number;
+  teamB: string | number;
+}) => {
+  const endpoint = "/api/v1/basketball/comparison/teams";
+  const response = await apiClient.post(endpoint, data);
+  return response.data;
+};
+
+/**
+ * Compare two basketball players
+ * @param data - Comparison data containing player IDs
+ */
+export const compareBasketballPlayers = async (data: {
+  playerA: string | number;
+  playerB: string | number;
+}) => {
+  const endpoint = "/api/v1/basketball/comparison/players";
+  const response = await apiClient.post(endpoint, data);
+  return response.data;
 };
