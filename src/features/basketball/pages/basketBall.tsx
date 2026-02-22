@@ -96,7 +96,6 @@ const BasketballPage = () => {
         let data: ApiResponse;
 
         if (activeTab === "live") {
-          console.log("Fetching live matches...");
           const data = await getLiveBasketballMatches(currentPage);
           if (data && data.success && data.responseObject) {
             let allLiveMatches = data.responseObject.items || [];
