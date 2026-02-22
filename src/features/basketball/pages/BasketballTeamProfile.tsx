@@ -14,7 +14,7 @@ import {
   getBasketballTeamDetail,
   getBasketballStandings,
 } from "@/lib/api/endpoints";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface TeamInfo {
   id: number;
