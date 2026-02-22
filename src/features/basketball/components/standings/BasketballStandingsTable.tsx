@@ -38,20 +38,23 @@ type BasketballStandingsResponse = {
   message?: string;
   responseObject?: {
     items?: BasketballStandingApiRow[];
+    item?: BasketballStandingApiRow[];
     total?: number;
   };
 };
 
 type Props = {
   leagueId?: string | number;
+  season?: string;
 };
 
-export const BasketballStandingsTable = ({ leagueId }: Props) => {
+export const BasketballStandingsTable = ({ leagueId, season }: Props) => {
   const [apiData, setApiData] = useState<BasketballStandingsResponse | null>(
     null,
   );
   const [apiError, setApiError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isShortView, setIsShortView] = useState(true);
 
   const openTeamProfile = (teamId?: number) => {
     if (!teamId) return;
@@ -65,65 +68,90 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
     />
   );
 
-  const StandingsSkeletonDesktop = () => (
-    <div className="hidden lg:block block-style overflow-x-auto">
-      <div className="min-w-full">
-        <div className="grid grid-cols-[40px_1fr_40px_40px_40px_60px_60px_60px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
-          <div className="text-center">#</div>
-          <div>Team</div>
-          <div className="text-center">P</div>
-          <div className="text-center">W</div>
-          <div className="text-center">L</div>
-          <div className="text-center">PF</div>
-          <div className="text-center">PA</div>
-          <div className="text-center">+/-</div>
-          <div className="text-center">PTS</div>
-          <div className="text-center">Form</div>
-        </div>
-        <div className="flex flex-col gap-2 px-6 pb-6">
-          {Array.from({ length: 10 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="grid grid-cols-[40px_1fr_40px_40px_40px_60px_60px_60px_50px_90px] gap-3 items-center"
-            >
-              <SkeletonBlock className="h-4 w-6 mx-auto" />
-              <div className="flex items-center gap-3 min-w-0">
-                <SkeletonBlock className="w-8 h-8 rounded-full" />
-                <SkeletonBlock className="h-3 w-40" />
+  const StandingsSkeletonDesktop = () => {
+    const gridCols = isShortView
+      ? "grid-cols-[30px_minmax(120px,1fr)_35px_35px_45px]"
+      : "grid-cols-[30px_minmax(120px,1fr)_35px_35px_35px_50px_50px_50px_45px_80px]";
+
+    return (
+      <div className="hidden lg:block block-style overflow-x-auto">
+        <div className="min-w-full">
+          <div
+            className={`grid ${gridCols} gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap`}
+          >
+            <div className="text-center">#</div>
+            <div>Team</div>
+            {!isShortView && <div className="text-center">P</div>}
+            <div className="text-center">W</div>
+            <div className="text-center">L</div>
+            {!isShortView && (
+              <>
+                <div className="text-center">PF</div>
+                <div className="text-center">PA</div>
+                <div className="text-center">+/-</div>
+              </>
+            )}
+            <div className="text-center">PTS</div>
+            {!isShortView && <div className="text-center">Form</div>}
+          </div>
+          <div className="flex flex-col gap-2 px-6 pb-6">
+            {Array.from({ length: 10 }).map((_, idx) => (
+              <div key={idx} className={`grid ${gridCols} gap-3 items-center`}>
+                <SkeletonBlock className="h-4 w-6 mx-auto" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <SkeletonBlock className="w-8 h-8 rounded-full" />
+                  <SkeletonBlock className="h-3 w-40" />
+                </div>
+                {!isShortView && <SkeletonBlock className="h-4 w-6 mx-auto" />}
+                <SkeletonBlock className="h-4 w-6 mx-auto" />
+                <SkeletonBlock className="h-4 w-6 mx-auto" />
+                {!isShortView && (
+                  <>
+                    <SkeletonBlock className="h-4 w-10 mx-auto" />
+                    <SkeletonBlock className="h-4 w-10 mx-auto" />
+                    <SkeletonBlock className="h-4 w-10 mx-auto" />
+                  </>
+                )}
+                <SkeletonBlock className="h-4 w-8 mx-auto" />
+                {!isShortView && (
+                  <div className="flex items-center justify-center gap-1">
+                    {Array.from({ length: 5 }).map((__, j) => (
+                      <SkeletonBlock
+                        key={j}
+                        className="h-2.5 w-2.5 rounded-full"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              <SkeletonBlock className="h-4 w-6 mx-auto" />
-              <SkeletonBlock className="h-4 w-6 mx-auto" />
-              <SkeletonBlock className="h-4 w-6 mx-auto" />
-              <SkeletonBlock className="h-4 w-10 mx-auto" />
-              <SkeletonBlock className="h-4 w-10 mx-auto" />
-              <SkeletonBlock className="h-4 w-10 mx-auto" />
-              <SkeletonBlock className="h-4 w-8 mx-auto" />
-              <div className="flex items-center justify-center gap-1">
-                {Array.from({ length: 5 }).map((__, j) => (
-                  <SkeletonBlock key={j} className="h-2.5 w-2.5 rounded-full" />
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   useEffect(() => {
     const id = String(leagueId ?? "").trim();
-    // For basketball, we might want to fetch general standings if no ID is provided,
-    // but the API test showed it might require a filter or return all.
-
     let isCancelled = false;
 
     const run = async () => {
       try {
         setIsLoading(true);
         setApiError("");
-        const res = (await getBasketballStandings({
-          league_id: id,
-        })) as BasketballStandingsResponse;
+
+        // Use the new endpoint if season is provided, otherwise fallback to existing
+        let res: BasketballStandingsResponse;
+        if (id && season) {
+          const { getBasketballStandingsByLeagueId } =
+            await import("@/lib/api/endpoints");
+          res = await getBasketballStandingsByLeagueId(id, season);
+        } else {
+          res = (await getBasketballStandings({
+            league_id: id,
+          })) as BasketballStandingsResponse;
+        }
+
         if (isCancelled) return;
         setApiData(res);
       } catch (e) {
@@ -140,10 +168,11 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
     return () => {
       isCancelled = true;
     };
-  }, [leagueId]);
+  }, [leagueId, season]);
 
   const data = useMemo<BasketballStandingsRow[]>(() => {
-    const apiStandings = apiData?.responseObject?.items;
+    const apiStandings =
+      apiData?.responseObject?.item || apiData?.responseObject?.items;
     if (Array.isArray(apiStandings) && apiStandings.length) {
       const toNum = (v: unknown) => {
         const n = Number(v);
@@ -172,7 +201,12 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
           } satisfies BasketballStandingsRow;
         })
         .filter((r) => r.team.trim())
-        .sort((a, b) => a.position - b.position);
+        .sort((a, b) => {
+          if (b.points !== a.points) {
+            return b.points - a.points;
+          }
+          return a.position - b.position; // Tie-breaker: original position
+        });
     }
     return [];
   }, [apiData]);
@@ -204,8 +238,40 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
     );
   };
 
+  const gridCols = isShortView
+    ? "grid-cols-[30px_minmax(120px,1fr)_35px_35px_45px]"
+    : "grid-cols-[30px_minmax(120px,1fr)_35px_35px_35px_50px_50px_50px_45px_80px]";
+
   return (
     <div className="my-8">
+      {/* View Toggle */}
+      {!isLoading && data.length > 0 && (
+        <div className="mb-4 flex justify-start">
+          <div className="flex bg-snow-100 dark:bg-white/5 p-1 rounded-lg border border-snow-200 dark:border-white/10">
+            <button
+              onClick={() => setIsShortView(true)}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                isShortView
+                  ? "bg-white dark:bg-[#1F2937] text-brand-primary shadow-sm"
+                  : "text-neutral-n4 dark:text-snow-200 hover:text-brand-primary"
+              }`}
+            >
+              Short View
+            </button>
+            <button
+              onClick={() => setIsShortView(false)}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                !isShortView
+                  ? "bg-white dark:bg-[#1F2937] text-brand-primary shadow-sm"
+                  : "text-neutral-n4 dark:text-snow-200 hover:text-brand-primary"
+              }`}
+            >
+              Full Stats
+            </button>
+          </div>
+        </div>
+      )}
+
       {apiError ? (
         <div className="mb-4 text-sm text-ui-negative">{apiError}</div>
       ) : null}
@@ -220,26 +286,32 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
       {!isLoading && data.length > 0 ? (
         <div className="block-style overflow-x-auto">
           <div className="min-w-full">
-            <div className="grid grid-cols-[40px_1fr_40px_40px_40px_60px_60px_60px_50px_90px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+            <div
+              className={`grid ${gridCols} gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap`}
+            >
               <div className="text-center">#</div>
               <div>Team</div>
-              <div className="text-center">P</div>
+              {!isShortView && <div className="text-center">P</div>}
               <div className="text-center">W</div>
               <div className="text-center">L</div>
-              <div className="text-center">PF</div>
-              <div className="text-center">PA</div>
-              <div className="text-center">+/-</div>
+              {!isShortView && (
+                <>
+                  <div className="text-center">PF</div>
+                  <div className="text-center">PA</div>
+                  <div className="text-center">+/-</div>
+                </>
+              )}
               <div className="text-center">PTS</div>
-              <div className="text-center">Form</div>
+              {!isShortView && <div className="text-center">Form</div>}
             </div>
             <div className="flex flex-col gap-2 pb-6">
-              {data.map((team) => (
+              {data.map((team, index) => (
                 <div
                   key={`${team.position}-${team.team}`}
-                  className="grid grid-cols-[40px_1fr_40px_40px_40px_60px_60px_60px_50px_90px] gap-3 px-6 items-center relative whitespace-nowrap hover:bg-snow-100/50 dark:hover:bg-white/5 transition-colors"
+                  className={`grid ${gridCols} gap-3 px-6 items-center relative whitespace-nowrap hover:bg-snow-100/50 dark:hover:bg-white/5 transition-colors`}
                 >
                   <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
-                    {team.position}
+                    {index + 1}
                   </div>
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-snow-100 dark:bg-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -251,38 +323,47 @@ export const BasketballStandingsTable = ({ leagueId }: Props) => {
                     </div>
                     <button
                       type="button"
-                      className="font-medium text-sm text-neutral-n4 dark:text-snow-200 truncate text-left hover:underline"
+                      className="font-medium text-sm text-neutral-n4 dark:text-snow-200 text-left hover:underline truncate min-w-0 flex-1"
                       onClick={() => openTeamProfile(team.teamId)}
+                      title={team.team}
                     >
                       {team.team}
                     </button>
                   </div>
-                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                    {team.played}
-                  </div>
+                  {!isShortView && (
+                    <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                      {team.played}
+                    </div>
+                  )}
                   <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
                     {team.wins}
                   </div>
                   <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
                     {team.losses}
                   </div>
-                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                    {team.pointsFor}
-                  </div>
-                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                    {team.pointsAgainst}
-                  </div>
-                  <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                    {team.pointsDiff > 0
-                      ? `+${team.pointsDiff}`
-                      : team.pointsDiff}
-                  </div>
+                  {!isShortView && (
+                    <>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                        {team.pointsFor}
+                      </div>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                        {team.pointsAgainst}
+                      </div>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
+                        {team.pointsDiff > 0
+                          ? `+${team.pointsDiff}`
+                          : team.pointsDiff}
+                      </div>
+                    </>
+                  )}
                   <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">
                     {team.points}
                   </div>
-                  <div className="text-center">
-                    {renderRecentForm(team.recentForm)}
-                  </div>
+                  {!isShortView && (
+                    <div className="text-center">
+                      {renderRecentForm(team.recentForm)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

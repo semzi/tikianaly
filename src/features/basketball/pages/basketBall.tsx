@@ -306,6 +306,8 @@ const BasketballPage = () => {
     [matches],
   );
 
+  console.log("groupedMatches", groupedMatches);
+
   const getStatusDisplay = (match: Match) => {
     if (activeTab === "live") {
       return {

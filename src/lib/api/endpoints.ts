@@ -604,6 +604,16 @@ export const getBasketballFixturesByDate = async (
 };
 
 /**
+ * Fetch detailed match info (fixture details)
+ * @param matchId - The ID of the match
+ */
+export const getBasketballMatchDetail = async (matchId: string | number) => {
+  const endpoint = `/api/v1/basketball/fixtures/${matchId}`;
+  const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
  * Fetch Play-by-Play data for a basketball match
  * @param matchId - The ID of the match
  */
@@ -612,6 +622,21 @@ export const getBasketballMatchPlayByPlay = async (
 ) => {
   const endpoint = `/api/v1/basketball/match/${matchId}/pbp`;
   const response = await apiClient.get(endpoint);
+  return response.data;
+};
+
+/**
+ * Fetch basketball standings by league ID and season
+ * @param leagueId - The ID of the league
+ * @param season - The season (e.g., '2025/2026')
+ */
+export const getBasketballStandingsByLeagueId = async (
+  leagueId: string | number,
+  season: string,
+) => {
+  const endpoint = "/api/v1/basketball/standings/league";
+  const params = { leagueId, season };
+  const response = await apiClient.get(endpoint, { params });
   return response.data;
 };
 
