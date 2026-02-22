@@ -479,9 +479,10 @@ const BasketballPage = () => {
                       onClick={() =>
                         navigate(`/basketball/league/${group.leagueId}`)
                       }
-                      className="ml-auto text-xs text-brand-primary hover:underline font-medium"
+                      className="ml-auto p-1.5 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-all"
+                      title="View League Profile"
                     >
-                      View League Profile
+                      <ChevronRightIcon className="w-5 h-5" />
                     </button>
                   </div>
 
