@@ -6,7 +6,13 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { AnimatePresence, LazyMotion, domAnimation, m, type Transition } from "framer-motion";
+import {
+  AnimatePresence,
+  LazyMotion,
+  domAnimation,
+  m,
+  type Transition,
+} from "framer-motion";
 
 import Dashboard from "./features/dashboard/pages/dashboard";
 import News from "./features/dashboard/pages/news";
@@ -22,16 +28,20 @@ const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
 const Favourite = lazy(() => import("./features/dashboard/pages/favourites"));
 const AccountPage = lazy(() => import("./features/account/pages/account"));
 const GameInfo = lazy(() => import("./features/football/pages/gameInfo"));
-const PlayerProfile = lazy(() => import("./features/football/pages/playerProfile"));
-const PlayerComparison = lazy(() => import("./features/football/pages/playerComparison"));
+const PlayerProfile = lazy(
+  () => import("./features/football/pages/playerProfile"),
+);
+const PlayerComparison = lazy(
+  () => import("./features/football/pages/playerComparison"),
+);
 const TeamProfile = lazy(() => import("./features/football/pages/teamProfile"));
 const Onboard = lazy(() => import("./features/onboarding/pages/onboard"));
 const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
 const ScriptSandbox = lazy(() => import("./features/dev/pages/ScriptSandbox"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
-// const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
-// const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
+const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
+const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
 const Community = lazy(() => import("./features/community/pages/Community"));
 // Animation variants (can tweak)
 const pageVariants = {
@@ -66,90 +76,90 @@ function AnimatedRoutes() {
 
             {/* With Navigation */}
             <Route
-          path="/league"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <League />
-            </m.div>
-          }
+              path="/league"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <League />
+                </m.div>
+              }
             />
             <Route
-          path="/news/read/:id"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <NewsRead id={""} initialPost={null} initialError={null} />
-            </m.div>
-          }
+              path="/news/read/:id"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <NewsRead id={""} initialPost={null} initialError={null} />
+                </m.div>
+              }
             />
             <Route
-          path="/onboard"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Onboard />
-            </m.div>
-          }
+              path="/onboard"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Onboard />
+                </m.div>
+              }
             />
             <Route
-          path="/"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Dashboard />
-            </m.div>
-          }
+              path="/"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Dashboard />
+                </m.div>
+              }
             />
             <Route
-          path="/news"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <News />
-            </m.div>
-          }
+              path="/news"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <News />
+                </m.div>
+              }
             />
             <Route
-          path="/football/afcon"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Afcon />
-            </m.div>
-          }
+              path="/football/afcon"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Afcon />
+                </m.div>
+              }
             />
-            {/* <Route
+            <Route
           path="/basketball"
           element={
             <m.div
@@ -176,162 +186,162 @@ function AnimatedRoutes() {
               <BasketballMatchDetail />
             </m.div>
           }
-            /> */}
-            <Route
-          path="/account"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <AccountPage />
-            </m.div>
-          }
             />
             <Route
-          path="/player/profile"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <PlayerProfile />
-            </m.div>
-          }
+              path="/account"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AccountPage />
+                </m.div>
+              }
             />
             <Route
-          path="/player/profile/:playerId"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <PlayerProfile />
-            </m.div>
-          }
+              path="/player/profile"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <PlayerProfile />
+                </m.div>
+              }
             />
-
             <Route
-          path="/player/compare"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <PlayerComparison />
-            </m.div>
-          }
+              path="/player/profile/:playerId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <PlayerProfile />
+                </m.div>
+              }
             />
 
             <Route
-          path="/team/profile"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <TeamProfile />
-            </m.div>
-          }
+              path="/player/compare"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <PlayerComparison />
+                </m.div>
+              }
+            />
+
+            <Route
+              path="/team/profile"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TeamProfile />
+                </m.div>
+              }
             />
             <Route
-          path="/team/profile/:teamId"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <TeamProfile />
-            </m.div>
-          }
+              path="/team/profile/:teamId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TeamProfile />
+                </m.div>
+              }
             />
             <Route
-          path="/football/gameinfo/:fixtureId"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <GameInfo />
-            </m.div>
-          }
+              path="/football/gameinfo/:fixtureId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <GameInfo />
+                </m.div>
+              }
             />
             <Route
-          path="/test"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <ScriptSandbox />
-            </m.div>
-          }
+              path="/test"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <ScriptSandbox />
+                </m.div>
+              }
             />
             <Route
-          path="/forgot-password"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Forgot />
-            </m.div>
-          }
+              path="/forgot-password"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Forgot />
+                </m.div>
+              }
             />
             <Route
-          path="/reset-password"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Reset />
-            </m.div>
-          }
+              path="/reset-password"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Reset />
+                </m.div>
+              }
             />
             <Route
-          path="/favourites"
-          element={
-            <m.div
-              variants={motionVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={motionTransition}
-            >
-              <Favourite />
-            </m.div>
-          }
+              path="/favourites"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Favourite />
+                </m.div>
+              }
             />
 
             <Route
@@ -397,4 +407,3 @@ function App() {
 }
 
 export default App;
-
