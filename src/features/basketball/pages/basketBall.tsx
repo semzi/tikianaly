@@ -1,20 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
 import {
-  ClockIcon,
   StarIcon,
-  ChevronDownIcon,
-  FunnelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CalendarIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import {
   getLiveBasketballMatches,
-  getBasketballFixtures,
   searchBasketballFixturesByStatus,
+  getBasketballFixturesByDate,
 } from "@/lib/api/endpoints";
+import { BasketballLeftBar } from "../components/BasketballLeftBar";
+import Category from "@/features/dashboard/components/Category";
+import { subDays, addDays, isToday, format } from "date-fns";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import RightBar from "@/components/layout/RightBar";
 
 interface Team {
   id: number;
@@ -28,7 +35,8 @@ interface Team {
 }
 
 interface Match {
-  _id: string;
+  id?: string;
+  _id?: string;
   match_id: number;
   localteam: Team;
   awayteam: Team;
@@ -38,7 +46,7 @@ interface Match {
   date?: string;
   time?: string;
   league_name: string;
-  league_id?: number;
+  league_id: number;
   venue?: string;
   season?: string;
   stage?: string;
@@ -70,22 +78,17 @@ const BasketballPage = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [selectedLeague, setSelectedLeague] = useState<string>("All Leagues");
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [total, setTotal] = useState(0);
 
-  // Extract unique leagues from matches
-  const leagues = [
-    "All Leagues",
-    ...Array.from(new Set(matches.map((m) => m.league_name))),
-  ];
-
-  // Fetch data based on active tab and page
+  // Fetch data based on active tab, page, and league
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -93,25 +96,129 @@ const BasketballPage = () => {
         let data: ApiResponse;
 
         if (activeTab === "live") {
-          data = await getLiveBasketballMatches(currentPage);
+          const data = await getLiveBasketballMatches(currentPage);
+          if (data && data.success && data.responseObject) {
+            let allLiveMatches = data.responseObject.items || [];
+            if (selectedLeagueId) {
+              allLiveMatches = allLiveMatches.filter(
+                (m: any) => !m.league_id || m.league_id === selectedLeagueId,
+              );
+            }
+            setMatches(allLiveMatches);
+            setTotalPages(data.responseObject.totalPages || 1);
+            setHasNextPage(data.responseObject.hasNextPage || false);
+            setHasPreviousPage(data.responseObject.hasPreviousPage || false);
+            setCurrentPage(data.responseObject.page || 1);
+          } else {
+            setMatches([]);
+            setTotalPages(1);
+            setHasNextPage(false);
+            setHasPreviousPage(false);
+            setCurrentPage(1);
+          }
         } else if (activeTab === "fixtures") {
-          data = await getBasketballFixtures(currentPage);
-        } else {
-          data = await searchBasketballFixturesByStatus(
-            "finished",
-            currentPage
-          );
-        }
+          const formattedDate = selectedDate
+            ? format(selectedDate, "yyyy-MM-dd")
+            : "";
 
-        if (data && data.success && data.responseObject) {
-          setMatches(data.responseObject.items || []);
-          setTotalPages(data.responseObject.totalPages || 1);
-          setHasNextPage(data.responseObject.hasNextPage || false);
-          setHasPreviousPage(data.responseObject.hasPreviousPage || false);
-          setTotal(data.responseObject.total || 0);
-          setCurrentPage(data.responseObject.page || 1);
+          // Try fetching by date first
+          try {
+            data = await getBasketballFixturesByDate(
+              formattedDate,
+              currentPage,
+            );
+          } catch (err) {
+            console.error("Error fetching fixtures by date:", err);
+            // Fallback or empty state
+            data = {
+              success: false,
+              message: "Error",
+              responseObject: {
+                items: [],
+                total: 0,
+                page: 1,
+                limit: 100,
+                totalPages: 1,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+              statusCode: 500,
+            };
+          }
+
+          if (data && data.success && data.responseObject) {
+            let items = data.responseObject.items || [];
+            if (selectedLeagueId) {
+              items = items.filter((m) => m.league_id === selectedLeagueId);
+            }
+            setMatches(items);
+            setTotalPages(data.responseObject.totalPages || 1);
+            setHasNextPage(data.responseObject.hasNextPage || false);
+            setHasPreviousPage(data.responseObject.hasPreviousPage || false);
+            setCurrentPage(data.responseObject.page || 1);
+          } else {
+            // If date fetch fails or is empty, and it is today, we could potentially fallback
+            // but for now let's show empty to be accurate to the selected date
+            setMatches([]);
+          }
         } else {
-          setMatches([]);
+          // Results tab
+          const formattedDate = selectedDate
+            ? format(selectedDate, "yyyy-MM-dd")
+            : "";
+
+          try {
+            data = await getBasketballFixturesByDate(
+              formattedDate,
+              currentPage,
+            );
+
+            if (
+              data &&
+              data.success &&
+              data.responseObject &&
+              data.responseObject.items.length > 0
+            ) {
+              let items = data.responseObject.items.filter(
+                (m) =>
+                  m.status.toLowerCase().includes("finished") ||
+                  m.localteam.totalscore !== "",
+              );
+
+              if (selectedLeagueId) {
+                items = items.filter((m) => m.league_id === selectedLeagueId);
+              }
+              setMatches(items);
+              setTotalPages(data.responseObject.totalPages || 1);
+              setHasNextPage(data.responseObject.hasNextPage || false);
+              setHasPreviousPage(data.responseObject.hasPreviousPage || false);
+              setCurrentPage(data.responseObject.page || 1);
+            } else {
+              // Fallback to general results search if no specific date results found
+              data = await searchBasketballFixturesByStatus(
+                "finished",
+                currentPage,
+              );
+              if (data && data.success && data.responseObject) {
+                let items = data.responseObject.items || [];
+                if (selectedLeagueId) {
+                  items = items.filter((m) => m.league_id === selectedLeagueId);
+                }
+                setMatches(items);
+                setTotalPages(data.responseObject.totalPages || 1);
+                setHasNextPage(data.responseObject.hasNextPage || false);
+                setHasPreviousPage(
+                  data.responseObject.hasPreviousPage || false,
+                );
+                setCurrentPage(data.responseObject.page || 1);
+              } else {
+                setMatches([]);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching results:", error);
+            setMatches([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching basketball data:", error);
@@ -130,28 +237,77 @@ const BasketballPage = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activeTab, currentPage]);
+  }, [activeTab, currentPage, selectedLeagueId, selectedDate]);
 
-  // Reset to page 1 when changing tabs
+  // Reset to page 1 when changing tabs or league
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab]);
+
+    // Adjust selected date if it falls out of range for the new tab
+    if (
+      activeTab === "fixtures" &&
+      selectedDate &&
+      selectedDate < new Date(new Date().setHours(0, 0, 0, 0))
+    ) {
+      setSelectedDate(new Date());
+    } else if (
+      activeTab === "results" &&
+      selectedDate &&
+      selectedDate > new Date()
+    ) {
+      setSelectedDate(new Date());
+    }
+  }, [activeTab, selectedLeagueId, selectedDate]);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleTabClick = (tabId: string) => {
-    setActiveTab(tabId);
+  const groupMatchesByLeague = (matchList: Match[]) => {
+    const grouped: Record<
+      string,
+      { leagueName: string; leagueId: number | string; items: Match[] }
+    > = {};
+    matchList.forEach((match) => {
+      const lid = match.league_id || match.league_name || "unknown";
+      if (!grouped[lid]) {
+        grouped[lid] = {
+          leagueName: match.league_name || "Unknown League",
+          leagueId: match.league_id || lid,
+          items: [],
+        };
+      }
+      grouped[lid].items.push(match);
+    });
+
+    // Sort items within each league by time/date
+    Object.values(grouped).forEach((group) => {
+      group.items.sort((a, b) => {
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        if (dateA !== dateB) {
+          return activeTab === "results"
+            ? dateB.localeCompare(dateA) // Recent first for results
+            : dateA.localeCompare(dateB); // Upcoming first for fixtures
+        }
+        const timeA = a.time || "00:00";
+        const timeB = b.time || "00:00";
+        return activeTab === "results"
+          ? timeB.localeCompare(timeA) // Later time first for results on same day
+          : timeA.localeCompare(timeB); // Earlier time first for fixtures on same day
+      });
+    });
+
+    return Object.values(grouped);
   };
 
-  // Filter matches by selected league
-  const filteredMatches =
-    selectedLeague === "All Leagues"
-      ? matches
-      : matches.filter((m) => m.league_name === selectedLeague);
+  const groupedMatches = useMemo(
+    () => groupMatchesByLeague(matches),
+    [matches],
+  );
 
-  // Get status display text
+  console.log("groupedMatches", groupedMatches);
+
   const getStatusDisplay = (match: Match) => {
     if (activeTab === "live") {
       return {
@@ -161,30 +317,19 @@ const BasketballPage = () => {
       };
     } else if (activeTab === "fixtures") {
       return {
-        text: match.date
-          ? new Date(match.date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })
-          : "TBD",
+        text: match.date ? format(new Date(match.date), "MMM d") : "TBD",
         subtext: match.time || "",
         isLive: false,
       };
     } else {
       return {
-        text: match.status || "Finished",
-        subtext: match.date
-          ? new Date(match.date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })
-          : "",
+        text: "FT",
+        subtext: match.date ? format(new Date(match.date), "MMM d") : "",
         isLive: false,
       };
     }
   };
 
-  // Check if match has scores
   const hasScores = (match: Match) => {
     return (
       match.localteam.totalscore !== "" && match.awayteam.totalscore !== ""
@@ -192,338 +337,263 @@ const BasketballPage = () => {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#0D1117]">
+    <div className="transition-all min-h-screen dark:bg-[#0D1117]">
       <PageHeader />
+      <Category />
 
-      {/* Basketball Header Banner */}
-      <div
-        className="relative w-full overflow-hidden h-[200px]"
-        style={{
-          backgroundImage: "linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 h-full flex items-center justify-center px-6 md:px-12 py-6">
-          <div className="flex flex-col items-center gap-2 text-white text-center">
-            <div className="text-4xl md:text-5xl font-bold">🏀</div>
-            <h1 className="font-bold text-2xl md:text-4xl">Basketball</h1>
-            <p className="text-sm md:text-base opacity-90">
-              Live Scores, Fixtures & Results
-            </p>
-          </div>
-        </div>
-      </div>
+      <div className="flex page-padding-x gap-5 py-5 justify-around">
+        {/* Left Sidebar */}
+        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+          <BasketballLeftBar
+            onSelectLeague={setSelectedLeagueId}
+            selectedLeagueId={selectedLeagueId}
+          />
+        </section>
 
-      {/* Navigation Tabs */}
-      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar">
-        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
-                activeTab === tab.id
-                  ? "text-orange-500 font-medium border-b-2 border-orange-500"
-                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-              }`}
-            >
-              {tab.label}
-              {tab.id === "live" &&
-                matches.length > 0 &&
-                activeTab === "live" && (
-                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                    {matches.length}
-                  </span>
-                )}
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Main Content Area */}
+        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+          {/* Controls */}
+          <div className="block-style">
+            <div className="flex flex-col gap-4">
+              {/* Tabs */}
+              <div className="flex gap-4 border-b border-snow-200 dark:border-[#1F2937]">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-2 text-sm font-medium transition-colors relative ${
+                      activeTab === tab.id
+                        ? "text-brand-primary"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-      <div className="page-padding-x">
-        <div className="flex flex-col-reverse md:flex-row my-8 gap-7">
-          {/* Left Sidebar - Featured Match & Filters */}
-          <div className="flex flex-col gap-5 flex-2">
-            {/* Featured Match */}
-            {activeTab === "live" && (
-              <div className="block-style">
-                <p className="font-[500] mb-4 flex items-center sz-4 theme-text">
-                  Featured Match
-                </p>
-
-                {loading ? (
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-20 bg-snow-200 dark:bg-[#1F2937] rounded-lg" />
+              {/* Date Navigation (only for fixtures/results) */}
+              {(activeTab === "fixtures" || activeTab === "results") && (
+                <div className="relative flex items-center justify-between dark:text-snow-200">
+                  <ArrowLeftIcon
+                    className={`h-5 w-5 transition-colors ${
+                      activeTab === "fixtures" &&
+                      selectedDate &&
+                      isToday(selectedDate)
+                        ? "text-gray-300 cursor-not-allowed opacity-50"
+                        : "text-neutral-n4 cursor-pointer hover:text-brand-primary"
+                    }`}
+                    onClick={() => {
+                      if (
+                        activeTab === "fixtures" &&
+                        selectedDate &&
+                        isToday(selectedDate)
+                      )
+                        return;
+                      setSelectedDate((prev) => subDays(prev || new Date(), 1));
+                    }}
+                  />
+                  <div
+                    className="flex gap-3 items-center cursor-pointer hover:text-brand-primary"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                  >
+                    <p className="font-medium">
+                      {selectedDate && isToday(selectedDate)
+                        ? "Today"
+                        : selectedDate
+                          ? format(selectedDate, "EEE, MMM d, yyyy")
+                          : "Select Date"}
+                    </p>
+                    <CalendarIcon className="h-5 w-5 text-neutral-n4" />
                   </div>
-                ) : filteredMatches.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="flex flex-col p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 rounded-lg border border-orange-500/30">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                          <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                          LIVE
-                        </span>
-                        <span className="text-xs theme-text">
-                          {filteredMatches[0].period ||
-                            filteredMatches[0].status}
-                        </span>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium theme-text text-sm">
-                            {filteredMatches[0].localteam.name}
-                          </span>
-                          <span className="font-bold text-lg theme-text">
-                            {filteredMatches[0].localteam.totalscore || 0}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium theme-text text-sm">
-                            {filteredMatches[0].awayteam.name}
-                          </span>
-                          <span className="font-bold text-lg theme-text">
-                            {filteredMatches[0].awayteam.totalscore || 0}
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/basketball/match/${filteredMatches[0].match_id}`
-                          )
+                  <ArrowRightIcon
+                    className={`h-5 w-5 transition-colors ${
+                      activeTab === "results" &&
+                      selectedDate &&
+                      isToday(selectedDate)
+                        ? "text-gray-300 cursor-not-allowed opacity-50"
+                        : "text-neutral-n4 cursor-pointer hover:text-brand-primary"
+                    }`}
+                    onClick={() => {
+                      if (
+                        activeTab === "results" &&
+                        selectedDate &&
+                        isToday(selectedDate)
+                      )
+                        return;
+                      setSelectedDate((prev) => addDays(prev || new Date(), 1));
+                    }}
+                  />
+                  {showDatePicker && (
+                    <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
+                      <DatePicker
+                        selected={selectedDate}
+                        onChange={(date: Date | null) => {
+                          setSelectedDate(date);
+                          setShowDatePicker(false);
+                        }}
+                        minDate={
+                          activeTab === "fixtures" ? new Date() : undefined
                         }
-                        className="w-full mt-3 py-2 px-4 bg-brand-primary text-white rounded-lg font-semibold text-xs hover:bg-brand-primary/90 transition"
-                      >
-                        View Live Stats
-                      </button>
+                        maxDate={
+                          activeTab === "results" ? new Date() : undefined
+                        }
+                        inline
+                      />
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-neutral-n4 dark:text-snow-200 text-center py-4">
-                    No live matches available
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Filters */}
-            <div className="block-style">
-              <p className="font-[500] mb-4 flex items-center gap-2 sz-4 theme-text">
-                <FunnelIcon className="w-4 h-4" />
-                Filters
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs text-neutral-n4 dark:text-snow-200 mb-2 block">
-                    League
-                  </label>
-                  <div className="relative">
-                    <select
-                      className="w-full appearance-none bg-snow-100 dark:bg-[#1F2937] text-sm theme-text px-3 py-2 rounded-lg border border-snow-200 dark:border-transparent hover:border-neutral-n5 transition pr-8"
-                      value={selectedLeague}
-                      onChange={(e) => setSelectedLeague(e.target.value)}
-                    >
-                      {leagues.map((league) => (
-                        <option key={league} value={league}>
-                          {league}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-n4 pointer-events-none" />
-                  </div>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            {/* Stats Summary */}
-            <div className="block-style">
-              <p className="font-[500] mb-3 sz-4 theme-text">Summary</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-n4 dark:text-snow-200">
-                    Total Matches:
-                  </span>
-                  <span className="font-semibold theme-text">{total}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-n4 dark:text-snow-200">
-                    Showing:
-                  </span>
-                  <span className="font-semibold theme-text">
-                    {filteredMatches.length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-n4 dark:text-snow-200">
-                    Page:
-                  </span>
-                  <span className="font-semibold theme-text">
-                    {currentPage} of {totalPages}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Main Content - Matches */}
-          <div className="flex flex-col gap-5 flex-5">
+          {/* Matches */}
+          <div className="flex flex-col gap-y-4">
             {loading ? (
-              <div className="block-style">
-                <div className="animate-pulse space-y-4">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="h-24 bg-snow-200 dark:bg-[#1F2937] rounded-lg"
-                    />
-                  ))}
-                </div>
+              <div className="block-style space-y-4 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-32 bg-snow-200 dark:bg-[#1F2937] rounded-lg"
+                  />
+                ))}
               </div>
-            ) : filteredMatches.length > 0 ? (
-              <>
-                <div className="space-y-4">
-                  {filteredMatches.map((match) => {
-                    const status = getStatusDisplay(match);
-                    const showScores = hasScores(match);
-
-                    return (
-                      <div
-                        key={match._id}
-                        className="block-style hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() =>
-                          navigate(`/basketball/match/${match.match_id}`)
-                        }
-                      >
-                        {/* League Header */}
-                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-snow-200 dark:border-[#1F2937]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium theme-text">
-                              {match.league_name}
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(match._id);
-                            }}
-                            className={`p-1.5 rounded-full transition ${
-                              favorites[match._id]
-                                ? "bg-orange-500"
-                                : "bg-transparent border border-neutral-n4"
-                            }`}
-                          >
-                            <StarIcon
-                              className={`w-3 h-3 ${
-                                favorites[match._id]
-                                  ? "text-white"
-                                  : "text-neutral-n4 dark:text-snow-200"
-                              }`}
-                            />
-                          </button>
-                        </div>
-
-                        {/* Match Info */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 space-y-3">
-                            {/* Home Team */}
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium theme-text">
-                                {match.localteam.name}
-                              </span>
-                              {showScores && (
-                                <span className="font-bold text-xl theme-text">
-                                  {match.localteam.totalscore}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Away Team */}
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium theme-text">
-                                {match.awayteam.name}
-                              </span>
-                              {showScores && (
-                                <span className="font-bold text-xl theme-text">
-                                  {match.awayteam.totalscore}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Status/Time */}
-                        <div className="mt-3 pt-3 border-t border-snow-200 dark:border-[#1F2937] flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {status.isLive ? (
-                              <>
-                                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                <span className="text-xs font-semibold text-red-500">
-                                  {status.text} {status.subtext}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <ClockIcon className="w-4 h-4 text-neutral-n4" />
-                                <span className="text-xs text-neutral-n4 dark:text-snow-200">
-                                  {status.text}{" "}
-                                  {status.subtext && `• ${status.subtext}`}
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          <span className="text-xs text-brand-primary font-medium hover:underline">
-                            View Details →
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between block-style">
+            ) : groupedMatches.length > 0 ? (
+              groupedMatches.map((group) => (
+                <div
+                  key={group.leagueId}
+                  className="block-style !p-0 overflow-hidden"
+                >
+                  {/* League Header */}
+                  <div className="flex items-center gap-3 px-5 py-3 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                    <GetLeagueLogo
+                      leagueId={group.leagueId}
+                      alt={group.leagueName}
+                      className="w-6 h-6 object-contain"
+                    />
+                    <p className="font-semibold theme-text text-sm md:text-base">
+                      {group.leagueName}
+                    </p>
                     <button
                       onClick={() =>
-                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                        navigate(`/basketball/league/${group.leagueId}`)
                       }
-                      disabled={!hasPreviousPage}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                        hasPreviousPage
-                          ? "bg-brand-primary text-white hover:bg-brand-primary/90"
-                          : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
-                      }`}
+                      className="ml-auto p-1.5 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-all"
+                      title="View League Profile"
                     >
-                      <ChevronLeftIcon className="w-4 h-4" />
-                      Previous
-                    </button>
-
-                    <span className="text-sm theme-text">
-                      Page {currentPage} of {totalPages}
-                    </span>
-
-                    <button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                      }
-                      disabled={!hasNextPage}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                        hasNextPage
-                          ? "bg-brand-primary text-white hover:bg-brand-primary/90"
-                          : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
-                      }`}
-                    >
-                      Next
-                      <ChevronRightIcon className="w-4 h-4" />
+                      <ChevronRightIcon className="w-5 h-5" />
                     </button>
                   </div>
-                )}
-              </>
+
+                  {/* League Matches */}
+                  <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                    {group.items.map((match) => {
+                      const status = getStatusDisplay(match);
+                      const showScores = hasScores(match);
+                      const matchUniqueId = (
+                        match._id ||
+                        match.id ||
+                        String(match.match_id)
+                      ).toString();
+
+                      return (
+                        <div
+                          key={matchUniqueId}
+                          className="px-5 py-4 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors cursor-pointer group"
+                          onClick={() =>
+                            navigate(`/basketball/match/${match.match_id}`)
+                          }
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Time/Status */}
+                            <div className="w-16 text-center">
+                              <p
+                                className={`text-xs font-bold ${
+                                  status.isLive
+                                    ? "text-red-500 animate-pulse"
+                                    : "theme-text opacity-70"
+                                }`}
+                              >
+                                {status.text}
+                              </p>
+                              {status.subtext && (
+                                <p className="text-[10px] theme-text opacity-50">
+                                  {status.subtext}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Teams and Scores */}
+                            <div className="flex-1 space-y-2">
+                              {/* Home Team */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="text-sm font-medium theme-text hover:text-brand-primary transition-colors cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(
+                                        `/basketball/team/${match.localteam.id}`,
+                                      );
+                                    }}
+                                  >
+                                    {match.localteam.name}
+                                  </span>
+                                </div>
+                                {showScores && (
+                                  <span className="font-bold text-sm theme-text">
+                                    {match.localteam.totalscore}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Away Team */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="text-sm font-medium theme-text hover:text-brand-primary transition-colors cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(
+                                        `/basketball/team/${match.awayteam.id}`,
+                                      );
+                                    }}
+                                  >
+                                    {match.awayteam.name}
+                                  </span>
+                                </div>
+                                {showScores && (
+                                  <span className="font-bold text-sm theme-text">
+                                    {match.awayteam.totalscore}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Favorite Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(matchUniqueId);
+                              }}
+                              className={`p-1.5 rounded-full transition-all ${
+                                favorites[matchUniqueId]
+                                  ? "bg-brand-primary text-white scale-110 shadow-md"
+                                  : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
+                              }`}
+                            >
+                              <StarIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="block-style text-center py-12">
                 <div className="text-4xl mb-4">🏀</div>
@@ -531,13 +601,60 @@ const BasketballPage = () => {
                   No {activeTab} matches
                 </p>
                 <p className="text-sm text-neutral-n4 dark:text-snow-200">
-                  {activeTab === "live"
-                    ? "There are no live matches at the moment"
-                    : `No ${activeTab} available for the selected filters`}
+                  {selectedLeagueId
+                    ? `No matches found for the selected league and filters.`
+                    : `There are no ${activeTab} matches at the moment.`}
                 </p>
               </div>
             )}
+
+            {/* Pagination (only for live/fixtures/results) */}
+            {(activeTab === "live" ||
+              activeTab === "fixtures" ||
+              activeTab === "results") &&
+              totalPages > 1 && (
+                <div className="flex items-center justify-between block-style">
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={!hasPreviousPage}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                      hasPreviousPage
+                        ? "bg-brand-primary text-white hover:bg-brand-primary/90"
+                        : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
+                    }`}
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    Previous
+                  </button>
+
+                  <span className="text-sm theme-text">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={!hasNextPage}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                      hasNextPage
+                        ? "bg-brand-primary text-white hover:bg-brand-primary/90"
+                        : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
+                    }`}
+                  >
+                    Next
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
           </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
+          <RightBar />
         </div>
       </div>
 

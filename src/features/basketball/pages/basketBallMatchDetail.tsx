@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
+import { ChartBarIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import {
-  ArrowLeftIcon,
-  ChartBarIcon,
-  ListBulletIcon,
-} from "@heroicons/react/24/outline";
-import { getBasketballMatchPlayByPlay } from "@/lib/api/endpoints";
+  getBasketballMatchPlayByPlay,
+  getBasketballMatchDetail,
+} from "@/lib/api/endpoints";
 import { useParams } from "react-router-dom";
 
 interface Team {
@@ -19,6 +18,8 @@ interface Team {
   q3: string | number;
   q4: string | number;
   ot: string | number;
+  logo?: string;
+  image_path?: string;
   possession?: boolean;
   team_fouls?: number;
   timeouts_left?: number;
@@ -61,14 +62,10 @@ interface MatchDetail {
 }
 
 const BasketballMatchDetail = () => {
-  const tabs = [
-    { id: "overview", label: "Overview", icon: ChartBarIcon },
-    { id: "playbyplay", label: "Play-by-Play", icon: ListBulletIcon },
-    { id: "stats", label: "Quarter Stats", icon: ChartBarIcon },
-  ];
+  const tabs = [{ id: "info", label: "Info", icon: ChartBarIcon }];
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [matchData] = useState<MatchDetail | null>(null);
+  const [activeTab, setActiveTab] = useState("info");
+  const [matchData, setMatchData] = useState<MatchDetail | null>(null);
   const [playByPlayData, setPlayByPlayData] = useState<PlayByPlayData | null>(
     null,
   );
@@ -76,24 +73,23 @@ const BasketballMatchDetail = () => {
 
   const { matchId } = useParams<{ matchId: string }>();
 
-  console.log("Match ID from params:", matchId);
-
   useEffect(() => {
     const fetchMatchData = async () => {
       if (!matchId) return;
 
       setLoading(true);
       try {
-        const response = await getBasketballMatchPlayByPlay(matchId);
+        const [pbpResponse, detailResponse] = await Promise.all([
+          getBasketballMatchPlayByPlay(matchId),
+          getBasketballMatchDetail(matchId),
+        ]);
 
-        if (response.success && response.responseObject) {
-          // The API returns play-by-play data
-          const pbpData = response.responseObject.item;
-          setPlayByPlayData(pbpData);
+        if (pbpResponse.success && pbpResponse.responseObject) {
+          setPlayByPlayData(pbpResponse.responseObject.item);
+        }
 
-          // We need to fetch match details separately or construct from available data
-          // For now, we'll use the play-by-play match_id to show we have data
-          console.log("Play-by-play data:", pbpData);
+        if (detailResponse.success && detailResponse.responseObject) {
+          setMatchData(detailResponse.responseObject.item);
         }
       } catch (error) {
         console.error("Error fetching match data:", error);
@@ -115,58 +111,95 @@ const BasketballMatchDetail = () => {
     };
   }, [matchId]);
 
-  const handleTabClick = (tabId: string) => {
-    setActiveTab(tabId);
-  };
+  // Helper to calculate quarter scores from PBP data
+  const calculateScores = () => {
+    const scores = {
+      home: { q1: 0, q2: 0, q3: 0, q4: 0, ot: 0, total: 0 },
+      away: { q1: 0, q2: 0, q3: 0, q4: 0, ot: 0, total: 0 },
+    };
 
-  // Get points scored from each play
-  const getPointsScored = (
-    currentPlay: PlayEvent,
-    previousPlay?: PlayEvent,
-  ): number => {
-    if (!previousPlay) return currentPlay.home_score + currentPlay.away_score;
-
-    if (currentPlay.team_scored === "home") {
-      return currentPlay.home_score - previousPlay.home_score;
-    } else {
-      return currentPlay.away_score - previousPlay.away_score;
+    if (!playByPlayData || !playByPlayData.plays.length) {
+      // Fallback to matchData if PBP is missing
+      return {
+        home: {
+          q1: Number(matchData?.localteam.q1) || 0,
+          q2: Number(matchData?.localteam.q2) || 0,
+          q3: Number(matchData?.localteam.q3) || 0,
+          q4: Number(matchData?.localteam.q4) || 0,
+          ot: Number(matchData?.localteam.ot) || 0,
+          total: Number(matchData?.localteam.totalscore) || 0,
+        },
+        away: {
+          q1: Number(matchData?.awayteam.q1) || 0,
+          q2: Number(matchData?.awayteam.q2) || 0,
+          q3: Number(matchData?.awayteam.q3) || 0,
+          q4: Number(matchData?.awayteam.q4) || 0,
+          ot: Number(matchData?.awayteam.ot) || 0,
+          total: Number(matchData?.awayteam.totalscore) || 0,
+        },
+      };
     }
+
+    const plays = playByPlayData.plays;
+    const quarters: { home: number; away: number }[] = [];
+    let currentHome = 0;
+    let currentAway = 0;
+
+    for (let i = 0; i < plays.length; i++) {
+      const play = plays[i];
+      const nextPlay = plays[i + 1];
+
+      // Check for quarter reset (e.g., number 26 -> 2)
+      if (nextPlay && nextPlay.number < play.number) {
+        quarters.push({
+          home: play.home_score - currentHome,
+          away: play.away_score - currentAway,
+        });
+        currentHome = play.home_score;
+        currentAway = play.away_score;
+      }
+
+      // Last play of the data
+      if (i === plays.length - 1) {
+        quarters.push({
+          home: play.home_score - currentHome,
+          away: play.away_score - currentAway,
+        });
+        scores.home.total = play.home_score;
+        scores.away.total = play.away_score;
+      }
+    }
+
+    // Map calculated quarters to q1, q2, q3, q4, ot
+    if (quarters[0]) {
+      scores.home.q1 = quarters[0].home;
+      scores.away.q1 = quarters[0].away;
+    }
+    if (quarters[1]) {
+      scores.home.q2 = quarters[1].home;
+      scores.away.q2 = quarters[1].away;
+    }
+    if (quarters[2]) {
+      scores.home.q3 = quarters[2].home;
+      scores.away.q3 = quarters[2].away;
+    }
+    if (quarters[3]) {
+      scores.home.q4 = quarters[3].home;
+      scores.away.q4 = quarters[3].away;
+    }
+    if (quarters[4]) {
+      scores.home.ot = quarters[4].home;
+      scores.away.ot = quarters[4].away;
+    }
+
+    return scores;
   };
 
-  const StatBar = ({
-    label,
-    homeValue,
-    awayValue,
-  }: {
-    label: string;
-    homeValue: number;
-    awayValue: number;
-  }) => {
-    const total = homeValue + awayValue;
-    const homePercentage = total > 0 ? (homeValue / total) * 100 : 50;
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium theme-text">{homeValue}</span>
-          <span className="text-xs text-neutral-n4 dark:text-snow-200">
-            {label}
-          </span>
-          <span className="font-medium theme-text">{awayValue}</span>
-        </div>
-        <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-snow-200 dark:bg-[#1F2937]">
-          <div
-            className="bg-orange-500 transition-all duration-300"
-            style={{ width: `${homePercentage}%` }}
-          />
-          <div
-            className="bg-blue-500 transition-all duration-300"
-            style={{ width: `${100 - homePercentage}%` }}
-          />
-        </div>
-      </div>
-    );
-  };
+  const calculatedScores = calculateScores();
+  const homeScore =
+    calculatedScores.home.total || matchData?.localteam.totalscore || 0;
+  const awayScore =
+    calculatedScores.away.total || matchData?.awayteam.totalscore || 0;
 
   if (loading) {
     return (
@@ -182,31 +215,6 @@ const BasketballMatchDetail = () => {
       </div>
     );
   }
-
-  if (!playByPlayData && !matchData) {
-    return (
-      <div className="min-h-screen dark:bg-[#0D1117]">
-        <PageHeader />
-        <div className="page-padding-x py-12 text-center">
-          <p className="text-lg theme-text">Match data not found</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90"
-          >
-            Go Back
-          </button>
-        </div>
-        <FooterComp />
-      </div>
-    );
-  }
-
-  // Get final scores from play-by-play data
-  const plays = playByPlayData?.plays || [];
-  const lastPlay = plays[plays.length - 1];
-  const homeScore =
-    lastPlay?.home_score || matchData?.localteam.totalscore || 0;
-  const awayScore = lastPlay?.away_score || matchData?.awayteam.totalscore || 0;
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
@@ -238,7 +246,18 @@ const BasketballMatchDetail = () => {
 
           {/* Score Display */}
           <div className="flex items-center justify-between">
-            <div className="flex-1 text-center">
+            <div className="flex-1 text-center flex flex-col items-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-white/10 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+                <img
+                  src={
+                    matchData?.localteam.logo ||
+                    matchData?.localteam.image_path ||
+                    "/loading-state/shield.svg"
+                  }
+                  alt={matchData?.localteam.name}
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                />
+              </div>
               <p className="font-semibold text-lg md:text-xl mb-1">
                 {matchData?.localteam.name || "Home Team"}
               </p>
@@ -246,15 +265,28 @@ const BasketballMatchDetail = () => {
             </div>
 
             <div className="flex flex-col items-center px-6">
-              <span className="text-xs mb-1">
-                {playByPlayData?.quarter_name || matchData?.period || "Match"}
+              <span className="text-xs mb-1 font-bold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">
+                Vs
               </span>
               {matchData?.timer && (
-                <span className="text-xs opacity-90">{matchData.timer}'</span>
+                <span className="text-sm font-bold mt-2">
+                  {matchData.timer}'
+                </span>
               )}
             </div>
 
-            <div className="flex-1 text-center">
+            <div className="flex-1 text-center flex flex-col items-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-white/10 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+                <img
+                  src={
+                    matchData?.awayteam.logo ||
+                    matchData?.awayteam.image_path ||
+                    "/loading-state/shield.svg"
+                  }
+                  alt={matchData?.awayteam.name}
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                />
+              </div>
               <p className="font-semibold text-lg md:text-xl mb-1">
                 {matchData?.awayteam.name || "Away Team"}
               </p>
@@ -272,7 +304,7 @@ const BasketballMatchDetail = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex items-center gap-2 flex-shrink-0 ${
                   activeTab === tab.id
                     ? "text-orange-500 font-medium border-b-2 border-orange-500"
@@ -288,315 +320,122 @@ const BasketballMatchDetail = () => {
       </div>
 
       <div className="page-padding-x my-8">
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
+        {/* Info Tab */}
+        {activeTab === "info" && (
           <div className="space-y-6">
-            {/* Score Progress */}
-            {playByPlayData && (
-              <div className="block-style">
-                <h3 className="font-bold text-lg mb-4 theme-text">
-                  Score Progress
+            {/* Score Summary Table */}
+            <div className="block-style !p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
+                  Score Summary
                 </h3>
-                <StatBar
-                  label="Final Score"
-                  homeValue={Number(homeScore)}
-                  awayValue={Number(awayScore)}
-                />
               </div>
-            )}
-
-            {/* Quarter Stats */}
-            {matchData && (
-              <div className="block-style">
-                <h3 className="font-bold text-lg mb-4 theme-text">
-                  Quarter Breakdown
-                </h3>
-                <div className="space-y-4">
-                  <StatBar
-                    label="Q1"
-                    homeValue={Number(matchData.localteam.q1) || 0}
-                    awayValue={Number(matchData.awayteam.q1) || 0}
-                  />
-                  <StatBar
-                    label="Q2"
-                    homeValue={Number(matchData.localteam.q2) || 0}
-                    awayValue={Number(matchData.awayteam.q2) || 0}
-                  />
-                  <StatBar
-                    label="Q3"
-                    homeValue={Number(matchData.localteam.q3) || 0}
-                    awayValue={Number(matchData.awayteam.q3) || 0}
-                  />
-                  <StatBar
-                    label="Q4"
-                    homeValue={Number(matchData.localteam.q4) || 0}
-                    awayValue={Number(matchData.awayteam.q4) || 0}
-                  />
-                  {(Number(matchData.localteam.ot) > 0 ||
-                    Number(matchData.awayteam.ot) > 0) && (
-                    <StatBar
-                      label="Overtime"
-                      homeValue={Number(matchData.localteam.ot) || 0}
-                      awayValue={Number(matchData.awayteam.ot) || 0}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Match Info */}
-            {matchData && (
-              <div className="block-style">
-                <h3 className="font-bold text-lg mb-4 theme-text">
-                  Match Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                    <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                      League
-                    </span>
-                    <span className="font-semibold theme-text">
-                      {matchData.league_name}
-                    </span>
+              <div className="overflow-x-auto">
+                {(playByPlayData?.plays && playByPlayData.plays.length > 0) ||
+                (matchData?.localteam.totalscore !== undefined &&
+                  matchData?.localteam.totalscore !== "") ? (
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs theme-text uppercase opacity-70 border-b border-snow-200 dark:border-[#1F2937]">
+                      <tr>
+                        <th className="px-6 py-3 font-medium">Team</th>
+                        <th className="px-4 py-3 text-center">Q1</th>
+                        <th className="px-4 py-3 text-center">Q2</th>
+                        <th className="px-4 py-3 text-center">Q3</th>
+                        <th className="px-4 py-3 text-center">Q4</th>
+                        <th className="px-4 py-3 text-center font-bold text-brand-primary">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                      <tr className="theme-text">
+                        <td className="px-6 py-4 font-semibold">
+                          {matchData?.localteam.name || "Home Team"}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.home.q1}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.home.q2}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.home.q3}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.home.q4}
+                        </td>
+                        <td className="px-4 py-4 text-center font-bold text-brand-primary">
+                          {calculatedScores.home.total}
+                        </td>
+                      </tr>
+                      <tr className="theme-text">
+                        <td className="px-6 py-4 font-semibold">
+                          {matchData?.awayteam.name || "Away Team"}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.away.q1}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.away.q2}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.away.q3}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {calculatedScores.away.q4}
+                        </td>
+                        <td className="px-4 py-4 text-center font-bold text-brand-primary">
+                          {calculatedScores.away.total}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="py-12 text-center">
+                    <p className="text-neutral-n4 dark:text-snow-200 font-medium italic">
+                      Match not started so no match details
+                    </p>
                   </div>
-                  {matchData.season && (
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        Season
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.season}
-                      </span>
-                    </div>
-                  )}
-                  {matchData.venue && (
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        Venue
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.venue}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Play-by-Play Tab */}
-        {activeTab === "playbyplay" && (
-          <div className="block-style">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg theme-text">Play-by-Play</h3>
-              {playByPlayData && (
-                <span className="text-sm theme-text">
-                  {playByPlayData.quarter_name}
-                </span>
-              )}
             </div>
 
-            {playByPlayData && plays.length > 0 ? (
-              <div className="space-y-2">
-                {plays.map((play, index) => {
-                  const previousPlay = index > 0 ? plays[index - 1] : undefined;
-                  const pointsScored = getPointsScored(play, previousPlay);
-                  const isHomeScoring = play.team_scored === "home";
-
-                  return (
-                    <div
-                      key={play._id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                        pointsScored > 0
-                          ? "bg-orange-50 dark:bg-orange-900/10 border-l-4 border-orange-500"
-                          : "bg-snow-100 dark:bg-[#1F2937]"
-                      }`}
+            {/* Stadium Info */}
+            {matchData?.venue && (
+              <div className="block-style">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-brand-primary/10 text-brand-primary">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <div className="text-xs text-neutral-n4 dark:text-snow-200 min-w-[60px]">
-                        Play #{play.number}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                              isHomeScoring
-                                ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
-                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                            }`}
-                          >
-                            {isHomeScoring
-                              ? matchData?.localteam.name || "Home"
-                              : matchData?.awayteam.name || "Away"}
-                          </span>
-                          {pointsScored > 0 && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold">
-                              +{pointsScored}{" "}
-                              {pointsScored === 1 ? "PT" : "PTS"}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium theme-text">
-                          {isHomeScoring ? "Home team" : "Away team"} scores{" "}
-                          {pointsScored}{" "}
-                          {pointsScored === 1 ? "point" : "points"}
-                        </p>
-                        {play.leader_team !== "draw" && (
-                          <p className="text-xs text-neutral-n4 dark:text-snow-200 mt-1">
-                            {play.leader_team === "home"
-                              ? matchData?.localteam.name || "Home"
-                              : matchData?.awayteam.name || "Away"}{" "}
-                            leads by {play.points_difference}
-                          </p>
-                        )}
-                        {play.leader_team === "draw" && (
-                          <p className="text-xs text-neutral-n4 dark:text-snow-200 mt-1">
-                            Score tied
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-sm font-bold theme-text min-w-[60px] text-right">
-                        {play.home_score} - {play.away_score}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-neutral-n4 dark:text-snow-200">
-                  Play-by-play data not available for this match
-                </p>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs theme-text opacity-70 uppercase font-semibold">
+                      Stadium
+                    </p>
+                    <p className="text-sm font-bold theme-text">
+                      {matchData.venue}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Quarter Stats Tab */}
-        {activeTab === "stats" && matchData && (
-          <div className="space-y-6">
-            <div className="block-style">
-              <h3 className="font-bold text-lg mb-4 theme-text">
-                Quarter Breakdown
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-semibold mb-3 theme-text">
-                    {matchData.localteam.name}
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        1st Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.localteam.q1 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        2nd Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.localteam.q2 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        3rd Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.localteam.q3 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        4th Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.localteam.q4 || 0}
-                      </span>
-                    </div>
-                    {Number(matchData.localteam.ot) > 0 && (
-                      <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                        <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                          Overtime
-                        </span>
-                        <span className="font-semibold theme-text">
-                          {matchData.localteam.ot}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                      <span className="text-sm font-bold theme-text">
-                        Total
-                      </span>
-                      <span className="font-bold text-lg theme-text">
-                        {matchData.localteam.totalscore}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold mb-3 theme-text">
-                    {matchData.awayteam.name}
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        1st Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.awayteam.q1 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        2nd Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.awayteam.q2 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        3rd Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.awayteam.q3 || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                      <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                        4th Quarter
-                      </span>
-                      <span className="font-semibold theme-text">
-                        {matchData.awayteam.q4 || 0}
-                      </span>
-                    </div>
-                    {Number(matchData.awayteam.ot) > 0 && (
-                      <div className="flex justify-between items-center p-3 bg-snow-100 dark:bg-[#1F2937] rounded-lg">
-                        <span className="text-sm text-neutral-n4 dark:text-snow-200">
-                          Overtime
-                        </span>
-                        <span className="font-semibold theme-text">
-                          {matchData.awayteam.ot}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <span className="text-sm font-bold theme-text">
-                        Total
-                      </span>
-                      <span className="font-bold text-lg theme-text">
-                        {matchData.awayteam.totalscore}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
