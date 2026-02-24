@@ -126,8 +126,7 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
   if (loading) {
     return (
       <div
-        className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`}
-        style={{ minWidth: width, minHeight: height }}
+        className={`animate-pulse bg-gray-300 h-5 w-5 rounded-full object-contain ${className ?? ""}`}
       />
     );
   }

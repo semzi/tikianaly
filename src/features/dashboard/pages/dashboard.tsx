@@ -311,6 +311,56 @@ export const dashboard = () => {
     [selectedDateKey]
   );
 
+  const extractFixtureDetails = (resp: any) => {
+    const root = resp?.responseObject ?? resp?.data ?? resp;
+
+    const tryGetFirst = (v: any) => {
+      if (!v) return null;
+      if (Array.isArray(v)) return v[0] ?? null;
+      if (typeof v === "object") {
+        const arr = (v as any)?.item ?? (v as any)?.items ?? (v as any)?.fixtures ?? null;
+        if (Array.isArray(arr)) return arr[0] ?? null;
+      }
+      return v;
+    };
+
+    return (
+      resp?.responseObject?.item?.[0] ??
+      tryGetFirst(root?.item) ??
+      tryGetFirst(root?.items) ??
+      root?.fixture ??
+      root?.match ??
+      root
+    );
+  };
+
+  const normalizeFixtureTeams = (fixture: any) => {
+    if (!fixture || typeof fixture !== "object") return fixture;
+
+    const homeName = fixture?.localteam?.name ?? fixture?.localteam_name ?? fixture?.homeTeam?.name ?? fixture?.home_name;
+    const awayName = fixture?.visitorteam?.name ?? fixture?.visitorteam_name ?? fixture?.awayTeam?.name ?? fixture?.away_name;
+
+    const localteam = fixture?.localteam && typeof fixture.localteam === "object"
+      ? fixture.localteam
+      : homeName
+        ? { name: homeName, id: fixture?.localteam_id ?? fixture?.home_id ?? fixture?.homeTeam?.id }
+        : fixture?.localteam;
+
+    const visitorteam = fixture?.visitorteam && typeof fixture.visitorteam === "object"
+      ? fixture.visitorteam
+      : awayName
+        ? { name: awayName, id: fixture?.visitorteam_id ?? fixture?.away_id ?? fixture?.awayTeam?.id }
+        : fixture?.visitorteam;
+
+    return {
+      ...fixture,
+      localteam,
+      visitorteam,
+      localteam_name: fixture?.localteam_name ?? homeName,
+      visitorteam_name: fixture?.visitorteam_name ?? awayName,
+    };
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncPinnedOpen = () => {
@@ -341,9 +391,15 @@ export const dashboard = () => {
         .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
         .map((r) => r.value);
       const normalized = ok
-        .map((resp: any) => {
-          const item0 = resp?.responseObject?.item?.[0];
-          return item0 ?? resp?.responseObject ?? resp?.data ?? resp;
+        .map((resp: any) => extractFixtureDetails(resp))
+        .map((fixture: any, idx: number) => {
+          const fixtureId = ids[idx];
+          const base = normalizeFixtureTeams(fixture);
+          if (!base) return base;
+          return {
+            ...base,
+            fixture_id: base?.fixture_id ?? fixtureId,
+          };
         })
         .filter(Boolean);
       setPinnedFixtures(normalized);
@@ -787,7 +843,7 @@ export const dashboard = () => {
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-y-3 md:gap-y-6">
-            {(fixturesMode === "date" || fixturesMode === "all") && (
+            {(fixturesMode === "date" || fixturesMode === "all") && pinnedFixtureIds.length > 0 && (
               <div className="block-style">
                 <button
                   type="button"
@@ -883,13 +939,13 @@ export const dashboard = () => {
                               key={`pinned-${idx}`}
                             >
                               <div
-                                className={`hidden md:flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
+                                className={`hidden md:flex relative hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
                                   idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0  border-b-0" : ""
                                 }`}
                               >
                                 <Link
                                   to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                                  className="flex flex-1 items-center gap-2"
+                                  className="flex flex-1 items-center gap-2 pr-12"
                                 >
                                   {ui.state === "ft" ? (
                                     <>
@@ -1021,7 +1077,7 @@ export const dashboard = () => {
                                 </Link>
                                 <button
                                   type="button"
-                                  className="ml-2 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
+                                  className="absolute right-4 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
                                   onClick={() => togglePinnedFixture(fixtureIdForPin)}
                                   aria-label="Unpin fixture"
                                 >
@@ -1063,13 +1119,13 @@ export const dashboard = () => {
                               </div>
 
                               <div
-                                className={`flex md:hidden items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 bg-neutral-n9 ${
+                                className={`flex md:hidden relative items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 bg-neutral-n9 ${
                                   idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0" : ""
                                 }`}
                               >
                                 <Link
                                   to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                                  className="flex flex-1 items-center justify-between"
+                                  className="flex flex-1 items-center justify-between pr-10"
                                 >
                                   <p
                                     className={`text-xs text-center w-15 px-2 font-bold ${
@@ -1147,7 +1203,7 @@ export const dashboard = () => {
                                 </Link>
                                 <button
                                   type="button"
-                                  className="ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
+                                  className="absolute right-2 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 bg-brand-secondary text-white"
                                   onClick={() => togglePinnedFixture(fixtureIdForPin)}
                                   aria-label="Unpin fixture"
                                 >
@@ -1198,7 +1254,7 @@ export const dashboard = () => {
             )}
 
             {/* Desktop Section */}
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-6">
               {(fixturesMode === "live"
                 ? fixtures.map((x) => x.leagueId)
                 : topLeagueIds
@@ -1217,7 +1273,7 @@ export const dashboard = () => {
                       {Array.from({ length: 3 }).map((_, idx) => (
                         <div
                           key={idx}
-                          className="flex justify-around items-center gap-4 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] last:border-b-0"
+                          className="flex justify-around items-center gap-4 border-b-1 px-5 py-2 border-snow-200 dark:border-[#1F2937] last:border-b-0"
                         >
                           <Skeleton className="w-8 h-4" />
                           <div className="flex flex-3/9 justify-end items-center gap-3">
@@ -1313,7 +1369,7 @@ export const dashboard = () => {
                         return (
                       <div
                         key={gameIdx}
-                        className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
+                        className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-1 dark:border-[#1F2937] border-snow-200/70 ${
                           gameIdx === leagueFixture.fixtures.length - 1
                             ? "last:border-b-0  border-b-0"
                             : ""
@@ -1321,7 +1377,7 @@ export const dashboard = () => {
                       >
                       <Link
                         to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                        className="flex flex-1 items-center gap-2"
+                        className="flex flex-1 rounded items-center gap-2"
                       >
                         {ui.state === "ft" ? (
                           <>
@@ -1574,7 +1630,7 @@ export const dashboard = () => {
                     <Link
                       to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                       key={gameIdx}
-                      className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
+                      className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-2 dark:border-[#1F2937] border-snow-200 ${
                         gameIdx === leagueFixture.fixtures.length - 1 ? "last:border-b-0  border-b-0" : ""
                       }`}
                     >

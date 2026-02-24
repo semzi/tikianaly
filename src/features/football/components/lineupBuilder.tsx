@@ -96,87 +96,145 @@ export default function LineupBuilder({
 
   const SidePanel = ({ className = "" }: { className?: string }) => {
     return (
-      <div className={`rounded-xl bg-brand-secondary text-white ${className}`}>
-        <div className="p-4">
-          <div className="mb-4">
-            <p className="font-bold text-base">Coaches</p>
-            <div className="mt-2 grid grid-cols-1 gap-2">
-              <div className="flex items-center justify-between rounded-lg px-2 py-2 bg-black/15">
-                <p className="text-sm font-semibold truncate">{resolvedHomeTeamName}</p>
-                <p className="text-xs text-white/90 truncate">{homeCoachName || "—"}</p>
+      <div className={`space-y-4 ${className}`}>
+        {/* Coaches Section */}
+        <div className="w-full overflow-hidden rounded-xl">
+          <div className="relative p-4">
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 via-amber-500/20 to-orange-600/20 rounded-xl" />
+              <div className="absolute inset-0 bg-white/60 dark:bg-[#0D1117]/80 rounded-xl backdrop-blur-sm" />
+            </div>
+            
+            <div className="relative space-y-3">
+              <p className="text-[11px] uppercase tracking-wide text-neutral-m6">Coaches</p>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-black/5 dark:bg-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center">
+                    <span className="tall-font font-extrabold theme-text text-lg">C</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="theme-text font-semibold truncate">{resolvedHomeTeamName}</p>
+                    <p className="text-[10px] text-neutral-m6 truncate">{homeCoachName || "—"}</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg px-2 py-2 bg-black/15">
-                <p className="text-sm font-semibold truncate">{resolvedAwayTeamName}</p>
-                <p className="text-xs text-white/90 truncate">{awayCoachName || "—"}</p>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-black/5 dark:bg-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center">
+                    <span className="tall-font font-extrabold theme-text text-lg">C</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="theme-text font-semibold truncate">{resolvedAwayTeamName}</p>
+                    <p className="text-[10px] text-neutral-m6 truncate">{awayCoachName || "—"}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <p className="font-bold text-base">Substitutes</p>
-
-            <div className="mt-3">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-sm truncate">{resolvedHomeTeamName}</p>
-                <p className="font-bold italic text-sm">{homeFormation}</p>
+        {/* Home Substitutes */}
+        <div className="w-full overflow-hidden rounded-xl">
+          <div className="relative p-4">
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 via-amber-500/20 to-orange-600/20 rounded-xl" />
+              <div className="absolute inset-0 bg-white/60 dark:bg-[#0D1117]/80 rounded-xl backdrop-blur-sm" />
+            </div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wide text-neutral-m6">{resolvedHomeTeamName} Subs</p>
+                <p className="font-bold italic text-sm theme-text">{homeFormation}</p>
               </div>
-              <div className="mt-3 max-h-[180px] overflow-auto pr-1 hide-scrollbar">
+              
+              <div className="space-y-2 max-h-[300px] overflow-auto pr-1 hide-scrollbar">
                 {homeSubs.length ? (
-                  <div className="grid grid-cols-1 hide-scrollbar sm:grid-cols-2 gap-x-6 gap-y-4">
-                    {homeSubs.map((p) => (
-                      <button
-                        key={`home-sub-${p.player_id}`}
-                        type="button"
-                        onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
-                        className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-black/10"
-                      >
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-white/25 bg-black/10 shrink-0">
-                          <GetPlayerImage playerId={p.player_id} alt={p.name} className="w-full h-full" />
+                  homeSubs.map((p) => {
+                    const subInfo = homeSubIn.get(String(p.player_id));
+                    const replacedPlayerName = subInfo?.outPlayerId ? 
+                      homeStartingPlayers.find(player => String(player.player_id) === subInfo.outPlayerId)?.name : 
+                      undefined;
+                    const subMinute = subInfo?.minute;
+                    
+                    return (
+                      <div key={`home-sub-${p.player_id}`} className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
+                            className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center shrink-0"
+                          >
+                            <GetPlayerImage playerId={p.player_id} alt={p.name} className="h-full w-full object-cover" />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="theme-text font-semibold truncate text-sm">{p.name}</p>
+                            <p className="text-[10px] text-neutral-m6 truncate">
+                              #{p.shirt_number || ""}{p.pos ? ` ${p.pos}` : ""}
+                              {replacedPlayerName && ` • For ${replacedPlayerName}`}
+                              {subMinute && ` • ${subMinute}'`}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 text-left">
-                          <p className="text-[12px] leading-4 font-semibold truncate">{p.name}</p>
-                          <p className="text-[10px] leading-3 text-white/80 truncate">
-                            #{p.shirt_number || ""}{p.pos ? ` ${p.pos}` : ""}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <p className="text-xs text-white/90 px-2 py-1.5">No substitutes</p>
+                  <p className="text-xs text-neutral-m6 px-2 py-1.5">No substitutes</p>
                 )}
               </div>
             </div>
+          </div>
+        </div>
 
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-sm truncate">{resolvedAwayTeamName}</p>
-                <p className="font-bold italic text-sm">{awayFormation}</p>
+        {/* Away Substitutes */}
+        <div className="w-full overflow-hidden rounded-xl">
+          <div className="relative p-4">
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 via-amber-500/20 to-orange-600/20 rounded-xl" />
+              <div className="absolute inset-0 bg-white/60 dark:bg-[#0D1117]/80 rounded-xl backdrop-blur-sm" />
+            </div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wide text-neutral-m6">{resolvedAwayTeamName} Subs</p>
+                <p className="font-bold italic text-sm theme-text">{awayFormation}</p>
               </div>
-              <div className="mt-3 max-h-[180px] overflow-auto pr-1 hide-scrollbar">
+              
+              <div className="space-y-2 max-h-[300px] overflow-auto pr-1 hide-scrollbar">
                 {awaySubs.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                    {awaySubs.map((p) => (
-                      <button
-                        key={`away-sub-${p.player_id}`}
-                        type="button"
-                        onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
-                        className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-black/10"
-                      >
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-white/25 bg-black/10 shrink-0">
-                          <GetPlayerImage playerId={p.player_id} alt={p.name} className="w-full h-full" />
+                  awaySubs.map((p) => {
+                    const subInfo = awaySubIn.get(String(p.player_id));
+                    const replacedPlayerName = subInfo?.outPlayerId ? 
+                      awayStartingPlayers.find(player => String(player.player_id) === subInfo.outPlayerId)?.name : 
+                      undefined;
+                    const subMinute = subInfo?.minute;
+                    
+                    return (
+                      <div key={`away-sub-${p.player_id}`} className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
+                            className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center shrink-0"
+                          >
+                            <GetPlayerImage playerId={p.player_id} alt={p.name} className="h-full w-full object-cover" />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="theme-text font-semibold truncate text-sm">{p.name}</p>
+                            <p className="text-[10px] text-neutral-m6 truncate">
+                              #{p.shirt_number || ""}{p.pos ? ` ${p.pos}` : ""}
+                              {replacedPlayerName && ` • For ${replacedPlayerName}`}
+                              {subMinute && ` • ${subMinute}'`}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 text-left">
-                          <p className="text-[12px] leading-4 font-semibold truncate">{p.name}</p>
-                          <p className="text-[10px] leading-3 text-white/80 truncate">
-                            #{p.shirt_number || ""}{p.pos ? ` ${p.pos}` : ""}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <p className="text-xs text-white/90 px-2 py-1.5">No substitutes</p>
+                  <p className="text-xs text-neutral-m6 px-2 py-1.5">No substitutes</p>
                 )}
               </div>
             </div>
@@ -390,33 +448,65 @@ export default function LineupBuilder({
     return Array.from(map.values());
   };
 
-  const subOutLookup = (side: "localteam" | "visitorteam") => {
+  const buildSubInLookup = (side: "localteam" | "visitorteam") => {
     const rows = Array.isArray(substitutions?.[side]) ? substitutions?.[side] : [];
-    const map = new Map<string, SubOffInfo>();
+    const map = new Map<string, { minute?: string; outPlayerId?: string }>();
     for (const r of rows) {
-      const outId = String(r?.player_out_id ?? r?.off_id ?? "").trim();
-      if (!outId) continue;
+      const inId = String(r?.player_in_id ?? "").trim();
+      if (!inId) continue;
       const minute = String(r?.minute ?? "").trim();
-      const forNumber = String(r?.player_in_number ?? r?.on_number ?? "").trim();
-      map.set(outId, {
+      const outId = String(r?.player_out_id ?? r?.off_id ?? "").trim();
+      map.set(inId, {
         minute: minute || undefined,
-        forNumber: forNumber || undefined,
+        outPlayerId: outId || undefined,
       });
     }
     return map;
   };
 
-  const getLineupTeamSubs = (teamSide: "home" | "away") => {
+  const buildSubOutLookup = (side: "localteam" | "visitorteam") => {
+    const rows = Array.isArray(substitutions?.[side]) ? substitutions?.[side] : [];
+    const map = new Map<string, { minute?: string; inPlayerId?: string }>();
+    for (const r of rows) {
+      const outId = String(r?.player_out_id ?? r?.off_id ?? "").trim();
+      if (!outId) continue;
+      const minute = String(r?.minute ?? "").trim();
+      const inId = String(r?.player_in_id ?? "").trim();
+      map.set(outId, {
+        minute: minute || undefined,
+        inPlayerId: inId || undefined,
+      });
+    }
+    return map;
+  };
+
+  const buildLineupSubInLookup = (teamSide: "home" | "away") => {
     const rows = Array.isArray((lineup as any)?.[teamSide]?.substitutions) ? (lineup as any)?.[teamSide]?.substitutions : [];
-    const map = new Map<string, SubOffInfo>();
+    const map = new Map<string, { minute?: string; outPlayerId?: string }>();
+    for (const r of rows) {
+      const inId = String(r?.player_in_id ?? "").trim();
+      if (!inId) continue;
+      const minute = String(r?.minute ?? "").trim();
+      const outId = String(r?.off_id ?? r?.player_out_id ?? "").trim();
+      map.set(inId, {
+        minute: minute || undefined,
+        outPlayerId: outId || undefined,
+      });
+    }
+    return map;
+  };
+
+  const buildLineupSubOutLookup = (teamSide: "home" | "away") => {
+    const rows = Array.isArray((lineup as any)?.[teamSide]?.substitutions) ? (lineup as any)?.[teamSide]?.substitutions : [];
+    const map = new Map<string, { minute?: string; inPlayerId?: string }>();
     for (const r of rows) {
       const outId = String(r?.off_id ?? r?.player_out_id ?? "").trim();
       if (!outId) continue;
       const minute = String(r?.minute ?? "").trim();
-      const forNumber = String(r?.on_number ?? r?.player_in_number ?? "").trim();
+      const inId = String(r?.player_in_id ?? "").trim();
       map.set(outId, {
         minute: minute || undefined,
-        forNumber: forNumber || undefined,
+        inPlayerId: inId || undefined,
       });
     }
     return map;
@@ -428,14 +518,24 @@ export default function LineupBuilder({
   const homeSubs: RenderPlayer[] = homeSubsFromLineup.length ? homeSubsFromLineup : fromSubstitutions("localteam");
   const awaySubs: RenderPlayer[] = awaySubsFromLineup.length ? awaySubsFromLineup : fromSubstitutions("visitorteam");
 
-  const homeSubbedOff = (() => {
-    const m = getLineupTeamSubs("home");
-    return m.size ? m : subOutLookup("localteam");
+  const homeSubIn = (() => {
+    const m = buildLineupSubInLookup("home");
+    return m.size ? m : buildSubInLookup("localteam");
   })();
 
-  const awaySubbedOff = (() => {
-    const m = getLineupTeamSubs("away");
-    return m.size ? m : subOutLookup("visitorteam");
+  const awaySubIn = (() => {
+    const m = buildLineupSubInLookup("away");
+    return m.size ? m : buildSubInLookup("visitorteam");
+  })();
+
+  const homeSubOut = (() => {
+    const m = buildLineupSubOutLookup("home");
+    return m.size ? m : buildSubOutLookup("localteam");
+  })();
+
+  const awaySubOut = (() => {
+    const m = buildLineupSubOutLookup("away");
+    return m.size ? m : buildSubOutLookup("visitorteam");
   })();
 
   const ratingHome = buildRatingLookup("home");
@@ -729,39 +829,43 @@ export default function LineupBuilder({
 
           {assists > 0 ? (
             <span className="absolute -bottom-2 -left-2 z-30 pointer-events-none">
-              <span className="relative block w-3.5 h-3.5 md:w-4 md:h-4">
-                {Array.from({ length: Math.min(assists, 3) }).map((_, idx) => (
-                  <IconBadge
-                    key={`assist-${player.player_id}-${idx}`}
-                    src="/icons/assist.svg"
-                    fallbackText={String(player.shirt_number ?? "")}
-                    className="absolute w-3.5 h-3.5 md:w-4 md:h-4"
-                    style={{ left: idx * 2, top: -idx * 2 }}
-                  />
-                ))}
+              <span className="flex items-center">
+                <IconBadge
+                  key={`assist-${player.player_id}`}
+                  src="/icons/assist.svg"
+                  fallbackText={String(player.shirt_number ?? "")}
+                  className="w-3.5 h-3.5 md:w-4 md:h-4"
+                />
+                {assists > 1 ? (
+                  <span className="ml-0.5 md:ml-1 w-[14px] h-[14px] md:w-[16px] md:h-[16px] bg-brand-secondary text-white rounded-full flex items-center justify-center text-[8px] md:text-[9px] leading-none font-bold border border-white/80 shadow-sm">
+                    x{assists}
+                  </span>
+                ) : null}
               </span>
             </span>
           ) : null}
 
           {goals > 0 ? (
             <span className="absolute -bottom-2 -right-2 z-30 pointer-events-none">
-              <span className="relative block w-3.5 h-3.5 md:w-4 md:h-4">
-                {Array.from({ length: Math.min(goals, 3) }).map((_, idx) => (
-                  <IconBadge
-                    key={`goal-${player.player_id}-${idx}`}
-                    src="/icons/football-line-1.svg"
-                    fallbackText={String(player.shirt_number ?? "")}
-                    className="absolute w-3.5 h-3.5 md:w-4 md:h-4"
-                    style={{ right: idx * 2, top: -idx * 2 }}
-                  />
-                ))}
+              <span className="flex items-center">
+                <IconBadge
+                  key={`goal-${player.player_id}`}
+                  src="/icons/football-line-1.svg"
+                  fallbackText={String(player.shirt_number ?? "")}
+                  className={`w-3.5 h-3.5 md:w-4 md:h-4 ${goals > 1 ? 'rounded-r' : ''}`}
+                />
+                {goals > 1 ? (
+                  <span className="ml-0 md:ml-0 w-[14px] h-[14px] md:w-[16px] md:h-[16px] bg-white text-brand-secondary rounded-r flex items-center justify-center text-[8px] md:text-[9px] leading-none font-bold border border-white">
+                    x{goals}
+                  </span>
+                ) : null}
               </span>
             </span>
           ) : null}
         </div>
         <span className="absolute flex gap-x-1.5 left-1/2 top-full mt-1 -translate-x-1/2 text-[8px] md:text-[9px] text-white font-medium text-center bg-black/55 px-1.5 py-0.5 rounded max-w-[92px] md:max-w-[110px] truncate">
           {hasRedCard ? <span className="block w-2 h-3 bg-red-600 rounded-[2px] mx-auto mb-0.5" /> : null}
-          {player.shirt_number ? `${player.shirt_number}. ` : ""}{abbreviateName(player.name)}
+          {(player.shirt_number ? `${player.shirt_number}. ` : "") + abbreviateName(player.name)}
         </span>
       </button>
     );
@@ -836,7 +940,7 @@ export default function LineupBuilder({
             const y = getMobileRowY("home", rowIndex, totalRows);
             return row.map((player, indexInRow) => {
               const x = getMobileX(indexInRow, row.length);
-              const subOff = homeSubbedOff.get(String(player.player_id));
+              const subOff = homeSubOut.get(String(player.player_id));
               return (
                 <div
                   key={`home-${rowIndex}-${indexInRow}`}
@@ -855,7 +959,7 @@ export default function LineupBuilder({
             const y = getMobileRowY("away", rowIndex, totalRows);
             return row.map((player, indexInRow) => {
               const x = getMobileX(indexInRow, row.length);
-              const subOff = awaySubbedOff.get(String(player.player_id));
+              const subOff = awaySubOut.get(String(player.player_id));
               return (
                 <div
                   key={`away-${rowIndex}-${indexInRow}`}
@@ -933,7 +1037,7 @@ export default function LineupBuilder({
               const x = getX("home", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
                 const y = getY(indexInRow, row.length);
-                const subOff = homeSubbedOff.get(String(player.player_id));
+                const subOff = homeSubOut.get(String(player.player_id));
                 return (
                   <div
                     key={`mobile-home-${rowIndex}-${indexInRow}`}
@@ -951,7 +1055,7 @@ export default function LineupBuilder({
               const x = getX("away", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
                 const y = getY(indexInRow, row.length);
-                const subOff = awaySubbedOff.get(String(player.player_id));
+                const subOff = awaySubOut.get(String(player.player_id));
                 return (
                   <div
                     key={`mobile-away-${rowIndex}-${indexInRow}`}

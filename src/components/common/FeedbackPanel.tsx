@@ -6,6 +6,7 @@ import {
   PencilSquareIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { useToast } from "../../context/ToastContext";
 
 type FeedbackPanelValues = {
   name: string;
@@ -22,11 +23,25 @@ export default function FeedbackPanel({ className, onSubmit }: FeedbackPanelProp
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const toast = useToast();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!email.trim() || !message.trim()) {
+      toast.show({ variant: "warning", message: "Please fill in all required fields." });
+      return;
+    }
+
     const values = { name, email, message };
-    if (onSubmit) await onSubmit(values);
+    try {
+      if (onSubmit) await onSubmit(values);
+      toast.show({ variant: "success", message: "Submitted" });
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch {
+      toast.show({ variant: "error", message: "Submission failed. Please try again." });
+    }
   };
 
   return (

@@ -1,7 +1,8 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
-import { getPlayerById, getTeamById } from "@/lib/api/endpoints";
+import TeamFixturesSidebar from "@/features/football/components/TeamFixturesSidebar";
+import { getPlayerById, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
@@ -11,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { InformationCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -325,6 +326,7 @@ const TeamProfile = () => {
   const toast = useToast();
   const tabs = [
     { id: "overview", label: "Overview" },
+    { id: "matches", label: "Matches" },
     { id: "squad", label: "Squad" },
     { id: "transfers", label: "Transfers" },
     { id: "trophies", label: "Trophies" },
@@ -348,6 +350,9 @@ const TeamProfile = () => {
   const [team, setTeam] = useState<TeamApiItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fixturesData, setFixturesData] = useState<any>(null);
+  const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [fixturesError, setFixturesError] = useState<string | null>(null);
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
 
   const openPlayerProfile = (playerId: unknown) => {
@@ -389,7 +394,22 @@ const TeamProfile = () => {
         const res = (await getTeamById(id)) as TeamApiResponse;
         const item = res?.responseObject?.item;
         const normalized = Array.isArray(item) ? item[0] : item;
-        setTeam(normalized ?? null);
+        const detailedStatsRaw = (normalized as any)?.detailed_stats;
+        const detailedStatsNormalized = Array.isArray(detailedStatsRaw)
+          ? detailedStatsRaw
+          : detailedStatsRaw && typeof detailedStatsRaw === "object"
+            ? (Array.isArray((detailedStatsRaw as any)?.data)
+              ? (detailedStatsRaw as any).data
+              : (Object.values(detailedStatsRaw as any).flat?.() ?? Object.values(detailedStatsRaw as any)))
+            : [];
+        setTeam(
+          normalized
+            ? ({
+                ...(normalized as any),
+                detailed_stats: Array.isArray(detailedStatsNormalized) ? detailedStatsNormalized : [],
+              } as TeamApiItem)
+            : null
+        );
       } catch (e: any) {
         setError(String(e?.message ?? "Failed to load team"));
         setTeam(null);
@@ -600,8 +620,9 @@ const TeamProfile = () => {
   }, [transferTotals]);
 
   const seasonOptions = useMemo(() => {
+    const detailedStats = Array.isArray(team?.detailed_stats) ? team?.detailed_stats : [];
     const seasons = Array.from(
-      new Set((team?.detailed_stats ?? []).map((r) => String(r?.season ?? "")).filter(Boolean))
+      new Set(detailedStats.map((r) => String(r?.season ?? "")).filter(Boolean))
     );
     seasons.sort((a, b) => b.localeCompare(a));
     return seasons;
@@ -616,7 +637,8 @@ const TeamProfile = () => {
 
   const seasonRows = useMemo(() => {
     if (!selectedSeason) return [];
-    return (team?.detailed_stats ?? []).filter((r) => String(r?.season ?? "") === selectedSeason);
+    const detailedStats = Array.isArray(team?.detailed_stats) ? team?.detailed_stats : [];
+    return detailedStats.filter((r) => String(r?.season ?? "") === selectedSeason);
   }, [team, selectedSeason]);
 
   const seasonSummary = useMemo(() => {
@@ -663,6 +685,51 @@ const TeamProfile = () => {
   const venue = team?.venue;
 
   const hasTeamId = Boolean(teamId);
+
+  useEffect(() => {
+    const id = String(teamId ?? "").trim();
+    if (!id) return;
+
+    const run = async () => {
+      setFixturesLoading(true);
+      setFixturesError(null);
+      try {
+        const data = await getTeamFixtures(id);
+        setFixturesData(data);
+      } catch (err: any) {
+        setFixturesError(err?.message || "Failed to load matches");
+      } finally {
+        setFixturesLoading(false);
+      }
+    };
+
+    run();
+  }, [teamId]);
+
+  const playedMatches = useMemo(() => {
+    const items = (fixturesData as any)?.responseObject?.played;
+    if (!Array.isArray(items)) return [];
+    return [...items].sort((a: any, b: any) => {
+      const at = Date.parse(String(a?.date ?? ""));
+      const bt = Date.parse(String(b?.date ?? ""));
+      return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0);
+    });
+  }, [fixturesData]);
+
+  const getRedCount = (fx: any, side: "localteam" | "visitorteam") => {
+    const direct = Number((fx?.[side]?.redcards ?? fx?.[side]?.red_cards ?? fx?.[side]?.redCards) ?? 0);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+
+    const events = Array.isArray(fx?.events) ? fx.events : [];
+    if (!events.length) return 0;
+    return events.reduce((acc: number, e: any) => {
+      const t = String(e?.type ?? e?.event ?? "").toLowerCase();
+      const teamKey = String(e?.team ?? e?.team_type ?? e?.side ?? "").toLowerCase();
+      const matchesSide = teamKey === side || (side === "localteam" && teamKey === "home") || (side === "visitorteam" && teamKey === "away");
+      if (matchesSide && t.includes("red")) return acc + 1;
+      return acc;
+    }, 0);
+  };
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117]">
@@ -742,6 +809,14 @@ const TeamProfile = () => {
       {/* Header */}
       <div className="bg-brand-secondary relative z-0">
         <div className="overflow-hidden h-auto md:h-80 bg-cover bg-center w-full relative z-0 bg-[#0B0F14]">
+          {venueImageUrl ? (
+            <img
+              src={venueImageUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover blur-[1px] scale-110 opacity-90"
+              loading="lazy"
+            />
+          ) : null}
           {/* subtle stripe overlay like PageHeader */}
           <div
             className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-40"
@@ -778,22 +853,24 @@ const TeamProfile = () => {
             </div>
 
             {/* Header content */}
-            <div className="hidden md:flex justify-between items-center">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-4">
-                  {team?.team_id ? (
-                    <GetTeamLogo teamId={team.team_id} alt={teamName} className="w-20 h-20 object-contain" />
-                  ) : (
-                    <img src="/loading-state/shield.svg" alt="" className="w-20 h-20" />
-                  )}
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-extrabold sz-2 gradient-text leading-tight truncate">{teamName}</p>
-                    <p className="text-sm text-snow-200 truncate">{team?.country ?? "-"}</p>
+            <div className="hidden md:flex justify-between items-start pt-4">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    {team?.team_id ? (
+                      <GetTeamLogo teamId={team.team_id} alt={teamName} className="w-20 h-20 object-contain" />
+                    ) : (
+                      <img src="/loading-state/shield.svg" alt="" className="w-20 h-20" />
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <p className="font-extrabold sz-2 gradient-text leading-tight truncate">{teamName}</p>
+                      <p className="text-sm text-snow-200 truncate">{team?.country ?? "-"}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-col flex items-end justify-between">
+              <div className="flex-col flex items-end justify-between pt-6">
                 <div className="grid grid-cols-4 gap-x-2 gap-y-4 justify-end">
                   <div className="bg-snow-200/20 py-1 px-4">
                     <p className="sz-8 text-snow-200">Founded</p>
@@ -833,6 +910,42 @@ const TeamProfile = () => {
                 </div>
 
               </div>
+
+              <div className="relative -mx-4 px-4 mt-2">
+                <div className="overflow-x-auto hide-scrollbar">
+                  <div className="flex gap-2 min-w-max">
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Founded</p>
+                      <p className="text-white font-bold text-xs">{team?.founded ?? "-"}</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Coach</p>
+                      <p className="text-white font-bold text-xs">{team?.coach?.name ?? "-"}</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Squad size</p>
+                      <p className="text-white font-bold text-xs">{squadMeta.total || "-"}</p>
+                    </div>
+                    <div className="bg-snow-200/20 py-2 px-3 rounded flex-shrink-0">
+                      <p className="text-[10px] text-snow-200 mb-1">Squad value</p>
+                      <p className="text-white font-bold text-xs">-</p>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-20 pointer-events-none flex items-center justify-end pr-2"
+                  style={{
+                    background: "linear-gradient(to left, rgba(0, 0, 0, 0.4) 0%, transparent 100%)",
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-white text-[10px] font-medium">Scroll</span>
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -866,6 +979,113 @@ const TeamProfile = () => {
           </div>
         )}
 
+        {/* MATCHES */}
+        {activeTab === "matches" && (
+          <div className="sz-8 flex flex-col gap-y-7 md:flex-row my-8 md:gap-7">
+            <div className="w-full md:w-1/3">
+              {(() => {
+                const finalTeamId = teamId || "9260";
+                return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
+              })()}
+            </div>
+
+            <div className="block-style w-full md:w-2/3">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="font-bold text-lg theme-text">Matches</p>
+                <p className="text-xs text-neutral-n5 dark:text-snow-200">Played</p>
+              </div>
+
+              {fixturesLoading ? (
+                <div className="theme-text text-sm">Loading matches...</div>
+              ) : fixturesError ? (
+                <div className="text-sm text-red-600 dark:text-red-400">{fixturesError}</div>
+              ) : playedMatches.length === 0 ? (
+                <div className="theme-text text-sm">No played matches</div>
+              ) : (
+                <div className="divide-y divide-snow-200/60 dark:divide-snow-100/10">
+                  {playedMatches.map((m: any, idx: number) => {
+                    const fixtureId = m?.fixture_id ?? m?.id;
+                    const homeName = m?.localteam?.name ?? "Home";
+                    const awayName = m?.visitorteam?.name ?? "Away";
+                    const homeScore = m?.localteam?.score ?? "-";
+                    const awayScore = m?.visitorteam?.score ?? "-";
+                    const homeTeamIdForLogo = m?.localteam?.id;
+                    const awayTeamIdForLogo = m?.visitorteam?.id;
+                    const leagueName = m?.league_name ?? "";
+                    const dateLabel = (() => {
+                      const d = String(m?.date ?? "");
+                      if (!d) return "";
+                      const dt = new Date(d);
+                      return Number.isFinite(dt.getTime())
+                        ? dt.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        : "";
+                    })();
+
+                    const homeRed = getRedCount(m, "localteam");
+                    const awayRed = getRedCount(m, "visitorteam");
+
+                    return (
+                      <Link
+                        key={String(fixtureId ?? idx)}
+                        to={`/football/gameinfo/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
+                        className="block px-2 py-3 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[11px] text-neutral-n5 dark:text-snow-200 truncate">
+                            {dateLabel}{dateLabel && leagueName ? " • " : ""}{leagueName}
+                          </p>
+
+                          <div className="flex flex-col gap-1 mt-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-1 min-w-0">
+                                {homeTeamIdForLogo ? (
+                                  <GetTeamLogo teamId={homeTeamIdForLogo} alt={homeName} className="w-5 h-5" />
+                                ) : null}
+                                <span className="text-sm font-medium dark:text-white text-neutral-n4 truncate">{homeName}</span>
+                                {homeRed > 0 ? (
+                                  <span
+                                    className="inline-flex items-center justify-center h-3 w-2 bg-red-600 text-white text-[10px] font-bold leading-none"
+                                    title="Red cards"
+                                  >
+                                    {homeRed > 1 ? homeRed : null}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                <span className="text-xs font-bold dark:text-white text-neutral-n4">{homeScore}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-1 min-w-0">
+                                {awayTeamIdForLogo ? (
+                                  <GetTeamLogo teamId={awayTeamIdForLogo} alt={awayName} className="w-5 h-5" />
+                                ) : null}
+                                <span className="text-sm font-medium dark:text-white text-neutral-n4 truncate">{awayName}</span>
+                                {awayRed > 0 ? (
+                                  <span
+                                    className="inline-flex items-center justify-center h-3 w-2 bg-red-600 text-white text-[10px] font-bold leading-none"
+                                    title="Red cards"
+                                  >
+                                    {awayRed > 1 ? awayRed : null}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                <span className="text-xs font-bold dark:text-white text-neutral-n4">{awayScore}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {!hasTeamId && (
           <div className="my-4 block-style p-3 rounded theme-text">
             Open this page with a team id, e.g. <span className="font-semibold">/team/profile/9287</span> or <span className="font-semibold">/team/profile?id=9287</span>.
@@ -877,8 +1097,20 @@ const TeamProfile = () => {
 
         {/* OVERVIEW */}
         {activeTab === "overview" && (
-          <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
-            <div className="flex flex-col gap-5 w-full">
+          <div className="sz-8 flex flex-col gap-y-7 md:flex-row my-8 md:gap-7">
+            {/* Team Fixtures Sidebar - Left Side */}
+            <div className="w-full md:w-1/3">
+              {(() => {
+                const finalTeamId = teamId || "9260"; // Use fallback teamId for testing
+                console.log("teamProfile - teamId being passed:", finalTeamId);
+                console.log("teamProfile - teamId type:", typeof finalTeamId);
+                console.log("teamProfile - About to render TeamFixturesSidebar");
+                return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
+              })()}
+            </div>
+
+            {/* Main Content - Right Side */}
+            <div className="flex flex-col gap-5 w-full md:w-2/3">
               <div className="space-y-8">
                 <div className="block-style">
                   <div className="flex items-center text-neutral-n4 dark:text-snow-100 gap-2 mb-2">

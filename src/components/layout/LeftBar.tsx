@@ -136,6 +136,27 @@ export const Leftbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const fetchRunIdRef = useRef(0);
 
+  const popularLeagueIds = useMemo(
+    () => [
+      1204, 1399, 1005, 1007, 1205, 1229, 1269, 1368, 1221,
+      1141,
+    ],
+    [],
+  );
+
+  const popularLeagues = useMemo(() => {
+    const byId = new Map<number, LeagueItem>();
+    for (const l of leagues) byId.set(l.id, l);
+    return popularLeagueIds.map((id) => {
+      const found = byId.get(id);
+      return {
+        id,
+        name: found?.name ?? "",
+        resolved: Boolean(found?.name),
+      };
+    });
+  }, [leagues, popularLeagueIds]);
+
   const openLeagueProfile = (leagueId: number) => {
     const id = String(leagueId ?? "").trim();
     if (!id) return;
@@ -242,7 +263,7 @@ export const Leftbar = () => {
                     <Skeleton className="w-24 h-4" />
                   </li>
                 ))
-              : leagues.slice(0, 10).map((league, idx) => (
+              : popularLeagues.map((league, idx) => (
                   <li
                     key={league.id ? `${league.id}-${idx}` : `league-${idx}`}
                     className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4 cursor-pointer"
@@ -250,10 +271,14 @@ export const Leftbar = () => {
                   >
                     <GetLeagueLogo
                       leagueId={league.id}
-                      alt={league.name}
+                      alt={league.name || "League"}
                       className="w-6 h-6 object-contain"
                     />
-                    <span>{league.name}</span>
+                    {league.resolved ? (
+                      <span>{league.name}</span>
+                    ) : (
+                      <Skeleton className="w-24 h-4" />
+                    )}
                   </li>
                 ))}
           </ul>

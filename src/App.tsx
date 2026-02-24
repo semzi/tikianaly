@@ -35,28 +35,16 @@ const PlayerComparison = lazy(
   () => import("./features/football/pages/playerComparison"),
 );
 const TeamProfile = lazy(() => import("./features/football/pages/teamProfile"));
+const LeagueProfile = lazy(
+  () => import("./features/football/pages/leagueProfile"),
+);
 const Onboard = lazy(() => import("./features/onboarding/pages/onboard"));
 const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
 const ScriptSandbox = lazy(() => import("./features/dev/pages/ScriptSandbox"));
-const PrivacyPolicy = lazy(
-  () => import("./features/legal/pages/privacyPolicy"),
-);
-const BasketballPage = lazy(
-  () => import("./features/basketball/pages/basketBall"),
-);
-const BasketballMatchDetail = lazy(
-  () => import("./features/basketball/pages/basketBallMatchDetail"),
-);
-const BasketballLeagueProfile = lazy(
-  () => import("./features/basketball/pages/BasketballLeagueProfile"),
-);
-const BasketballTeamProfile = lazy(
-  () => import("./features/basketball/pages/BasketballTeamProfile"),
-);
-const BasketballLeagues = lazy(
-  () => import("./features/basketball/pages/BasketballLeagues"),
-);
+const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
+const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
+const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
 const Community = lazy(() => import("./features/community/pages/Community"));
 // Animation variants (can tweak)
 const pageVariants = {
@@ -101,6 +89,35 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <League />
+                </m.div>
+              }
+            />
+
+            <Route
+              path="/league/profile"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <LeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/league/profile/:leagueId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <LeagueProfile />
                 </m.div>
               }
             />
@@ -175,74 +192,32 @@ function AnimatedRoutes() {
               }
             />
             <Route
-              path="/basketball"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballPage />
-                </m.div>
-              }
+          path="/basketball"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballPage />
+            </m.div>
+          }
             />
             <Route
-              path="/basketball/match/:matchId"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballMatchDetail />
-                </m.div>
-              }
-            />
-            <Route
-              path="/basketball/league/:leagueId"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballLeagueProfile />
-                </m.div>
-              }
-            />
-            <Route
-              path="/basketball/leagues"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballLeagues />
-                </m.div>
-              }
-            />
-            <Route
-              path="/basketball/team/:teamId"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballTeamProfile />
-                </m.div>
-              }
+          path="/basketball/match/:matchId"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballMatchDetail />
+            </m.div>
+          }
             />
             <Route
               path="/account"

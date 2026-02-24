@@ -731,3 +731,21 @@ export const compareBasketballPlayers = async (data: {
   const response = await apiClient.post(endpoint, data);
   return response.data;
 };
+
+// Team Fixtures Endpoint
+export const getTeamFixtures = async (teamId: string | number, season: string = "2025/2026") => {
+  const endpoint = "/api/v1/football/fixture/team";
+  const params = { teamId, season };
+  
+  // Cache for 30 minutes
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+  
+  apiCache.set(endpoint, data, params, 30 * 60 * 1000);
+  return data;
+};
