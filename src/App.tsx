@@ -35,6 +35,9 @@ const PlayerComparison = lazy(
   () => import("./features/football/pages/playerComparison"),
 );
 const TeamProfile = lazy(() => import("./features/football/pages/teamProfile"));
+const LeagueProfile = lazy(
+  () => import("./features/football/pages/leagueProfile"),
+);
 const Onboard = lazy(() => import("./features/onboarding/pages/onboard"));
 const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
@@ -86,6 +89,35 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <League />
+                </m.div>
+              }
+            />
+
+            <Route
+              path="/league/profile"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <LeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/league/profile/:leagueId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <LeagueProfile />
                 </m.div>
               }
             />

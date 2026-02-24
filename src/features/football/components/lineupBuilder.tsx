@@ -152,7 +152,7 @@ export default function LineupBuilder({
               <div className="space-y-2 max-h-[300px] overflow-auto pr-1 hide-scrollbar">
                 {homeSubs.length ? (
                   homeSubs.map((p) => {
-                    const subInfo = homeSubbedOff.get(String(p.player_id));
+                    const subInfo = homeSubIn.get(String(p.player_id));
                     const replacedPlayerName = subInfo?.outPlayerId ? 
                       homeStartingPlayers.find(player => String(player.player_id) === subInfo.outPlayerId)?.name : 
                       undefined;
@@ -205,7 +205,7 @@ export default function LineupBuilder({
               <div className="space-y-2 max-h-[300px] overflow-auto pr-1 hide-scrollbar">
                 {awaySubs.length ? (
                   awaySubs.map((p) => {
-                    const subInfo = awaySubbedOff.get(String(p.player_id));
+                    const subInfo = awaySubIn.get(String(p.player_id));
                     const replacedPlayerName = subInfo?.outPlayerId ? 
                       awayStartingPlayers.find(player => String(player.player_id) === subInfo.outPlayerId)?.name : 
                       undefined;
@@ -464,6 +464,22 @@ export default function LineupBuilder({
     return map;
   };
 
+  const buildSubOutLookup = (side: "localteam" | "visitorteam") => {
+    const rows = Array.isArray(substitutions?.[side]) ? substitutions?.[side] : [];
+    const map = new Map<string, { minute?: string; inPlayerId?: string }>();
+    for (const r of rows) {
+      const outId = String(r?.player_out_id ?? r?.off_id ?? "").trim();
+      if (!outId) continue;
+      const minute = String(r?.minute ?? "").trim();
+      const inId = String(r?.player_in_id ?? "").trim();
+      map.set(outId, {
+        minute: minute || undefined,
+        inPlayerId: inId || undefined,
+      });
+    }
+    return map;
+  };
+
   const buildLineupSubInLookup = (teamSide: "home" | "away") => {
     const rows = Array.isArray((lineup as any)?.[teamSide]?.substitutions) ? (lineup as any)?.[teamSide]?.substitutions : [];
     const map = new Map<string, { minute?: string; outPlayerId?: string }>();
@@ -480,20 +496,46 @@ export default function LineupBuilder({
     return map;
   };
 
+  const buildLineupSubOutLookup = (teamSide: "home" | "away") => {
+    const rows = Array.isArray((lineup as any)?.[teamSide]?.substitutions) ? (lineup as any)?.[teamSide]?.substitutions : [];
+    const map = new Map<string, { minute?: string; inPlayerId?: string }>();
+    for (const r of rows) {
+      const outId = String(r?.off_id ?? r?.player_out_id ?? "").trim();
+      if (!outId) continue;
+      const minute = String(r?.minute ?? "").trim();
+      const inId = String(r?.player_in_id ?? "").trim();
+      map.set(outId, {
+        minute: minute || undefined,
+        inPlayerId: inId || undefined,
+      });
+    }
+    return map;
+  };
+
   const homeSubsFromLineup: RenderPlayer[] = buildSubsFromDemo(lineup?.home);
   const awaySubsFromLineup: RenderPlayer[] = buildSubsFromDemo(lineup?.away);
 
   const homeSubs: RenderPlayer[] = homeSubsFromLineup.length ? homeSubsFromLineup : fromSubstitutions("localteam");
   const awaySubs: RenderPlayer[] = awaySubsFromLineup.length ? awaySubsFromLineup : fromSubstitutions("visitorteam");
 
-  const homeSubbedOff = (() => {
+  const homeSubIn = (() => {
     const m = buildLineupSubInLookup("home");
     return m.size ? m : buildSubInLookup("localteam");
   })();
 
-  const awaySubbedOff = (() => {
+  const awaySubIn = (() => {
     const m = buildLineupSubInLookup("away");
     return m.size ? m : buildSubInLookup("visitorteam");
+  })();
+
+  const homeSubOut = (() => {
+    const m = buildLineupSubOutLookup("home");
+    return m.size ? m : buildSubOutLookup("localteam");
+  })();
+
+  const awaySubOut = (() => {
+    const m = buildLineupSubOutLookup("away");
+    return m.size ? m : buildSubOutLookup("visitorteam");
   })();
 
   const ratingHome = buildRatingLookup("home");
@@ -787,39 +829,43 @@ export default function LineupBuilder({
 
           {assists > 0 ? (
             <span className="absolute -bottom-2 -left-2 z-30 pointer-events-none">
-              <span className="relative block w-3.5 h-3.5 md:w-4 md:h-4">
-                {Array.from({ length: Math.min(assists, 3) }).map((_, idx) => (
-                  <IconBadge
-                    key={`assist-${player.player_id}-${idx}`}
-                    src="/icons/assist.svg"
-                    fallbackText={String(player.shirt_number ?? "")}
-                    className="absolute w-3.5 h-3.5 md:w-4 md:h-4"
-                    style={{ left: idx * 2, top: -idx * 2 }}
-                  />
-                ))}
+              <span className="flex items-center">
+                <IconBadge
+                  key={`assist-${player.player_id}`}
+                  src="/icons/assist.svg"
+                  fallbackText={String(player.shirt_number ?? "")}
+                  className="w-3.5 h-3.5 md:w-4 md:h-4"
+                />
+                {assists > 1 ? (
+                  <span className="ml-0.5 md:ml-1 w-[14px] h-[14px] md:w-[16px] md:h-[16px] bg-brand-secondary text-white rounded-full flex items-center justify-center text-[8px] md:text-[9px] leading-none font-bold border border-white/80 shadow-sm">
+                    x{assists}
+                  </span>
+                ) : null}
               </span>
             </span>
           ) : null}
 
           {goals > 0 ? (
             <span className="absolute -bottom-2 -right-2 z-30 pointer-events-none">
-              <span className="relative block w-3.5 h-3.5 md:w-4 md:h-4">
-                {Array.from({ length: Math.min(goals, 3) }).map((_, idx) => (
-                  <IconBadge
-                    key={`goal-${player.player_id}-${idx}`}
-                    src="/icons/football-line-1.svg"
-                    fallbackText={String(player.shirt_number ?? "")}
-                    className="absolute w-3.5 h-3.5 md:w-4 md:h-4"
-                    style={{ right: idx * 2, top: -idx * 2 }}
-                  />
-                ))}
+              <span className="flex items-center">
+                <IconBadge
+                  key={`goal-${player.player_id}`}
+                  src="/icons/football-line-1.svg"
+                  fallbackText={String(player.shirt_number ?? "")}
+                  className={`w-3.5 h-3.5 md:w-4 md:h-4 ${goals > 1 ? 'rounded-r' : ''}`}
+                />
+                {goals > 1 ? (
+                  <span className="ml-0 md:ml-0 w-[14px] h-[14px] md:w-[16px] md:h-[16px] bg-white text-brand-secondary rounded-r flex items-center justify-center text-[8px] md:text-[9px] leading-none font-bold border border-white">
+                    x{goals}
+                  </span>
+                ) : null}
               </span>
             </span>
           ) : null}
         </div>
         <span className="absolute flex gap-x-1.5 left-1/2 top-full mt-1 -translate-x-1/2 text-[8px] md:text-[9px] text-white font-medium text-center bg-black/55 px-1.5 py-0.5 rounded max-w-[92px] md:max-w-[110px] truncate">
           {hasRedCard ? <span className="block w-2 h-3 bg-red-600 rounded-[2px] mx-auto mb-0.5" /> : null}
-          {player.shirt_number ? `${player.shirt_number}. ` : ""}{abbreviateName(player.name)}
+          {(player.shirt_number ? `${player.shirt_number}. ` : "") + abbreviateName(player.name)}
         </span>
       </button>
     );
@@ -894,7 +940,7 @@ export default function LineupBuilder({
             const y = getMobileRowY("home", rowIndex, totalRows);
             return row.map((player, indexInRow) => {
               const x = getMobileX(indexInRow, row.length);
-              const subOff = homeSubbedOff.get(String(player.player_id));
+              const subOff = homeSubOut.get(String(player.player_id));
               return (
                 <div
                   key={`home-${rowIndex}-${indexInRow}`}
@@ -913,7 +959,7 @@ export default function LineupBuilder({
             const y = getMobileRowY("away", rowIndex, totalRows);
             return row.map((player, indexInRow) => {
               const x = getMobileX(indexInRow, row.length);
-              const subOff = awaySubbedOff.get(String(player.player_id));
+              const subOff = awaySubOut.get(String(player.player_id));
               return (
                 <div
                   key={`away-${rowIndex}-${indexInRow}`}
@@ -991,7 +1037,7 @@ export default function LineupBuilder({
               const x = getX("home", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
                 const y = getY(indexInRow, row.length);
-                const subOff = homeSubbedOff.get(String(player.player_id));
+                const subOff = homeSubOut.get(String(player.player_id));
                 return (
                   <div
                     key={`mobile-home-${rowIndex}-${indexInRow}`}
@@ -1009,7 +1055,7 @@ export default function LineupBuilder({
               const x = getX("away", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
                 const y = getY(indexInRow, row.length);
-                const subOff = awaySubbedOff.get(String(player.player_id));
+                const subOff = awaySubOut.get(String(player.player_id));
                 return (
                   <div
                     key={`mobile-away-${rowIndex}-${indexInRow}`}
