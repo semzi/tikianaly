@@ -141,6 +141,36 @@ export const getPlayerById = async (playerId: string | number) => {
   return response.data;
 };
 
+type FootballLeagueLeaderItem = {
+  player_id: number;
+  common_name?: string;
+  firstname?: string;
+  lastname?: string;
+  goals?: number;
+  assists?: number;
+  duels?: number;
+};
+
+export type FootballLeagueLeadersResponse = {
+  success?: boolean;
+  message?: string;
+  responseObject?: {
+    leagueId?: number;
+    season?: string;
+    goals?: FootballLeagueLeaderItem[];
+    assists?: FootballLeagueLeaderItem[];
+    duels?: FootballLeagueLeaderItem[];
+  };
+  statusCode?: number;
+};
+
+export const getFootballLeagueLeaders = async (leagueId: string | number) => {
+  const response = await apiClient.get(
+    `/api/v1/football/players/league-leaders?leagueId=${encodeURIComponent(String(leagueId))}`,
+  );
+  return response.data as FootballLeagueLeadersResponse;
+};
+
 /**
  * Get stats for multiple players by their IDs
  * @param data - Request data containing player IDs
