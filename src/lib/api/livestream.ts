@@ -1,4 +1,5 @@
 import apiClient from "./axios";
+import { applyPatch } from "fast-json-patch";
 
 export type LiveStreamTeam = {
   id: string;
@@ -66,6 +67,7 @@ export type LiveStreamHandlers<T = string> = {
   onMessage: (data: T, ev: MessageEvent) => void;
   onError?: (ev: Event) => void;
   parse?: (raw: string) => T;
+  useFastJsonPatch?: boolean;
 };
 
 export type LiveStreamOptions = {
@@ -81,6 +83,8 @@ export const createFootballLiveStream = <T = string>(
   const url =
     options.url ?? `${baseUrl.replace(/\/+$/, "")}/api/v1/football/live/live-stream`;
 
+  let currentState: unknown = null;
+
   const eventSource = new EventSource(url, {
     withCredentials: options.withCredentials ?? false,
   });
@@ -91,6 +95,27 @@ export const createFootballLiveStream = <T = string>(
 
   eventSource.onmessage = (ev) => {
     const raw = String(ev.data ?? "");
+    if (handlers.useFastJsonPatch) {
+      const parsed = JSON.parse(raw) as { type?: string; data?: unknown };
+
+      if (parsed.type === "full") {
+        currentState = parsed.data ?? null;
+        handlers.onMessage(currentState as T, ev);
+        return;
+      }
+
+      if (parsed.type === "patch") {
+        if (currentState == null) {
+          return;
+        }
+
+        const result = applyPatch(currentState as any, parsed.data as any, false, false);
+        currentState = result.newDocument;
+        handlers.onMessage(currentState as T, ev);
+        return;
+      }
+    }
+
     const data = handlers.parse ? handlers.parse(raw) : (raw as unknown as T);
     handlers.onMessage(data, ev);
   };
