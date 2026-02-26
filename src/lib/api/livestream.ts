@@ -77,11 +77,12 @@ export type LiveStreamOptions = {
 
 export const createFootballLiveStream = <T = string>(
   handlers: LiveStreamHandlers<T>,
-  options: LiveStreamOptions = {}
+  options: LiveStreamOptions = {},
 ): EventSource => {
   const baseUrl = String(apiClient.defaults.baseURL ?? "");
   const url =
-    options.url ?? `${baseUrl.replace(/\/+$/, "")}/api/v1/football/live/live-stream`;
+    options.url ??
+    `${baseUrl.replace(/\/+$/, "")}/api/v1/football/live/live-stream`;
 
   let currentState: unknown = null;
 
@@ -109,7 +110,12 @@ export const createFootballLiveStream = <T = string>(
           return;
         }
 
-        const result = applyPatch(currentState as any, parsed.data as any, false, false);
+        const result = applyPatch(
+          currentState as any,
+          parsed.data as any,
+          false,
+          false,
+        );
         currentState = result.newDocument;
         handlers.onMessage(currentState as T, ev);
         return;
@@ -127,7 +133,7 @@ export const createFootballLiveStream = <T = string>(
   return eventSource;
 };
 
-const parseJsonArray = <T,>(raw: string): T[] => {
+const parseJsonArray = <T>(raw: string): T[] => {
   const parsed = JSON.parse(raw);
   return Array.isArray(parsed) ? (parsed as T[]) : [];
 };
@@ -140,16 +146,19 @@ export type DashboardStreamHandlers = {
 
 export const subscribeDashboardLiveFixtures = (
   handlers: DashboardStreamHandlers,
-  options: LiveStreamOptions = {}
+  options: LiveStreamOptions = {},
 ): EventSource => {
-  return createFootballLiveStream<LiveStreamFixture[]>({
-    onOpen: handlers.onOpen,
-    onError: handlers.onError,
-    parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
-    onMessage: (fixtures, ev) => {
-      handlers.onUpdate(fixtures as DashboardLiveFixture[], ev);
+  return createFootballLiveStream<LiveStreamFixture[]>(
+    {
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
+      onMessage: (fixtures, ev) => {
+        handlers.onUpdate(fixtures as DashboardLiveFixture[], ev);
+      },
     },
-  }, options);
+    options,
+  );
 };
 
 export type GameInfoStreamHandlers = {
@@ -162,23 +171,56 @@ export type GameInfoStreamHandlers = {
 
 export const subscribeGameInfoLiveFixture = (
   handlers: GameInfoStreamHandlers,
-  options: LiveStreamOptions = {}
+  options: LiveStreamOptions = {},
 ): EventSource => {
-  return createFootballLiveStream<LiveStreamFixture[]>({
-    onOpen: handlers.onOpen,
-    onError: handlers.onError,
-    parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
-    onMessage: (fixtures, ev) => {
-      const fixture =
-        fixtures.find((f) => String(f.match_id) === String(handlers.matchId)) ?? null;
-      handlers.onFixture(fixture, ev);
-      if (fixture && handlers.onEvents) {
-        handlers.onEvents(fixture.events ?? [], ev);
-      }
+  return createFootballLiveStream<LiveStreamFixture[]>(
+    {
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
+      onMessage: (fixtures, ev) => {
+        const fixture =
+          fixtures.find(
+            (f) => String(f.match_id) === String(handlers.matchId),
+          ) ?? null;
+        handlers.onFixture(fixture, ev);
+        if (fixture && handlers.onEvents) {
+          handlers.onEvents(fixture.events ?? [], ev);
+        }
+      },
     },
-  }, options);
+    options,
+  );
 };
 
-export const closeLiveStream = (eventSource: EventSource | null | undefined) => {
+export const closeLiveStream = (
+  eventSource: EventSource | null | undefined,
+) => {
   eventSource?.close();
+};
+
+export const subscribeBasketballLiveMatchesStream = (
+  handlers: {
+    onOpen?: (ev: Event) => void;
+    onUpdate: (fixtures: any, ev: MessageEvent) => void;
+    onError?: (ev: Event) => void;
+  },
+  options: LiveStreamOptions = {},
+): EventSource => {
+  const baseUrl = String(apiClient.defaults.baseURL ?? "");
+  const url =
+    options.url ??
+    `${baseUrl.replace(/\/+$/, "")}/api/v1/basketball/sse/stream-live`;
+
+  return createFootballLiveStream<any>(
+    {
+      useFastJsonPatch: true,
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      onMessage: (fixtures, ev) => {
+        handlers.onUpdate(fixtures, ev);
+      },
+    },
+    { ...options, url },
+  );
 };

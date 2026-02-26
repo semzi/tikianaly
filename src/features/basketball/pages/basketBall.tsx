@@ -18,8 +18,12 @@ import {
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
 import Category from "@/features/dashboard/components/Category";
 import { subDays, addDays, isToday, format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import {
+  subscribeBasketballLiveMatchesStream,
+  closeLiveStream,
+} from "@/lib/api/livestream";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import RightBar from "@/components/layout/RightBar";
 
@@ -88,156 +92,122 @@ const BasketballPage = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
-  // Fetch data based on active tab, page, and league
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  // Fetch data with React Query
+  const fetchMatchesData = async () => {
+    let data: ApiResponse | null = null;
+    const formattedDate = selectedDate
+      ? format(selectedDate, "yyyy-MM-dd")
+      : "";
+
+    if (activeTab === "live") {
+      return null;
+    } else if (activeTab === "fixtures") {
       try {
-        let data: ApiResponse;
-
-        if (activeTab === "live") {
-          const data = await getLiveBasketballMatches(currentPage);
-          if (data && data.success && data.responseObject) {
-            let allLiveMatches = data.responseObject.items || [];
-            if (selectedLeagueId) {
-              allLiveMatches = allLiveMatches.filter(
-                (m: any) => !m.league_id || m.league_id === selectedLeagueId,
-              );
-            }
-            setMatches(allLiveMatches);
-            setTotalPages(data.responseObject.totalPages || 1);
-            setHasNextPage(data.responseObject.hasNextPage || false);
-            setHasPreviousPage(data.responseObject.hasPreviousPage || false);
-            setCurrentPage(data.responseObject.page || 1);
-          } else {
-            setMatches([]);
-            setTotalPages(1);
-            setHasNextPage(false);
-            setHasPreviousPage(false);
-            setCurrentPage(1);
-          }
-        } else if (activeTab === "fixtures") {
-          const formattedDate = selectedDate
-            ? format(selectedDate, "yyyy-MM-dd")
-            : "";
-
-          // Try fetching by date first
-          try {
-            data = await getBasketballFixturesByDate(
-              formattedDate,
-              currentPage,
-            );
-          } catch (err) {
-            console.error("Error fetching fixtures by date:", err);
-            // Fallback or empty state
-            data = {
-              success: false,
-              message: "Error",
-              responseObject: {
-                items: [],
-                total: 0,
-                page: 1,
-                limit: 100,
-                totalPages: 1,
-                hasNextPage: false,
-                hasPreviousPage: false,
-              },
-              statusCode: 500,
-            };
-          }
-
-          if (data && data.success && data.responseObject) {
-            let items = data.responseObject.items || [];
-            if (selectedLeagueId) {
-              items = items.filter((m) => m.league_id === selectedLeagueId);
-            }
-            setMatches(items);
-            setTotalPages(data.responseObject.totalPages || 1);
-            setHasNextPage(data.responseObject.hasNextPage || false);
-            setHasPreviousPage(data.responseObject.hasPreviousPage || false);
-            setCurrentPage(data.responseObject.page || 1);
-          } else {
-            // If date fetch fails or is empty, and it is today, we could potentially fallback
-            // but for now let's show empty to be accurate to the selected date
-            setMatches([]);
-          }
-        } else {
-          // Results tab
-          const formattedDate = selectedDate
-            ? format(selectedDate, "yyyy-MM-dd")
-            : "";
-
-          try {
-            data = await getBasketballFixturesByDate(
-              formattedDate,
-              currentPage,
-            );
-
-            if (
-              data &&
-              data.success &&
-              data.responseObject &&
-              data.responseObject.items.length > 0
-            ) {
-              let items = data.responseObject.items.filter(
-                (m) =>
-                  m.status.toLowerCase().includes("finished") ||
-                  m.localteam.totalscore !== "",
-              );
-
-              if (selectedLeagueId) {
-                items = items.filter((m) => m.league_id === selectedLeagueId);
-              }
-              setMatches(items);
-              setTotalPages(data.responseObject.totalPages || 1);
-              setHasNextPage(data.responseObject.hasNextPage || false);
-              setHasPreviousPage(data.responseObject.hasPreviousPage || false);
-              setCurrentPage(data.responseObject.page || 1);
-            } else {
-              // Fallback to general results search if no specific date results found
-              data = await searchBasketballFixturesByStatus(
-                "finished",
-                currentPage,
-              );
-              if (data && data.success && data.responseObject) {
-                let items = data.responseObject.items || [];
-                if (selectedLeagueId) {
-                  items = items.filter((m) => m.league_id === selectedLeagueId);
-                }
-                setMatches(items);
-                setTotalPages(data.responseObject.totalPages || 1);
-                setHasNextPage(data.responseObject.hasNextPage || false);
-                setHasPreviousPage(
-                  data.responseObject.hasPreviousPage || false,
-                );
-                setCurrentPage(data.responseObject.page || 1);
-              } else {
-                setMatches([]);
-              }
-            }
-          } catch (error) {
-            console.error("Error fetching results:", error);
-            setMatches([]);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching basketball data:", error);
-        setMatches([]);
-      } finally {
-        setLoading(false);
+        data = (await getBasketballFixturesByDate(
+          formattedDate,
+          currentPage,
+        )) as ApiResponse;
+      } catch (err) {
+        data = null;
       }
-    };
+    } else {
+      try {
+        data = (await getBasketballFixturesByDate(
+          formattedDate,
+          currentPage,
+        )) as ApiResponse;
+        if (
+          !data ||
+          !data.success ||
+          !data.responseObject ||
+          data.responseObject.items.length === 0
+        ) {
+          data = (await searchBasketballFixturesByStatus(
+            "finished",
+            currentPage,
+          )) as ApiResponse;
+        }
+      } catch (err) {
+        data = null;
+      }
+    }
+    return data;
+  };
 
-    fetchData();
+  const { data: queryData, isLoading: isQueryLoading } = useQuery({
+    queryKey: [
+      "basketball-matches",
+      activeTab,
+      currentPage,
+      selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
+    ],
+    queryFn: fetchMatchesData,
+    enabled: activeTab !== "live",
+    staleTime: 5 * 60 * 1000,
+  });
 
-    // Auto-refresh live matches every 30 seconds
-    const interval =
-      activeTab === "live" ? setInterval(fetchData, 30000) : null;
+  // Sync state with React Query response
+  useEffect(() => {
+    if (activeTab === "live") return;
+    setLoading(isQueryLoading);
+    if (!isQueryLoading) {
+      if (queryData && queryData.success && queryData.responseObject) {
+        let items = queryData.responseObject.items || [];
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTab, currentPage, selectedLeagueId, selectedDate]);
+        if (activeTab === "results") {
+          items = items.filter(
+            (m) =>
+              m.status.toLowerCase().includes("finished") ||
+              m.localteam.totalscore !== "",
+          );
+        }
+
+        if (selectedLeagueId) {
+          items = items.filter(
+            (m: any) => !m.league_id || m.league_id === selectedLeagueId,
+          );
+        }
+
+        setMatches(items);
+        setTotalPages(queryData.responseObject.totalPages || 1);
+        setHasNextPage(queryData.responseObject.hasNextPage || false);
+        setHasPreviousPage(queryData.responseObject.hasPreviousPage || false);
+        if (queryData.responseObject.page) {
+          setCurrentPage(queryData.responseObject.page);
+        }
+      } else {
+        setMatches([]);
+        setTotalPages(1);
+        setHasNextPage(false);
+        setHasPreviousPage(false);
+      }
+    }
+  }, [queryData, isQueryLoading, activeTab, selectedLeagueId]);
+
+  // Handle SSE for Live matches
+  useEffect(() => {
+    if (activeTab === "live") {
+      setLoading(true);
+      const eventSource = subscribeBasketballLiveMatchesStream({
+        onUpdate: (fixtures) => {
+          setLoading(false);
+          let items = fixtures || [];
+          if (selectedLeagueId) {
+            items = items.filter(
+              (m: any) => !m.league_id || m.league_id === selectedLeagueId,
+            );
+          }
+          setMatches((prev) => (items.length > 0 ? items : prev));
+        },
+        onError: (err) => {
+          setLoading(false);
+          console.error("Live SSE Error:", err);
+        },
+      });
+
+      return () => closeLiveStream(eventSource);
+    }
+  }, [activeTab, selectedLeagueId]);
 
   // Reset to page 1 when changing tabs or league
   useEffect(() => {
@@ -531,15 +501,7 @@ const BasketballPage = () => {
                               {/* Home Team */}
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <span
-                                    className="text-sm font-medium theme-text hover:text-brand-primary transition-colors cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(
-                                        `/basketball/team/${match.localteam.id}`,
-                                      );
-                                    }}
-                                  >
+                                  <span className="text-sm font-medium theme-text">
                                     {match.localteam.name}
                                   </span>
                                 </div>
@@ -553,15 +515,7 @@ const BasketballPage = () => {
                               {/* Away Team */}
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <span
-                                    className="text-sm font-medium theme-text hover:text-brand-primary transition-colors cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(
-                                        `/basketball/team/${match.awayteam.id}`,
-                                      );
-                                    }}
-                                  >
+                                  <span className="text-sm font-medium theme-text">
                                     {match.awayteam.name}
                                   </span>
                                 </div>
