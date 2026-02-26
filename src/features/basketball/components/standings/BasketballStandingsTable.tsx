@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { getBasketballStandings } from "@/lib/api/endpoints";
-import { navigate } from "@/lib/router/navigate";
 
 export type BasketballStandingsRow = {
   position: number;
@@ -55,12 +54,6 @@ export const BasketballStandingsTable = ({ leagueId, season }: Props) => {
   const [apiError, setApiError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isShortView, setIsShortView] = useState(true);
-
-  const openTeamProfile = (teamId?: number) => {
-    if (!teamId) return;
-    // Assuming basketball team profiles will follow this route
-    navigate(`/basketball/team/${encodeURIComponent(String(teamId))}`);
-  };
 
   const SkeletonBlock = ({ className }: { className: string }) => (
     <div
@@ -321,14 +314,12 @@ export const BasketballStandingsTable = ({ leagueId, season }: Props) => {
                         className="w-6 h-6 object-contain"
                       />
                     </div>
-                    <button
-                      type="button"
-                      className="font-medium text-sm text-neutral-n4 dark:text-snow-200 text-left hover:underline truncate min-w-0 flex-1"
-                      onClick={() => openTeamProfile(team.teamId)}
+                    <span
+                      className="font-medium text-sm text-neutral-n4 dark:text-snow-200 text-left truncate min-w-0 flex-1"
                       title={team.team}
                     >
                       {team.team}
-                    </button>
+                    </span>
                   </div>
                   {!isShortView && (
                     <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
