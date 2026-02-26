@@ -22,16 +22,11 @@ import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/layout/Navigation";
 import { setNavigator } from "./lib/router/navigate";
 import { useEffect, lazy, Suspense } from "react";
+import { BackendStatusProvider } from "@/context/BackendStatusContext";
+import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const Reset = lazy(() => import("./features/auth/pages/reset_password"));
 const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
@@ -52,18 +47,10 @@ const Onboard = lazy(() => import("./features/onboarding/pages/onboard"));
 const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
 const ScriptSandbox = lazy(() => import("./features/dev/pages/ScriptSandbox"));
-const PrivacyPolicy = lazy(
-  () => import("./features/legal/pages/privacyPolicy"),
-);
-const BasketballPage = lazy(
-  () => import("./features/basketball/pages/basketBall"),
-);
-const BasketballMatchDetail = lazy(
-  () => import("./features/basketball/pages/basketBallMatchDetail"),
-);
-const BasketballLeagueProfile = lazy(
-  () => import("./features/basketball/pages/BasketballLeagueProfile"),
-);
+const SseDebug = lazy(() => import("./features/dev/pages/SseDebug"));
+const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
+const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
+const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
 const Community = lazy(() => import("./features/community/pages/Community"));
 // Animation variants (can tweak)
 const pageVariants = {
@@ -97,6 +84,20 @@ function AnimatedRoutes() {
             <Route path="/signup" element={<Onboard />} />
 
             {/* With Navigation */}
+            <Route
+              path="/football"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Dashboard />
+                </m.div>
+              }
+            />
             <Route
               path="/league"
               element={
@@ -211,60 +212,32 @@ function AnimatedRoutes() {
               }
             />
             <Route
-              path="/basketball"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballPage />
-                </m.div>
-              }
+          path="/basketball"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballPage />
+            </m.div>
+          }
             />
             <Route
-              path="/basketball/match/:matchId"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballMatchDetail />
-                </m.div>
-              }
-            />
-            <Route
-              path="/basketball/league"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballLeagueProfile />
-                </m.div>
-              }
-            />
-            <Route
-              path="/basketball/league/:leagueId"
-              element={
-                <m.div
-                  variants={motionVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={motionTransition}
-                >
-                  <BasketballLeagueProfile />
-                </m.div>
-              }
+          path="/basketball/match/:matchId"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballMatchDetail />
+            </m.div>
+          }
             />
             <Route
               path="/account"
@@ -380,6 +353,21 @@ function AnimatedRoutes() {
                 </m.div>
               }
             />
+
+            <Route
+              path="/dev/sse"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <SseDebug />
+                </m.div>
+              }
+            />
             <Route
               path="/forgot-password"
               element={
@@ -466,6 +454,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <BackendStatusBanner />
       {!shouldHideNav && <Navigation />}
       <main>{children}</main>
     </>
@@ -476,12 +465,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Layout>
-            <AnimatedRoutes />
-          </Layout>
-        </BrowserRouter>
+        <BackendStatusProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Layout>
+              <AnimatedRoutes />
+            </Layout>
+          </BrowserRouter>
+        </BackendStatusProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

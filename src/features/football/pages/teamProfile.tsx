@@ -3,6 +3,7 @@ import { FooterComp } from "@/components/layout/Footer";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import TeamFixturesSidebar from "@/features/football/components/TeamFixturesSidebar";
 import { getPlayerById, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
+import { closeLiveStream, subscribeDashboardLiveFixtures, type DashboardLiveFixture } from "@/lib/api/livestream";
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
@@ -11,7 +12,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { InformationCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   Bar,
@@ -27,6 +28,8 @@ import {
 } from "recharts";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
+import { useBackendStatus } from "@/context/BackendStatusContext";
+import { DropdownSelector } from "@/components/ui/DropdownSelector";
 
 type TeamTransferRow = {
   id?: string;
@@ -324,6 +327,7 @@ const positionRank = (pos?: string): number => {
 
 const TeamProfile = () => {
   const toast = useToast();
+  const backendStatus = useBackendStatus();
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "matches", label: "Matches" },
@@ -353,6 +357,12 @@ const TeamProfile = () => {
   const [fixturesData, setFixturesData] = useState<any>(null);
   const [fixturesLoading, setFixturesLoading] = useState(false);
   const [fixturesError, setFixturesError] = useState<string | null>(null);
+  const [matchesMode, setMatchesMode] = useState<"played" | "upcoming" | "all">("played");
+  const [matchesSseRevision, setMatchesSseRevision] = useState(0);
+  const liveEventSourceRef = useRef<EventSource | null>(null);
+  const latestLiveByStaticIdRef = useRef<Map<string, DashboardLiveFixture>>(new Map());
+  const latestLiveByMatchIdRef = useRef<Map<string, DashboardLiveFixture>>(new Map());
+  const latestLiveByFixtureIdRef = useRef<Map<string, DashboardLiveFixture>>(new Map());
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
 
   const openPlayerProfile = (playerId: unknown) => {
@@ -428,15 +438,22 @@ const TeamProfile = () => {
     run(teamId);
   }, [teamId]);
 
-  const teamName = String(team?.name ?? "Team");
+  const teamName = String(team?.name ?? "").trim();
+  const displayTeamName = teamName
+    ? teamName
+    : backendStatus.isOnline
+      ? "Team Profile"
+      : "Service Unavailable";
 
   const canonicalUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}${window.location.search}`
     : "";
   const shareImage = "/logo.webp";
   const shareImageUrl = typeof window !== "undefined" ? `${window.location.origin}${shareImage}` : shareImage;
-  const pageTitle = `${teamName} | Team Profile | TikiAnaly`;
-  const pageDescription = `Squad, transfers, venue and stats for ${teamName}.`;
+  const pageTitle = `${displayTeamName} | Team Profile | TikiAnaly`;
+  const pageDescription = teamName
+    ? `Squad, transfers, venue and stats for ${teamName}.`
+    : "Squad, transfers, venue and stats.";
 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [hasCopiedShareUrl, setHasCopiedShareUrl] = useState(false);
@@ -504,7 +521,7 @@ const TeamProfile = () => {
   useEffect(() => {
     const ids = Array.from(
       new Set(
-        [...(squad ?? []), ...(transfersIn ?? []), ...(transfersOut ?? [])]
+        [...(squad ?? []), ...(Array.isArray(transfersIn) ? transfersIn : []), ...(Array.isArray(transfersOut) ? transfersOut : [])]
           .map((r: any) => String(r?.id ?? "").trim())
           .filter(Boolean)
       )
@@ -577,16 +594,20 @@ const TeamProfile = () => {
   const transferChartData = useMemo<TransferChartPoint[]>(() => {
     const points: Array<{ label: string; ts: number; fee: number; dir: "in" | "out" }> = [];
 
-    transfersIn.forEach((t) => {
-      const ts = parseTransferDate(t?.date);
-      if (!ts) return;
-      points.push({ label: String(t?.date ?? ""), ts, fee: parseFeeToNumber(t?.price), dir: "in" });
-    });
-    transfersOut.forEach((t) => {
-      const ts = parseTransferDate(t?.date);
-      if (!ts) return;
-      points.push({ label: String(t?.date ?? ""), ts, fee: parseFeeToNumber(t?.price), dir: "out" });
-    });
+    if (Array.isArray(transfersIn)) {
+      transfersIn.forEach((t) => {
+        const ts = parseTransferDate(t?.date);
+        if (!ts) return;
+        points.push({ label: String(t?.date ?? ""), ts, fee: parseFeeToNumber(t?.price), dir: "in" });
+      });
+    }
+    if (Array.isArray(transfersOut)) {
+      transfersOut.forEach((t) => {
+        const ts = parseTransferDate(t?.date);
+        if (!ts) return;
+        points.push({ label: String(t?.date ?? ""), ts, fee: parseFeeToNumber(t?.price), dir: "out" });
+      });
+    }
 
     points.sort((a, b) => a.ts - b.ts);
 
@@ -603,13 +624,17 @@ const TeamProfile = () => {
   }, [transfersIn, transfersOut]);
 
   const transferTotals = useMemo(() => {
-    const totalIn = transfersIn.reduce((a, t) => a + parseFeeToNumber(t?.price), 0);
-    const totalOut = transfersOut.reduce((a, t) => a + parseFeeToNumber(t?.price), 0);
+    const totalIn = Array.isArray(transfersIn) 
+      ? transfersIn.reduce((a, t) => a + parseFeeToNumber(t?.price), 0)
+      : 0;
+    const totalOut = Array.isArray(transfersOut)
+      ? transfersOut.reduce((a, t) => a + parseFeeToNumber(t?.price), 0)
+      : 0;
     return {
       totalIn,
       totalOut,
-      countIn: transfersIn.length,
-      countOut: transfersOut.length,
+      countIn: Array.isArray(transfersIn) ? transfersIn.length : 0,
+      countOut: Array.isArray(transfersOut) ? transfersOut.length : 0,
     };
   }, [transfersIn, transfersOut]);
 
@@ -706,6 +731,35 @@ const TeamProfile = () => {
     run();
   }, [teamId]);
 
+  useEffect(() => {
+    closeLiveStream(liveEventSourceRef.current);
+    liveEventSourceRef.current = subscribeDashboardLiveFixtures({
+      onUpdate: (liveItems: DashboardLiveFixture[]) => {
+        if (!Array.isArray(liveItems)) return;
+        const nextByStaticId = new Map<string, DashboardLiveFixture>();
+        const nextByMatchId = new Map<string, DashboardLiveFixture>();
+        const nextByFixtureId = new Map<string, DashboardLiveFixture>();
+        for (const item of liveItems) {
+          const staticId = (item as any)?.static_id;
+          const matchId = (item as any)?.match_id;
+          const fixtureId = (item as any)?.fixture_id;
+          if (staticId) nextByStaticId.set(String(staticId), item);
+          if (matchId) nextByMatchId.set(String(matchId), item);
+          if (fixtureId) nextByFixtureId.set(String(fixtureId), item);
+        }
+        latestLiveByStaticIdRef.current = nextByStaticId;
+        latestLiveByMatchIdRef.current = nextByMatchId;
+        latestLiveByFixtureIdRef.current = nextByFixtureId;
+        setMatchesSseRevision((v) => v + 1);
+      },
+    });
+
+    return () => {
+      closeLiveStream(liveEventSourceRef.current);
+      liveEventSourceRef.current = null;
+    };
+  }, []);
+
   const playedMatches = useMemo(() => {
     const items = (fixturesData as any)?.responseObject?.played;
     if (!Array.isArray(items)) return [];
@@ -715,6 +769,55 @@ const TeamProfile = () => {
       return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0);
     });
   }, [fixturesData]);
+
+  const upcomingMatches = useMemo(() => {
+    const items = (fixturesData as any)?.responseObject?.upcoming;
+    if (!Array.isArray(items)) return [];
+    return [...items].sort((a: any, b: any) => {
+      const at = Date.parse(String(a?.date ?? ""));
+      const bt = Date.parse(String(b?.date ?? ""));
+      return (Number.isFinite(at) ? at : 0) - (Number.isFinite(bt) ? bt : 0);
+    });
+  }, [fixturesData]);
+
+  const mergeWithLive = (games: any[]) => {
+    const byStaticId = latestLiveByStaticIdRef.current;
+    const byMatchId = latestLiveByMatchIdRef.current;
+    const byFixtureId = latestLiveByFixtureIdRef.current;
+    if (!byStaticId.size && !byMatchId.size && !byFixtureId.size) return games;
+    return games.map((g: any) => {
+      const staticIdKey = g?.static_id ? String(g.static_id) : "";
+      const matchIdKey = g?.match_id ? String(g.match_id) : "";
+      const fixtureIdKey = g?.fixture_id ? String(g.fixture_id) : String(g?.id ?? "");
+      const update =
+        (staticIdKey && byStaticId.get(staticIdKey)) ||
+        (matchIdKey && byMatchId.get(matchIdKey)) ||
+        (fixtureIdKey && byFixtureId.get(fixtureIdKey));
+      return update ? { ...g, ...(update as any) } : g;
+    });
+  };
+
+  const displayedMatches = useMemo(() => {
+    const played = mergeWithLive(playedMatches);
+    const upcoming = mergeWithLive(upcomingMatches);
+    if (matchesMode === "played") return played;
+    if (matchesMode === "upcoming") return upcoming;
+    return [...played, ...upcoming].sort((a: any, b: any) => {
+      const at = Date.parse(String(a?.date ?? ""));
+      const bt = Date.parse(String(b?.date ?? ""));
+      return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0);
+    });
+  }, [playedMatches, upcomingMatches, matchesMode, matchesSseRevision]);
+
+  const upcomingFixtureIdSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of Array.isArray(upcomingMatches) ? upcomingMatches : []) {
+      const id = m?.fixture_id ?? m?.id;
+      const key = String(id ?? "").trim();
+      if (key) set.add(key);
+    }
+    return set;
+  }, [upcomingMatches]);
 
   const getRedCount = (fx: any, side: "localteam" | "visitorteam") => {
     const direct = Number((fx?.[side]?.redcards ?? fx?.[side]?.red_cards ?? fx?.[side]?.redCards) ?? 0);
@@ -975,7 +1078,9 @@ const TeamProfile = () => {
 
         {error && (
           <div className="my-4 block-style border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 p-3 rounded">
-            {error}
+            {backendStatus.isOnline
+              ? "We couldn’t load this team right now. Please try again in a moment."
+              : "Service temporarily unavailable. Retrying connection…"}
           </div>
         )}
 
@@ -992,23 +1097,36 @@ const TeamProfile = () => {
             <div className="block-style w-full md:w-2/3">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <p className="font-bold text-lg theme-text">Matches</p>
-                <p className="text-xs text-neutral-n5 dark:text-snow-200">Played</p>
+                <DropdownSelector
+                  value={matchesMode}
+                  onChange={setMatchesMode}
+                  size="lg"
+                  className="max-w-[220px]"
+                  options={[
+                    { value: "played", label: "Played" },
+                    { value: "upcoming", label: "Upcoming" },
+                    { value: "all", label: "All" },
+                  ]}
+                />
               </div>
 
               {fixturesLoading ? (
                 <div className="theme-text text-sm">Loading matches...</div>
               ) : fixturesError ? (
                 <div className="text-sm text-red-600 dark:text-red-400">{fixturesError}</div>
-              ) : playedMatches.length === 0 ? (
-                <div className="theme-text text-sm">No played matches</div>
+              ) : displayedMatches.length === 0 ? (
+                <div className="theme-text text-sm">
+                  {matchesMode === "played" ? "No played matches" : matchesMode === "upcoming" ? "No upcoming matches" : "No matches"}
+                </div>
               ) : (
                 <div className="divide-y divide-snow-200/60 dark:divide-snow-100/10">
-                  {playedMatches.map((m: any, idx: number) => {
+                  {displayedMatches.map((m: any, idx: number) => {
                     const fixtureId = m?.fixture_id ?? m?.id;
+                    const isUpcoming = upcomingFixtureIdSet.has(String(fixtureId ?? "").trim());
                     const homeName = m?.localteam?.name ?? "Home";
                     const awayName = m?.visitorteam?.name ?? "Away";
-                    const homeScore = m?.localteam?.score ?? "-";
-                    const awayScore = m?.visitorteam?.score ?? "-";
+                    const homeScore = isUpcoming ? "-" : (m?.localteam?.score ?? "-");
+                    const awayScore = isUpcoming ? "-" : (m?.visitorteam?.score ?? "-");
                     const homeTeamIdForLogo = m?.localteam?.id;
                     const awayTeamIdForLogo = m?.visitorteam?.id;
                     const leagueName = m?.league_name ?? "";
@@ -1301,7 +1419,7 @@ const TeamProfile = () => {
                 <div className="block-style">
                   <p className="font-bold text-lg theme-text mb-3">Transfers In</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {transfersIn.length === 0 ? (
+                    {!Array.isArray(transfersIn) || transfersIn.length === 0 ? (
                       <div className="theme-text">No transfers</div>
                     ) : (
                       [...transfersIn]
@@ -1348,7 +1466,7 @@ const TeamProfile = () => {
                 <div className="block-style">
                   <p className="font-bold text-lg theme-text mb-3">Transfers Out</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {transfersOut.length === 0 ? (
+                    {!Array.isArray(transfersOut) || transfersOut.length === 0 ? (
                       <div className="theme-text">No transfers</div>
                     ) : (
                       [...transfersOut]
@@ -1402,11 +1520,11 @@ const TeamProfile = () => {
             <div className="flex flex-col gap-5 w-full">
               <div className="block-style">
                 <p className="font-bold text-lg mb-3 theme-text">Trophies</p>
-                {(team?.trophies ?? []).length === 0 ? (
+                {!Array.isArray(team?.trophies) || (team?.trophies ?? []).length === 0 ? (
                   <div className="theme-text">No trophy data</div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {[...(team?.trophies ?? [])].map((t, idx) => (
+                    {[...(Array.isArray(team?.trophies) ? team?.trophies : [])].map((t, idx) => (
                       <div key={`${t?.league ?? "trophy"}-${idx}`} className="rounded-lg border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#161B22] p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">

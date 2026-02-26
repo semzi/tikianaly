@@ -54,8 +54,6 @@ import PlayerStatsBottomSheet from "@/features/football/components/player/Player
 
 import { useToast } from "@/context/ToastContext";
 
-import { applyPatch } from "fast-json-patch";
-
 import {
 
   closeLiveStream,
@@ -3194,97 +3192,25 @@ export const gameInfo = () => {
 
     let eventSource: EventSource | null = null;
 
-    let currentState: LiveStreamFixture[] | null = null;
-
-
-
-    const parseJsonArray = <T,>(raw: string): T[] => {
-
-      const parsed = JSON.parse(raw);
-
-      return Array.isArray(parsed) ? (parsed as T[]) : [];
-
-    };
-
 
 
     eventSource = createFootballLiveStream<LiveStreamFixture[]>({
 
-      parse: (raw) => {
+      useFastJsonPatch: true,
 
-        try {
-
-          const parsed = JSON.parse(String(raw ?? "{}")) as any;
-
-          if (parsed && typeof parsed === "object" && "type" in parsed) {
-
-            return parsed as any;
-
-          }
-
-          return parseJsonArray<LiveStreamFixture>(raw) as any;
-
-        } catch {
-
-          return [] as any;
-
-        }
-
-      },
-
-      onMessage: (message: any) => {
+      onMessage: (fixtures: any) => {
 
         if (isClosed) return;
 
-        let fixtures: LiveStreamFixture[] = [];
+        const safeFixtures: LiveStreamFixture[] = Array.isArray(fixtures)
 
-        if (message && typeof message === "object" && "type" in message) {
+          ? (fixtures as LiveStreamFixture[])
 
-          const msgType = String((message as any)?.type ?? "");
-
-          if (msgType === "full") {
-
-            const next = Array.isArray((message as any)?.data)
-
-              ? ((message as any).data as LiveStreamFixture[])
-
-              : [];
-
-            currentState = next;
-
-            fixtures = next;
-
-          } else if (msgType === "patch") {
-
-            if (!currentState) return;
-
-            const patchOps = (message as any)?.data;
-
-            if (!Array.isArray(patchOps)) return;
-
-            const result = applyPatch(currentState, patchOps, true, false);
-
-            currentState = result.newDocument as LiveStreamFixture[];
-
-            fixtures = currentState;
-
-          } else {
-
-            return;
-
-          }
-
-        } else {
-
-          fixtures = Array.isArray(message) ? (message as LiveStreamFixture[]) : [];
-
-          currentState = fixtures;
-
-        }
+          : [];
 
         const fixture =
 
-          fixtures.find(
+          safeFixtures.find(
 
             (f) =>
 
