@@ -11,7 +11,6 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import {
-  getLiveBasketballMatches,
   searchBasketballFixturesByStatus,
   getBasketballFixturesByDate,
 } from "@/lib/api/endpoints";
