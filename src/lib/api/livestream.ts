@@ -220,3 +220,29 @@ export const subscribeGameInfoLiveFixture = (
 export const closeLiveStream = (eventSource: EventSource | null | undefined) => {
   eventSource?.close();
 };
+
+export const subscribeBasketballLiveMatchesStream = (
+  handlers: {
+    onOpen?: (ev: Event) => void;
+    onUpdate: (fixtures: any, ev: MessageEvent) => void;
+    onError?: (ev: Event) => void;
+  },
+  options: LiveStreamOptions = {},
+): EventSource => {
+  const baseUrl = String(apiClient.defaults.baseURL ?? "");
+  const url =
+    options.url ??
+    `${baseUrl.replace(/\/+$/, "")}/api/v1/basketball/sse/stream-live`;
+
+  return createFootballLiveStream<any>(
+    {
+      useFastJsonPatch: true,
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      onMessage: (fixtures, ev) => {
+        handlers.onUpdate(fixtures, ev);
+      },
+    },
+    { ...options, url },
+  );
+};

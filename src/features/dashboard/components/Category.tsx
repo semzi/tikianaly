@@ -1,5 +1,6 @@
 import Button from "@/components/ui/Button";
 import categories from "@/data/categoryList";
+import { useLocation } from "react-router-dom";
 
 type CategoryItem = {
   label: string;
@@ -8,6 +9,8 @@ type CategoryItem = {
 };
 
 export const Category = () => {
+  const location = useLocation();
+  
   return (
     <div style={{
           scrollbarWidth: "none", // Firefox
@@ -18,11 +21,14 @@ export const Category = () => {
       >
         {categories.map((cat: CategoryItem) => {
           const isDisabled = !cat.href;
+          const isActive = cat.href && location.pathname.startsWith(cat.href);
+          const buttonVariant = isActive ? "primary" : cat.variant;
+          
           return (
             <Button
               key={cat.label}
               label={cat.label}
-              variant={cat.variant}
+              variant={buttonVariant}
               href={isDisabled ? undefined : cat.href}
               disabled={isDisabled}
               aria-disabled={isDisabled}

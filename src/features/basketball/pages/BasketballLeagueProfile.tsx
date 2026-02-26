@@ -21,6 +21,7 @@ import {
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
 import RightBar from "@/components/layout/RightBar";
 import { format, isToday, subDays, addDays } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -139,106 +140,120 @@ const BasketballLeagueProfile = () => {
     fetchLeagueData();
   }, [leagueId]);
 
-  useEffect(() => {
-    const fetchMatches = async () => {
-      if (!leagueId || activeTab === "standings") return;
-      setMatchesLoading(true);
-      try {
-        let allMatches: Match[] = [];
-        const formattedDate = selectedDate
-          ? format(selectedDate, "yyyy-MM-dd")
-          : "";
+  const fetchMatchesQuery = async () => {
+    if (!leagueId || activeTab === "standings") return null;
+    let allMatches: Match[] = [];
+    let queryTotalPages = 1;
+    let queryHasNextPage = false;
+    let queryHasPrevPage = false;
+    const formattedDate = selectedDate
+      ? format(selectedDate, "yyyy-MM-dd")
+      : "";
 
-        if (activeTab === "overview") {
-          // For overview, we might want a mix or just live matches if any
-          const liveRes = await getLiveBasketballMatches(currentPage);
-          if (liveRes.success && liveRes.responseObject) {
-            allMatches = liveRes.responseObject.items || [];
-          }
-          // Also fetch some recent results/upcoming fixtures
-          const fixturesRes = await searchBasketballFixturesByStatus(
-            "not started",
-            currentPage,
-          );
-          if (fixturesRes.success && fixturesRes.responseObject) {
-            allMatches = [
-              ...allMatches,
-              ...(fixturesRes.responseObject.items || []),
-            ];
-          }
-          const resultsRes = await searchBasketballFixturesByStatus(
-            "finished",
-            currentPage,
-          );
-          if (resultsRes.success && resultsRes.responseObject) {
-            allMatches = [
-              ...allMatches,
-              ...(resultsRes.responseObject.items || []),
-            ];
-          }
-        } else if (activeTab === "fixtures") {
-          const res = await getBasketballFixturesByDate(
-            formattedDate,
-            currentPage,
-          );
-          if (res.success && res.responseObject) {
-            allMatches = res.responseObject.items || [];
-            setTotalPages(res.responseObject.totalPages || 1);
-            setHasNextPage(res.responseObject.hasNextPage || false);
-            setHasPreviousPage(res.responseObject.hasPreviousPage || false);
-          }
-        } else if (activeTab === "results") {
-          const res = await getBasketballFixturesByDate(
-            formattedDate,
-            currentPage,
-          );
-          if (
-            res.success &&
-            res.responseObject &&
-            res.responseObject.items.length > 0
-          ) {
-            allMatches = res.responseObject.items.filter(
-              (m: any) =>
-                m.status.toLowerCase().includes("finished") ||
-                m.localteam.totalscore !== "",
-            );
-            setTotalPages(res.responseObject.totalPages || 1);
-            setHasNextPage(res.responseObject.hasNextPage || false);
-            setHasPreviousPage(res.responseObject.hasPreviousPage || false);
-          } else {
-            const fallbackRes = await searchBasketballFixturesByStatus(
-              "finished",
-              currentPage,
-            );
-            if (fallbackRes.success && fallbackRes.responseObject) {
-              allMatches = fallbackRes.responseObject.items || [];
-              setTotalPages(fallbackRes.responseObject.totalPages || 1);
-              setHasNextPage(fallbackRes.responseObject.hasNextPage || false);
-              setHasPreviousPage(
-                fallbackRes.responseObject.hasPreviousPage || false,
-              );
-            }
-          }
-        }
-
-        // Filter matches by current league but use the same endpoints/logic
-        const filtered = allMatches.filter(
-          (m) =>
-            String(m.league_id) === String(leagueId) ||
-            String(m.league_name).toLowerCase() ===
-              String(leagueInfo?.name).toLowerCase(),
-        );
-        setMatches(filtered);
-      } catch (error) {
-        console.error("Error fetching league matches:", error);
-        setMatches([]);
-      } finally {
-        setMatchesLoading(false);
+    if (activeTab === "overview") {
+      const liveRes = (await getLiveBasketballMatches(currentPage)) as any;
+      if (liveRes.success && liveRes.responseObject) {
+        allMatches = liveRes.responseObject.items || [];
       }
-    };
+      const fixturesRes = (await searchBasketballFixturesByStatus(
+        "not started",
+        currentPage,
+      )) as any;
+      if (fixturesRes.success && fixturesRes.responseObject) {
+        allMatches = [
+          ...allMatches,
+          ...(fixturesRes.responseObject.items || []),
+        ];
+      }
+      const resultsRes = (await searchBasketballFixturesByStatus(
+        "finished",
+        currentPage,
+      )) as any;
+      if (resultsRes.success && resultsRes.responseObject) {
+        allMatches = [
+          ...allMatches,
+          ...(resultsRes.responseObject.items || []),
+        ];
+      }
+    } else if (activeTab === "fixtures") {
+      const res = (await getBasketballFixturesByDate(
+        formattedDate,
+        currentPage,
+      )) as any;
+      if (res.success && res.responseObject) {
+        allMatches = res.responseObject.items || [];
+        queryTotalPages = res.responseObject.totalPages || 1;
+        queryHasNextPage = res.responseObject.hasNextPage || false;
+        queryHasPrevPage = res.responseObject.hasPreviousPage || false;
+      }
+    } else if (activeTab === "results") {
+      const res = (await getBasketballFixturesByDate(
+        formattedDate,
+        currentPage,
+      )) as any;
+      if (
+        res.success &&
+        res.responseObject &&
+        res.responseObject.items.length > 0
+      ) {
+        allMatches = res.responseObject.items.filter(
+          (m: any) =>
+            m.status.toLowerCase().includes("finished") ||
+            m.localteam.totalscore !== "",
+        );
+        queryTotalPages = res.responseObject.totalPages || 1;
+        queryHasNextPage = res.responseObject.hasNextPage || false;
+        queryHasPrevPage = res.responseObject.hasPreviousPage || false;
+      } else {
+        const fallbackRes = (await searchBasketballFixturesByStatus(
+          "finished",
+          currentPage,
+        )) as any;
+        if (fallbackRes.success && fallbackRes.responseObject) {
+          allMatches = fallbackRes.responseObject.items || [];
+          queryTotalPages = fallbackRes.responseObject.totalPages || 1;
+          queryHasNextPage = fallbackRes.responseObject.hasNextPage || false;
+          queryHasPrevPage =
+            fallbackRes.responseObject.hasPreviousPage || false;
+        }
+      }
+    }
 
-    fetchMatches();
-  }, [leagueId, activeTab, selectedDate, currentPage, leagueInfo?.name]);
+    const filtered = allMatches.filter(
+      (m) =>
+        String(m.league_id) === String(leagueId) ||
+        String(m.league_name).toLowerCase() ===
+          String(leagueInfo?.name).toLowerCase(),
+    );
+
+    return { filtered, queryTotalPages, queryHasNextPage, queryHasPrevPage };
+  };
+
+  const { data: matchesData, isLoading: matchesQueryLoading } = useQuery({
+    queryKey: [
+      "basketball-league-matches",
+      leagueId,
+      activeTab,
+      selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
+      currentPage,
+      leagueInfo?.name ?? "",
+    ],
+    queryFn: fetchMatchesQuery,
+    enabled: !!leagueId && activeTab !== "standings",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    setMatchesLoading(matchesQueryLoading);
+    if (!matchesQueryLoading && matchesData) {
+      setMatches(matchesData.filtered);
+      setTotalPages(matchesData.queryTotalPages);
+      setHasNextPage(matchesData.queryHasNextPage);
+      setHasPreviousPage(matchesData.queryHasPrevPage);
+    } else if (!matchesQueryLoading && !matchesData) {
+      setMatches([]);
+    }
+  }, [matchesData, matchesQueryLoading]);
 
   // Reset to page 1 when changing tabs or date
   useEffect(() => {

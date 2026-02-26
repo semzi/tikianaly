@@ -24,6 +24,9 @@ import { setNavigator } from "./lib/router/navigate";
 import { useEffect, lazy, Suspense } from "react";
 import { BackendStatusProvider } from "@/context/BackendStatusContext";
 import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 const Reset = lazy(() => import("./features/auth/pages/reset_password"));
 const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
@@ -81,6 +84,20 @@ function AnimatedRoutes() {
             <Route path="/signup" element={<Onboard />} />
 
             {/* With Navigation */}
+            <Route
+              path="/football"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <Dashboard />
+                </m.div>
+              }
+            />
             <Route
               path="/league"
               element={
@@ -446,16 +463,18 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <ThemeProvider>
-      <BackendStatusProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Layout>
-            <AnimatedRoutes />
-          </Layout>
-        </BrowserRouter>
-      </BackendStatusProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <BackendStatusProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Layout>
+              <AnimatedRoutes />
+            </Layout>
+          </BrowserRouter>
+        </BackendStatusProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
