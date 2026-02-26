@@ -1,6 +1,8 @@
 import apiClient from "./axios";
 import { applyPatch } from "fast-json-patch";
 
+let cachedFastPatchState: unknown = null;
+
 export type LiveStreamTeam = {
   id: string;
   name: string;
@@ -83,7 +85,8 @@ export const createFootballLiveStream = <T = string>(
   const url =
     options.url ?? `${baseUrl.replace(/\/+$/, "")}/api/v1/football/live/live-stream`;
 
-  let currentState: unknown = null;
+  let currentState: unknown = cachedFastPatchState;
+  let pendingPatchOps: unknown[] = [];
 
   const eventSource = new EventSource(url, {
     withCredentials: options.withCredentials ?? false,
@@ -91,29 +94,69 @@ export const createFootballLiveStream = <T = string>(
 
   eventSource.onopen = (ev) => {
     handlers.onOpen?.(ev);
+
+    if (handlers.useFastJsonPatch && currentState != null) {
+      handlers.onMessage(currentState as T, ev as unknown as MessageEvent);
+    }
   };
 
   eventSource.onmessage = (ev) => {
     const raw = String(ev.data ?? "");
     if (handlers.useFastJsonPatch) {
-      const parsed = JSON.parse(raw) as { type?: string; data?: unknown };
-
-      if (parsed.type === "full") {
-        currentState = parsed.data ?? null;
-        handlers.onMessage(currentState as T, ev);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(raw) as any;
+      } catch {
         return;
       }
 
-      if (parsed.type === "patch") {
+      // Raw RFC6902 JSON Patch stream:
+      // - Full snapshot is any JSON value (usually an array/object of fixtures)
+      // - Patch is an array of operations: [{ op, path, value? }, ...]
+      const looksLikePatchArray =
+        Array.isArray(parsed) &&
+        parsed.length > 0 &&
+        parsed.every(
+          (op: any) =>
+            op &&
+            typeof op === "object" &&
+            typeof op.op === "string" &&
+            typeof op.path === "string"
+        );
+
+      if (looksLikePatchArray) {
         if (currentState == null) {
+          pendingPatchOps = pendingPatchOps.concat(parsed as unknown[]);
           return;
         }
 
-        const result = applyPatch(currentState as any, parsed.data as any, false, false);
-        currentState = result.newDocument;
-        handlers.onMessage(currentState as T, ev);
-        return;
+        try {
+          const result = applyPatch(currentState as any, parsed as any, false, false);
+          currentState = result.newDocument;
+          cachedFastPatchState = currentState;
+          handlers.onMessage(currentState as T, ev);
+          return;
+        } catch {
+          return;
+        }
       }
+
+      // Otherwise treat as a full snapshot
+      currentState = parsed ?? null;
+
+      if (currentState != null && pendingPatchOps.length > 0) {
+        try {
+          const result = applyPatch(currentState as any, pendingPatchOps as any, false, false);
+          currentState = result.newDocument;
+        } catch {
+          // ignore and continue with snapshot
+        } finally {
+          pendingPatchOps = [];
+        }
+      }
+      cachedFastPatchState = currentState;
+      handlers.onMessage(currentState as T, ev);
+      return;
     }
 
     const data = handlers.parse ? handlers.parse(raw) : (raw as unknown as T);
@@ -125,11 +168,6 @@ export const createFootballLiveStream = <T = string>(
   };
 
   return eventSource;
-};
-
-const parseJsonArray = <T,>(raw: string): T[] => {
-  const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) ? (parsed as T[]) : [];
 };
 
 export type DashboardStreamHandlers = {
@@ -145,7 +183,7 @@ export const subscribeDashboardLiveFixtures = (
   return createFootballLiveStream<LiveStreamFixture[]>({
     onOpen: handlers.onOpen,
     onError: handlers.onError,
-    parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
+    useFastJsonPatch: true,
     onMessage: (fixtures, ev) => {
       handlers.onUpdate(fixtures as DashboardLiveFixture[], ev);
     },
@@ -167,7 +205,7 @@ export const subscribeGameInfoLiveFixture = (
   return createFootballLiveStream<LiveStreamFixture[]>({
     onOpen: handlers.onOpen,
     onError: handlers.onError,
-    parse: (raw) => parseJsonArray<LiveStreamFixture>(raw),
+    useFastJsonPatch: true,
     onMessage: (fixtures, ev) => {
       const fixture =
         fixtures.find((f) => String(f.match_id) === String(handlers.matchId)) ?? null;

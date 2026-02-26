@@ -1,6 +1,48 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { navigate } from "../router/navigate";
 
+const RETRY_AFTER_MS = 10_000;
+
+type RetryConfig = InternalAxiosRequestConfig & {
+  __tikianalyRetry?: {
+    attempted?: boolean;
+  };
+};
+
+let lastRetryFn: null | (() => void) = null;
+
+const scheduleRetry = (fn: () => void) => {
+  lastRetryFn = fn;
+  try {
+    window.dispatchEvent(
+      new CustomEvent("backend:retry-scheduled", { detail: { seconds: Math.round(RETRY_AFTER_MS / 1000) } })
+    );
+  } catch {
+    // ignore
+  }
+  window.setTimeout(() => {
+    try {
+      window.dispatchEvent(new Event("backend:retry-start"));
+    } catch {
+      // ignore
+    }
+    fn();
+  }, RETRY_AFTER_MS);
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("backend:retry-now", () => {
+    if (lastRetryFn) {
+      try {
+        window.dispatchEvent(new Event("backend:retry-start"));
+      } catch {
+        // ignore
+      }
+      lastRetryFn();
+    }
+  });
+}
+
 const apiClient = axios.create({
     baseURL: 'https://tikianaly-service-backend.onrender.com/',
   headers: {
@@ -121,6 +163,13 @@ apiClient.interceptors.request.use(
 // Response interceptor: Handle 401 errors (only redirect if token exists)
 apiClient.interceptors.response.use(
   (response) => {
+    if (typeof window !== "undefined") {
+      try {
+        window.dispatchEvent(new Event("backend:online"));
+      } catch {
+        // ignore
+      }
+    }
     return response;
   },
   (error: AxiosError) => {
@@ -133,6 +182,56 @@ apiClient.interceptors.response.use(
         navigate("/login");
       }, 0);
     }
+
+    const status = error.response?.status;
+    const isNetworkError = !error.response;
+    const isServerError = typeof status === "number" && status >= 500;
+    const shouldTreatOffline = isNetworkError || isServerError;
+
+    const cfg = (error.config ?? {}) as RetryConfig;
+    const method = String(cfg.method ?? "get").toLowerCase();
+    const isGet = method === "get";
+    const retryAttempted = Boolean(cfg.__tikianalyRetry?.attempted);
+
+    if (typeof window !== "undefined" && shouldTreatOffline) {
+      try {
+        window.dispatchEvent(new Event("backend:offline"));
+      } catch {
+        // ignore
+      }
+    }
+
+    if (shouldTreatOffline) {
+      (error as any).message = "Service temporarily unavailable. Retrying...";
+    }
+
+    // Simple retry strategy:
+    // - Only retry GET requests (idempotent)
+    // - Only retry once per request
+    // - Retry after 10s
+    if (typeof window !== "undefined" && shouldTreatOffline && isGet && !retryAttempted) {
+      cfg.__tikianalyRetry = { attempted: true };
+
+      scheduleRetry(() => {
+        apiClient
+          .request(cfg)
+          .then(() => {
+            try {
+              window.dispatchEvent(new Event("backend:online"));
+            } catch {
+              // ignore
+            }
+          })
+          .catch(() => {
+            try {
+              window.dispatchEvent(new Event("backend:offline"));
+            } catch {
+              // ignore
+            }
+          });
+      });
+    }
+
     return Promise.reject(error);
   }
 );

@@ -204,9 +204,9 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
             <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
               <div className="h-3 w-24 rounded bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={`hf-${i}`} className="w-5 h-5 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
+                  <div key={`hf-${i}`} className="w-3 h-3 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
                 ))}
               </div>
             </div>
@@ -218,9 +218,9 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
             <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
               <div className="h-3 w-24 rounded bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={`af-${i}`} className="w-5 h-5 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
+                  <div key={`af-${i}`} className="w-3 h-3 rounded-full bg-snow-200 dark:bg-[#1F2937] animate-pulse" />
                 ))}
               </div>
             </div>
@@ -275,11 +275,11 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
             <div className="flex flex-col items-center gap-2 min-w-0">
               <GetTeamLogo teamId={nextMatch.localteam.id} alt={nextMatch.localteam.name} className="w-10 h-10 object-contain" />
               <p className="text-sm font-semibold theme-text text-center truncate w-full">{nextMatch.localteam.name}</p>
-              <div className="flex gap-1 flex-nowrap justify-center">
+              <div className="flex gap-0.5 flex-nowrap justify-center">
                 {[...homeForm].reverse().map((r, idx) => (
                   <span
                     key={`${nextMatch.localteam.id}-form-${idx}`}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${getFormColor(r)}`}
+                    className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${getFormColor(r)}`}
                     title={r}
                   >
                     {r}
@@ -295,11 +295,11 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
             <div className="flex flex-col items-center gap-2 min-w-0">
               <GetTeamLogo teamId={nextMatch.visitorteam.id} alt={nextMatch.visitorteam.name} className="w-10 h-10 object-contain" />
               <p className="text-sm font-semibold theme-text text-center truncate w-full">{nextMatch.visitorteam.name}</p>
-              <div className="flex gap-1 flex-nowrap justify-center">
+              <div className="flex gap-0.5 flex-nowrap justify-center">
                 {[...awayForm].reverse().map((r, idx) => (
                   <span
                     key={`${nextMatch.visitorteam.id}-form-${idx}`}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${getFormColor(r)}`}
+                    className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${getFormColor(r)}`}
                     title={r}
                   >
                     {r}

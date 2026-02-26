@@ -547,7 +547,6 @@ export const dashboard = () => {
     const fetchFixtures = async () => {
       try {
         setLoading(true);
-        setFixtures([]); // Clear previous fixtures immediately
         leagueFixturesMapRef.current = new Map();
         if (flushFixturesTimeoutRef.current !== null) {
           window.clearTimeout(flushFixturesTimeoutRef.current);
@@ -705,7 +704,6 @@ export const dashboard = () => {
 
         if (fixturesMode === "live") {
           // Live mode is SSE-driven; skip REST fetching
-          setLoading(false);
           setLoadingLeagueIds(new Set());
           return;
         }

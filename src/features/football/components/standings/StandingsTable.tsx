@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
+import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
 
 export type StandingsRow = {
   position: number;
@@ -475,28 +476,18 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
         <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">No records at the Moment check back later</div>
       ) : null}
 
-      <div className="mb-4 flex items-center gap-2 overflow-x-auto hide-scrollbar">
-        <button
-          type="button"
-          className={`filter-btn dark:border-[#1F2937] ${viewMode === "short" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-          onClick={() => setViewMode("short")}
-        >
-          Short form
-        </button>
-        <button
-          type="button"
-          className={`filter-btn dark:border-[#1F2937] ${viewMode === "long" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-          onClick={() => setViewMode("long")}
-        >
-          Long form
-        </button>
-        <button
-          type="button"
-          className={`filter-btn dark:border-[#1F2937] ${viewMode === "recent" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-          onClick={() => setViewMode("recent")}
-        >
-          Recent form
-        </button>
+      <div className="mb-4 flex items-center justify-start">
+        <SegmentedSelector
+          value={viewMode}
+          onChange={setViewMode}
+          size="lg"
+          className="max-w-[360px]"
+          options={[
+            { value: "short", label: "Short" },
+            { value: "long", label: "Long" },
+            { value: "recent", label: "Form" },
+          ]}
+        />
       </div>
 
       {isLoading ? (

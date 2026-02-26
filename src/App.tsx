@@ -22,6 +22,8 @@ import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/layout/Navigation";
 import { setNavigator } from "./lib/router/navigate";
 import { useEffect, lazy, Suspense } from "react";
+import { BackendStatusProvider } from "@/context/BackendStatusContext";
+import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
 
 const Reset = lazy(() => import("./features/auth/pages/reset_password"));
 const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
@@ -42,6 +44,7 @@ const Onboard = lazy(() => import("./features/onboarding/pages/onboard"));
 const Afcon = lazy(() => import("./features/football/pages/afcon"));
 const NewsRead = lazy(() => import("./features/news/pages/read"));
 const ScriptSandbox = lazy(() => import("./features/dev/pages/ScriptSandbox"));
+const SseDebug = lazy(() => import("./features/dev/pages/SseDebug"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
 const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
 const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
@@ -333,6 +336,21 @@ function AnimatedRoutes() {
                 </m.div>
               }
             />
+
+            <Route
+              path="/dev/sse"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <SseDebug />
+                </m.div>
+              }
+            />
             <Route
               path="/forgot-password"
               element={
@@ -419,6 +437,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <BackendStatusBanner />
       {!shouldHideNav && <Navigation />}
       <main>{children}</main>
     </>
@@ -428,12 +447,14 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Layout>
-          <AnimatedRoutes />
-        </Layout>
-      </BrowserRouter>
+      <BackendStatusProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Layout>
+            <AnimatedRoutes />
+          </Layout>
+        </BrowserRouter>
+      </BackendStatusProvider>
     </ThemeProvider>
   );
 }
