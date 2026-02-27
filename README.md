@@ -61,34 +61,46 @@ src/
 
   features/
     auth/
-      pages/
+      pages/               # Login, Signup, ForgotPassword, ResetPassword
     dashboard/
-      pages/
-      components/          # Dashboard-only components (moved here)
+      pages/               # dashboard, favourites, league, news
+      components/          # Dashboard-only components (Category, AfconBanner)
     football/
-      pages/
-      components/          # Football-only components (moved here)
+      pages/               # gameInfo, teamProfile
+      components/          # Football-only components (LineupBuilder, StandingsTable, etc.)
+    basketball/
+      pages/               # BasketballLeagueProfile, BasketballTeamProfile
+      components/          # Basketball-specific components
     news/
       pages/
       components/
+    community/
+      pages/               # Community features
     onboarding/
-      pages/
+      pages/               # Onboarding flow
       components/
     account/
-      pages/
+      pages/               # Account settings
+    legal/
+      pages/               # Terms, Privacy
+    dev/
+      pages/               # Dev utilities
 
   components/
-    layout/                # Shared layout: Navigation, LeftBar, RightBar, PageHeader, Footer
-    common/                # Truly reusable components (e.g., logo helpers)
-    ui/                    # UI primitives + form controls
+    layout/                # Shared layout: PageHeader, Footer, LeftBar, RightBar
+    common/                # Reusable components (GetTeamLogo, GetLeagueLogo, GetVenueImage)
+    ui/                    # UI primitives (SegmentedSelector, Skeleton components)
 
   lib/
-    api/                   # axios client, cache, endpoints
+    api/                   # axios client, cache, endpoints, livestream
     router/                # global navigate helper
 
   data/                    # static data lists used by UI
-  context/                 # providers (ThemeContext)
-  animations/
+  context/                 # providers (ThemeContext, ToastContext, BackendStatusContext)
+  animations/              # Framer Motion animations
+  styles/                  # Global CSS, Tailwind config, theme variables
+  hooks/                   # Custom React hooks (useFetch, usePaginatedApi, useProfileAvatar)
+  visualization/           # Charts and data visualization components
 ```
 
 ### Import aliases
