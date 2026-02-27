@@ -220,6 +220,165 @@ This repo works on Windows. If you see path or script issues, include:
 - Node version (`node -v`)
 - npm version (`npm -v`)
 
+## UI Components
+
+### SegmentedSelector
+
+A pill-style tab selector component used for filtering (e.g., Live/All/By Date on dashboard).
+
+**Location:** `src/components/ui/SegmentedSelector.tsx`
+
+**Usage:**
+```tsx
+import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
+
+const [mode, setMode] = useState<"all" | "live" | "date">("all");
+
+<SegmentedSelector
+  value={mode}
+  options={[
+    { value: "all", label: "All" },
+    { value: "live", label: "Live" },
+    { value: "date", label: "By Date" },
+  ]}
+  onChange={(value) => setMode(value as "all" | "live" | "date")}
+  size="md" // "sm" | "md" | "lg"
+/>
+```
+
+### Toast Notifications
+
+Toast notifications are managed via `ToastContext`.
+
+**Location:** `src/context/ToastContext.tsx`
+
+**Usage:**
+```tsx
+import { useToast } from "@/context/ToastContext";
+
+const toast = useToast();
+
+// Show toast
+toast.show({
+  variant: "success", // "success" | "error" | "info" | "warning"
+  message: "Operation completed!",
+  durationMs: 5000, // optional, default 5000
+});
+
+// Show with ID (for updating/dismissing)
+toast.show({
+  id: "unique-id",
+  variant: "info",
+  message: "Loading...",
+});
+
+// Dismiss toast
+toast.dismiss("unique-id");
+```
+
+### Skeleton Loaders
+
+Shimmer-style skeleton loaders are used throughout the app for loading states.
+
+**Pattern:**
+```tsx
+const SkeletonBlock = ({ className = "" }: { className?: string }) => (
+  <div className={`relative overflow-hidden bg-gray-300 dark:bg-[#1F2937] rounded ${className}`}>
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
+);
+```
+
+The `animate-shimmer` keyframe is defined in `src/styles/index.css`.
+
+## Theme & Colors
+
+### CSS Variables (Tailwind Theme)
+
+Defined in `src/styles/index.css` under `@theme`:
+
+**Brand Colors:**
+- `--color-brand-primary: #0056d2` - Primary blue
+- `--color-brand-secondary: #FF4500` - Orange accent (CTAs, highlights)
+- `--color-brand-p1/p2/p3/p4` - Primary blue variants
+- `--color-brand-s1/s2/s3/s4` - Secondary orange variants
+
+**UI Colors:**
+- `--color-ui-success: #00d68f` - Green
+- `--color-ui-negative: #cc2e2e` - Red/errors
+- `--color-ui-pending: #ffc82c` - Yellow/warning
+- `--color-ui-darkv2: #161B22` - Dark background
+
+**Neutral Colors:**
+- `--color-neutral-n1: #1c1c1e` - Darkest
+- `--color-neutral-n2: #2c2c2e`
+- `--color-neutral-n3: #3a3a3c`
+- `--color-neutral-n4: #48484a`
+- `--color-neutral-n5: #909090` - Muted text
+- `--color-neutral-m6: #aeaeb2`
+
+**Background Colors:**
+- Light: `--color-body: #fdfdfd`
+- Dark: `--color-ui-darkv2: #161B22`
+- Card dark: `#0D1117`
+- Border dark: `#1F2937`
+
+### Utility Classes
+
+Common Tailwind patterns used:
+
+```css
+/* Block container style */
+.block-style {
+  @apply bg-white border dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-5;
+}
+
+/* Theme text */
+.theme-text {
+  @apply dark:text-white text-[#23272A];
+}
+
+/* Theme border */
+.theme-border {
+  @apply dark:border-[#1F2937] border-snow-200;
+}
+```
+
+## Data Fetching
+
+### TanStack Query Patterns
+
+We use TanStack Query for server state management with consistent caching strategies:
+
+```tsx
+const { data, isLoading, error } = useQuery({
+  queryKey: ["feature", "data", id],
+  queryFn: () => fetchData(id),
+  staleTime: 5 * 60 * 1000,    // 5 minutes
+  gcTime: 10 * 60 * 1000,      // 10 minutes garbage collection
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
+  placeholderData: (prev) => prev, // Keep previous data while loading
+});
+```
+
+### Live Updates (SSE)
+
+For real-time fixture updates, we use Server-Sent Events:
+
+```tsx
+import { subscribeDashboardLiveFixtures } from "@/lib/api/livestream";
+
+const eventSource = subscribeDashboardLiveFixtures({
+  onUpdate: (liveItems) => {
+    // Update fixtures with live data
+  },
+});
+
+// Cleanup on unmount
+closeLiveStream(eventSource);
+```
+
 ## License
 
 MIT (unless changed later).
