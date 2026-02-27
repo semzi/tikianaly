@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import {
@@ -7,6 +7,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import StaggerChildren from "@/animations/staggerChildren";
 import { getBasketballLeagues } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -41,6 +42,23 @@ type ApiResponse = {
   };
 };
 
+const mapLeague = (league: ApiLeague): League | null => {
+  const id = league.league_id ?? league.leagueId ?? league.id;
+  if (!id || !league.name) return null;
+  return {
+    id,
+    name: league.name,
+    icon: league.logo || league.image_path,
+    category:
+      league.continent_name ||
+      league.continent ||
+      league.country_name ||
+      league.country ||
+      league.category ||
+      "General",
+  };
+};
+
 export const BasketballLeagues = () => {
   const [activeTab, setActiveTab] = useState<"suggestions" | "all">(
     "suggestions",
@@ -52,47 +70,23 @@ export const BasketballLeagues = () => {
     navigate(`/basketball/league/${encodeURIComponent(id)}`);
   };
 
-  const [loading, setLoading] = useState(true);
-  const [leagues, setLeagues] = useState<League[]>([]);
   const [countrySearchOpen, setCountrySearchOpen] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
 
-  const mapLeague = (league: ApiLeague): League | null => {
-    const id = league.league_id ?? league.leagueId ?? league.id;
-    if (!id || !league.name) return null;
-    return {
-      id,
-      name: league.name,
-      icon: league.logo || league.image_path,
-      category:
-        league.continent_name ||
-        league.continent ||
-        league.country_name ||
-        league.country ||
-        league.category ||
-        "General",
-    };
-  };
-
-  useEffect(() => {
-    const loadLeagues = async () => {
-      try {
-        setLoading(true);
-        const res = (await getBasketballLeagues()) as ApiResponse;
-        const items = res?.responseObject?.items ?? [];
-        const mapped = items.map(mapLeague).filter(Boolean) as League[];
-        setLeagues(mapped);
-      } catch (e) {
-        console.error(e);
-        setLeagues([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadLeagues();
-  }, []);
+  const { data: leagues = [], isLoading: loading } = useQuery({
+    queryKey: ["basketball", "leagues", "all"],
+    queryFn: async () => {
+      const res = (await getBasketballLeagues()) as ApiResponse;
+      const items = res?.responseObject?.items ?? [];
+      return items.map(mapLeague).filter(Boolean) as League[];
+    },
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - basketball leagues don't change often
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
   const suggestions = useMemo(() => leagues.slice(0, 6), [leagues]);
 

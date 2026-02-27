@@ -211,22 +211,19 @@ const BasketballPage = () => {
   // Reset to page 1 when changing tabs or league
   useEffect(() => {
     setCurrentPage(1);
+  }, [activeTab, selectedLeagueId]);
 
-    // Adjust selected date if it falls out of range for the new tab
-    if (
-      activeTab === "fixtures" &&
-      selectedDate &&
-      selectedDate < new Date(new Date().setHours(0, 0, 0, 0))
-    ) {
+  // Adjust selected date only when tab changes (not when date changes)
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (activeTab === "fixtures" && selectedDate && selectedDate < today) {
       setSelectedDate(new Date());
-    } else if (
-      activeTab === "results" &&
-      selectedDate &&
-      selectedDate > new Date()
-    ) {
+    } else if (activeTab === "results" && selectedDate && selectedDate > new Date()) {
       setSelectedDate(new Date());
     }
-  }, [activeTab, selectedLeagueId, selectedDate]);
+  }, [activeTab]);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -330,7 +327,7 @@ const BasketballPage = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`pb-2 text-sm font-medium transition-colors relative ${
+                    className={`pb-2 text-sm font-medium transition-all duration-200 relative ${
                       activeTab === tab.id
                         ? "text-brand-primary"
                         : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -338,7 +335,7 @@ const BasketballPage = () => {
                   >
                     {tab.label}
                     {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary" />
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary transition-all duration-200" />
                     )}
                   </button>
                 ))}

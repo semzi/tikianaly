@@ -11,7 +11,7 @@ import {
   reactToPost,
   type NewComment,
   type ReactionType,
-} from "@/lib/api/newsEndpoint";
+} from "@/lib/api/news/newsEndpoint";
 import ReadAlso from "./ReadAlso";
 import FooterComp from "@/components/layout/Footer";
 import PageHeader from "@/components/layout/PageHeader";

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTeamFixtures } from "@/lib/api/endpoints";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { MapPinIcon } from "@heroicons/react/24/outline";
@@ -45,31 +46,24 @@ type TeamFixturesSidebarProps = {
 };
 
 const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
-  const [fixtures, setFixtures] = useState<TeamFixturesResponse | null>(null);
   const [homeForm, setHomeForm] = useState<string[]>([]);
   const [awayForm, setAwayForm] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [userPick, setUserPick] = useState<null | "home" | "draw" | "away">(null);
 
-  useEffect(() => {
-    const fetchFixtures = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const response = await getTeamFixtures(teamId);
-        setFixtures(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load fixtures");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const queryClient = useQueryClient();
 
-    if (!teamId) return;
-    fetchFixtures();
-  }, [teamId]);
+  const {
+    data: fixtures,
+    isLoading,
+    error,
+  } = useQuery<TeamFixturesResponse>({
+    queryKey: ["teamFixtures", teamId],
+    queryFn: async () => await getTeamFixtures(teamId),
+    enabled: !!teamId,
+  });
+
+  const errorMessage =
+    error instanceof Error ? error.message : error ? "Failed to load fixtures" : null;
 
   const nextMatch = fixtures?.responseObject?.upcoming?.[0];
 
@@ -150,8 +144,14 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
 
       try {
         const [homeFx, awayFx] = await Promise.all([
-          getTeamFixtures(homeId),
-          getTeamFixtures(awayId),
+          queryClient.fetchQuery<TeamFixturesResponse>({
+            queryKey: ["teamFixtures", homeId],
+            queryFn: () => getTeamFixtures(homeId),
+          }),
+          queryClient.fetchQuery<TeamFixturesResponse>({
+            queryKey: ["teamFixtures", awayId],
+            queryFn: () => getTeamFixtures(awayId),
+          }),
         ]);
 
         const homePlayed = (homeFx?.responseObject?.played ?? []) as Fixture[];
@@ -184,9 +184,9 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
     };
 
     loadTeamForm();
-  }, [nextMatch?.localteam?.id, nextMatch?.visitorteam?.id]);
+  }, [nextMatch?.localteam?.id, nextMatch?.visitorteam?.id, queryClient]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -244,10 +244,10 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
     );
   }
 
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="block-style border border-red-500/20 bg-red-500/10 p-3 rounded">
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
       </div>
     );
   }

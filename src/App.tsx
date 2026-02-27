@@ -51,6 +51,8 @@ const SseDebug = lazy(() => import("./features/dev/pages/SseDebug"));
 const PrivacyPolicy = lazy(() => import("./features/legal/pages/privacyPolicy"));
 const BasketballPage = lazy(() => import("./features/basketball/pages/basketBall"));
 const BasketballMatchDetail = lazy(() => import("./features/basketball/pages/basketBallMatchDetail"));
+const BasketballLeagueProfile = lazy(() => import("./features/basketball/pages/BasketballLeagueProfile"));
+const BasketballLeagues = lazy(() => import("./features/basketball/pages/BasketballLeagues"));
 const Community = lazy(() => import("./features/community/pages/Community"));
 // Animation variants (can tweak)
 const pageVariants = {
@@ -236,6 +238,34 @@ function AnimatedRoutes() {
               transition={motionTransition}
             >
               <BasketballMatchDetail />
+            </m.div>
+          }
+            />
+            <Route
+          path="/basketball/leagues"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballLeagues />
+            </m.div>
+          }
+            />
+            <Route
+          path="/basketball/league/:leagueId"
+          element={
+            <m.div
+              variants={motionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={motionTransition}
+            >
+              <BasketballLeagueProfile />
             </m.div>
           }
             />

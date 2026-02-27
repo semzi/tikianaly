@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getPlayerById } from "@/lib/api/endpoints";
 
 interface GetPlayerImageProps {
@@ -20,8 +21,15 @@ interface PlayerApiResponse {
   };
 }
 
-const playerImageMemoryCache = new Map<string, string>();
-const playerImageStorageKey = (id: string) => `player_image_${id}`;
+const extractImageUrl = (data: PlayerApiResponse): string | null => {
+  const item = data?.responseObject?.item;
+  const player = Array.isArray(item) ? item[0] : item;
+  const rawImage = player?.image ? String(player.image).trim() : "";
+
+  if (!rawImage) return null;
+  
+  return rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
+};
 
 const GetPlayerImage: React.FC<GetPlayerImageProps> = ({
   playerId,
@@ -30,92 +38,23 @@ const GetPlayerImage: React.FC<GetPlayerImageProps> = ({
   width = 48,
   height = 48,
 }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchPlayerImage = async () => {
-      setLoading(true);
-
-      const id = String(playerId);
-
-      const memoryCached = playerImageMemoryCache.get(id);
-      if (memoryCached) {
-        setImageUrl(memoryCached);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const stored = sessionStorage.getItem(playerImageStorageKey(id));
-        if (stored) {
-          playerImageMemoryCache.set(id, stored);
-          setImageUrl(stored);
-          setLoading(false);
-          return;
-        }
-      } catch {
-        // ignore storage errors
-      }
-
-      try {
-        let res: unknown;
-        let lastErr: unknown;
-
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-          try {
-            if (controller.signal.aborted) return;
-            res = await getPlayerById(id);
-            lastErr = undefined;
-            break;
-          } catch (e) {
-            lastErr = e;
-            if (controller.signal.aborted) return;
-            await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
-          }
-        }
-
-        if (lastErr) throw lastErr;
-        if (controller.signal.aborted) return;
-
-        const item = (res as PlayerApiResponse)?.responseObject?.item;
-        const player = Array.isArray(item) ? item[0] : item;
-        const rawImage = player?.image ? String(player.image).trim() : "";
-
-        if (rawImage) {
-          const dataUri = rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
-          playerImageMemoryCache.set(id, dataUri);
-          try {
-            sessionStorage.setItem(playerImageStorageKey(id), dataUri);
-          } catch {
-            // ignore storage errors
-          }
-          setImageUrl(dataUri);
-        } else {
-          setImageUrl(null);
-        }
-      } catch {
-        if (controller.signal.aborted) return;
-        setImageUrl(null);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    if (playerId === null || playerId === undefined || String(playerId).trim() === "") {
-      setImageUrl(null);
-      setLoading(false);
-      return;
-    }
-
-    fetchPlayerImage();
-
-    return () => {
-      controller.abort();
-    };
-  }, [playerId]);
+  const id = String(playerId);
+  
+  const { data: imageUrl, isLoading: loading } = useQuery({
+    queryKey: ["player", "image", id],
+    queryFn: async () => {
+      const res = await getPlayerById(id) as PlayerApiResponse;
+      return extractImageUrl(res);
+    },
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - player images don't change often
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 3,
+    retryDelay: (attemptIndex) => 250 * Math.pow(2, attemptIndex),
+    enabled: !!playerId && String(playerId).trim() !== "",
+  });
 
   if (loading) {
     return (

@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ChevronUpDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { getBasketballLeagues } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -158,51 +159,36 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
   selectedLeagueId = null,
   onSelectLeague,
 }) => {
-  const [loading, setLoading] = useState(true);
-  const [leagues, setLeagues] = useState<LeagueItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchLeagues = async () => {
-      try {
-        setLoading(true);
-        const res = await getBasketballLeagues();
-        if (cancelled) return;
-
-        const rawItems = res?.responseObject?.items || [];
-        const mapped = rawItems
-          .map((l: any) => ({
-            name: l.name,
-            icon:
-              l.logo || l.image_path || "/assets/icons/league-placeholder.png",
-            id: l.league_id || l.leagueId || l.id,
-            category:
-              l.continent_name ||
-              l.continent ||
-              l.country_name ||
-              l.country ||
-              l.category ||
-              "General",
-          }))
-          .filter((l: any) => l.id && l.name);
-
-        setLeagues(mapped);
-      } catch (error) {
-        console.error("Error fetching basketball leagues:", error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchLeagues();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: leagues = [], isLoading: loading } = useQuery({
+    queryKey: ["basketball", "leagues", "all"],
+    queryFn: async () => {
+      const res = await getBasketballLeagues();
+      const rawItems = res?.responseObject?.items || [];
+      return rawItems
+        .map((l: any) => ({
+          name: l.name,
+          icon:
+            l.logo || l.image_path || "/assets/icons/league-placeholder.png",
+          id: l.league_id || l.leagueId || l.id,
+          category:
+            l.continent_name ||
+            l.continent ||
+            l.country_name ||
+            l.country ||
+            l.category ||
+            "General",
+        }))
+        .filter((l: any) => l.id && l.name) as LeagueItem[];
+    },
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - basketball leagues don't change often
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
   return (
     <div>

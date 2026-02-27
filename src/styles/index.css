@@ -284,6 +284,20 @@ input[type="checkbox"].disabled\:bg-check:checked {
   }
 }
 
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 @keyframes float-around-edges {
   0% {
     left: 0%; top: 0%;

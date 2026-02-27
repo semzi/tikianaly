@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
@@ -90,9 +91,17 @@ type Props = {
 };
 
 export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) => {
-  const [apiData, setApiData] = useState<StandingsByLeagueResponse | null>(null);
-  const [apiError, setApiError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    data: apiData,
+    error: apiError,
+    isLoading,
+  } = useQuery<StandingsByLeagueResponse>({
+    queryKey: ["leagueStandings", leagueId],
+    queryFn: async () =>
+      (await getStandingsByLeagueId(String(leagueId ?? ""))) as StandingsByLeagueResponse,
+    enabled: !!leagueId,
+    staleTime: 60_000,
+  });
   const [viewMode, setViewMode] = useState<StandingsViewMode>(() => {
     try {
       const stored = localStorage.getItem("standings_view_mode_v1");
@@ -228,34 +237,8 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
     </div>
   );
 
-  useEffect(() => {
-    const id = String(leagueId ?? "").trim();
-    if (!id) return;
-
-    let isCancelled = false;
-
-    const run = async () => {
-      try {
-        setIsLoading(true);
-        setApiError("");
-        const res = (await getStandingsByLeagueId(id)) as StandingsByLeagueResponse;
-        if (isCancelled) return;
-        setApiData(res);
-      } catch (e) {
-        if (isCancelled) return;
-        setApiError("Failed to load standings");
-        setApiData(null);
-      } finally {
-        if (isCancelled) return;
-        setIsLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      isCancelled = true;
-    };
-  }, [leagueId]);
+  const apiErrorMessage =
+    apiError instanceof Error ? apiError.message : apiError ? "Failed to load standings" : "";
 
   const data = useMemo<StandingsRow[]>(() => {
     const apiStandings = apiData?.responseObject?.item?.[0]?.standings;
@@ -469,10 +452,10 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
 
   return (
     <div className="my-8">
-      {apiError ? (
-        <div className="mb-4 text-sm text-ui-negative">{apiError}</div>
+      {apiErrorMessage ? (
+        <div className="mb-4 text-sm text-ui-negative">{apiErrorMessage}</div>
       ) : null}
-      {!isLoading && !apiError && data.length === 0 ? (
+      {!isLoading && !apiErrorMessage && data.length === 0 ? (
         <div className="mb-4 text-sm text-neutral-n4 dark:text-snow-200">No records at the Moment check back later</div>
       ) : null}
 

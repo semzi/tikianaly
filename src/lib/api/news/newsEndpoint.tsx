@@ -1,4 +1,4 @@
-import axios from "./axios";
+import axios from "../axios";
 
 // ensure axios instance uses blog API base so relative paths work
 const BLOG_API_BASE = "https://tikianaly-blog.onrender.com/api/v1/";

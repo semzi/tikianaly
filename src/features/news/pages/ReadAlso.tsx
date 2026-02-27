@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useFetch } from "@/hooks/useFetch";
-import { getAllPosts } from "@/lib/api/newsEndpoint";
+import { getAllPosts } from "@/lib/api/news/newsEndpoint";
 
 interface Blog {
   _id?: string;
