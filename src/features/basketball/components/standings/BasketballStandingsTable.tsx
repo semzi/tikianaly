@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getBasketballStandings } from "@/lib/api/endpoints";
+import { getBasketballStandings } from "@/lib/api/basketball/index";
 
 export type BasketballStandingsRow = {
   position: number;
