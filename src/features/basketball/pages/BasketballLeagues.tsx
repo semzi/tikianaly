@@ -9,7 +9,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import StaggerChildren from "@/animations/staggerChildren";
-import { getBasketballLeagues } from "@/lib/api/endpoints";
+import { getBasketballLeagues } from "@/lib/api/basketball/index";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import { navigate } from "@/lib/router/navigate";
 
@@ -88,7 +88,12 @@ export const BasketballLeagues = () => {
     refetchOnReconnect: false,
   });
 
-  const suggestions = useMemo(() => leagues.slice(0, 6), [leagues]);
+  const suggestions = useMemo(() => {
+    const popularIds = [1046, 1287, 1014, 1011, 1571, 1001];
+    return popularIds
+      .map((id) => leagues.find((l) => l.id === id))
+      .filter((l): l is League => !!l);
+  }, [leagues]);
 
   const groupedContinents = useMemo(() => {
     const q = countrySearchQuery.trim().toLowerCase();

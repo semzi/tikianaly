@@ -18,11 +18,12 @@ export type BasketballLiveStreamHandlers<T = any> = {
 
 export const createBasketballLiveStream = <T = any>(
   handlers: BasketballLiveStreamHandlers<T>,
-  options: BasketballLiveStreamOptions = {}
+  options: BasketballLiveStreamOptions = {},
 ): EventSource => {
   const baseUrl = String(apiClient.defaults.baseURL ?? "");
   const url =
-    options.url ?? `${baseUrl.replace(/\/+$/, "")}/api/v1/basketball/sse/stream-live`;
+    options.url ??
+    `${baseUrl.replace(/\/+$/, "")}/api/v1/basketball/sse/stream-live`;
 
   let currentState: unknown = cachedBasketballPatchState;
   let pendingPatchOps: unknown[] = [];
@@ -60,7 +61,7 @@ export const createBasketballLiveStream = <T = any>(
             op &&
             typeof op === "object" &&
             typeof op.op === "string" &&
-            typeof op.path === "string"
+            typeof op.path === "string",
         );
 
       if (looksLikePatchArray) {
@@ -70,7 +71,12 @@ export const createBasketballLiveStream = <T = any>(
         }
 
         try {
-          const result = applyPatch(currentState as any, parsed as any, false, false);
+          const result = applyPatch(
+            currentState as any,
+            parsed as any,
+            false,
+            false,
+          );
           currentState = result.newDocument;
           cachedBasketballPatchState = currentState;
           handlers.onMessage(currentState as T, ev);
@@ -85,7 +91,12 @@ export const createBasketballLiveStream = <T = any>(
 
       if (currentState != null && pendingPatchOps.length > 0) {
         try {
-          const result = applyPatch(currentState as any, pendingPatchOps as any, false, false);
+          const result = applyPatch(
+            currentState as any,
+            pendingPatchOps as any,
+            false,
+            false,
+          );
           currentState = result.newDocument;
         } catch {
           // ignore and continue with snapshot
@@ -117,17 +128,23 @@ export type BasketballDashboardStreamHandlers = {
 
 export const subscribeBasketballDashboardLive = (
   handlers: BasketballDashboardStreamHandlers,
-  options: BasketballLiveStreamOptions = {}
+  options: BasketballLiveStreamOptions = {},
 ): EventSource => {
-  return createBasketballLiveStream<any[]>({
-    onOpen: handlers.onOpen,
-    onError: handlers.onError,
-    useFastJsonPatch: true,
-    onMessage: (fixtures, ev) => {
-      handlers.onUpdate(fixtures, ev);
+  return createBasketballLiveStream<any[]>(
+    {
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      useFastJsonPatch: true,
+      onMessage: (fixtures, ev) => {
+        handlers.onUpdate(fixtures, ev);
+      },
     },
-  }, options);
+    options,
+  );
 };
+
+// Alias for backward compatibility and consistency across modules
+export { subscribeBasketballDashboardLive as subscribeBasketballLiveMatchesStream };
 
 export type BasketballGameInfoStreamHandlers = {
   matchId: string;
@@ -138,20 +155,27 @@ export type BasketballGameInfoStreamHandlers = {
 
 export const subscribeBasketballGameInfoLive = (
   handlers: BasketballGameInfoStreamHandlers,
-  options: BasketballLiveStreamOptions = {}
+  options: BasketballLiveStreamOptions = {},
 ): EventSource => {
-  return createBasketballLiveStream<any[]>({
-    onOpen: handlers.onOpen,
-    onError: handlers.onError,
-    useFastJsonPatch: true,
-    onMessage: (matches, ev) => {
-      const match =
-        matches.find((m) => String(m.match_id) === String(handlers.matchId)) ?? null;
-      handlers.onMatch(match, ev);
+  return createBasketballLiveStream<any[]>(
+    {
+      onOpen: handlers.onOpen,
+      onError: handlers.onError,
+      useFastJsonPatch: true,
+      onMessage: (matches, ev) => {
+        const match =
+          matches.find(
+            (m) => String(m.match_id) === String(handlers.matchId),
+          ) ?? null;
+        handlers.onMatch(match, ev);
+      },
     },
-  }, options);
+    options,
+  );
 };
 
-export const closeBasketballLiveStream = (eventSource: EventSource | null | undefined) => {
+export const closeBasketballLiveStream = (
+  eventSource: EventSource | null | undefined,
+) => {
   eventSource?.close();
 };

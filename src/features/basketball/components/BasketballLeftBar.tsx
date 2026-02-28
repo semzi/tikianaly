@@ -4,7 +4,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
-import { getBasketballLeagues } from "@/lib/api/endpoints";
+import { getBasketballLeagues } from "@/lib/api/basketball/index";
 import { navigate } from "@/lib/router/navigate";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 
@@ -86,7 +86,7 @@ const LeagueList: React.FC<LeagueListProps> = ({
       <li
         className={`flex mt-4 items-center gap-2 text-sm mb-2 cursor-pointer transition-colors ${
           selectedLeagueId === null
-            ? "text-brand-primary font-bold"
+            ? "text-brand-secondary font-bold"
             : "dark:text-snow-200 text-[#586069]"
         }`}
         onClick={() => {
@@ -190,6 +190,14 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
     refetchOnReconnect: false,
   });
 
+  // Filter and sort popular leagues based on specific IDs
+  const popularLeagues = useMemo(() => {
+    const popularIds = [1046, 1287, 1014, 1011, 1571, 1001];
+    return popularIds
+      .map((id) => leagues.find((l) => l.id === id))
+      .filter((l): l is LeagueItem => !!l);
+  }, [leagues]);
+
   return (
     <div>
       <div className="flex flex-col gap-y-10">
@@ -206,7 +214,7 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
                     <Skeleton className="w-24 h-4" />
                   </li>
                 ))
-              : leagues.slice(0, 5).map((league) => (
+              : popularLeagues.map((league) => (
                   <li
                     key={league.id}
                     className={`flex mt-5 items-center gap-2 text-sm mb-4 cursor-pointer transition-colors hover:text-brand-primary ${
