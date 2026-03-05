@@ -21,14 +21,18 @@ interface TeamApiResponse {
   };
 }
 
+const teamLogoFailedCache = new Set<string>();
+
 const extractImageUrl = (data: TeamApiResponse): string | null => {
   const item = data?.responseObject?.item;
   const team = Array.isArray(item) ? item[0] : item;
   const rawImage = team?.image ? String(team.image).trim() : "";
 
   if (!rawImage) return null;
-  
-  return rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
+
+  return rawImage.startsWith("data:image")
+    ? rawImage
+    : `data:image/png;base64,${rawImage}`;
 };
 
 const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
@@ -39,22 +43,36 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
   height = 32,
 }) => {
   const safeAlt = String(alt ?? "").trim() || "Team";
-  const id = String(teamId);
-  
+  const id = String(teamId ?? "").trim();
+
   const { data: logoUrl, isLoading: loading } = useQuery({
     queryKey: ["team", "logo", id],
     queryFn: async () => {
-      const res = await getTeamById(id) as TeamApiResponse;
-      return extractImageUrl(res);
+      if (teamLogoFailedCache.has(id)) {
+        return null;
+      }
+
+      try {
+        const res = (await getTeamById(id)) as TeamApiResponse;
+        const imageUrl = extractImageUrl(res);
+
+        if (!imageUrl) {
+          teamLogoFailedCache.add(id);
+        }
+
+        return imageUrl;
+      } catch {
+        teamLogoFailedCache.add(id);
+        return null;
+      }
     },
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - team logos don't change often
-    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    staleTime: 7 * 24 * 60 * 60 * 1000,
+    gcTime: 7 * 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    retry: 3,
-    retryDelay: (attemptIndex) => 250 * Math.pow(2, attemptIndex),
-    enabled: !!teamId && String(teamId).trim() !== "",
+    retry: false,
+    enabled: id !== "",
   });
 
   if (loading) {
@@ -68,7 +86,7 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
   if (!logoUrl) {
     return (
       <img
-        src={"/loading-state/shield.svg"}
+        src="/loading-state/shield.svg"
         alt={`${safeAlt} - No Logo`}
         loading="lazy"
         decoding="async"

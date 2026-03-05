@@ -17,6 +17,8 @@ const iconMap = {
 type CommunityCategoryRowProps = {
   categories: CommunityCategory[];
   users?: CommunityUserOrb[];
+  onCategoryClick?: (category: CommunityCategory, index: number) => void;
+  onUserClick?: (user: CommunityUserOrb, index: number) => void;
 };
 
 const LivePulseIcon = ({ className = "" }: { className?: string }) => (
@@ -44,10 +46,16 @@ const initialsFromName = (name: string) => {
 export default function CommunityCategoryRow({
   categories,
   users = [],
+  onCategoryClick,
+  onUserClick,
 }: CommunityCategoryRowProps) {
+  const sortedUsers = [...users].sort(
+    (a, b) => Number(Boolean(a.viewed)) - Number(Boolean(b.viewed)),
+  );
+
   return (
     <div className="flex items-center gap-3 overflow-x-auto hide-scrollbar py-1">
-      {categories.map((item) => {
+      {categories.map((item, index) => {
         const Icon =
           item.label === "Live"
             ? LivePulseIcon
@@ -58,6 +66,7 @@ export default function CommunityCategoryRow({
             key={item.id}
             type="button"
             className="flex flex-col items-center gap-2 cursor-pointer"
+            onClick={() => onCategoryClick?.(item, index)}
           >
             <span
               className={`flex h-[80px] w-[80px] items-center justify-center rounded-full border-3 overflow-hidden ${
@@ -74,9 +83,7 @@ export default function CommunityCategoryRow({
           </button>
         );
       })}
-      {[...users]
-        .sort((a, b) => Number(Boolean(a.viewed)) - Number(Boolean(b.viewed)))
-        .map((user) => {
+      {sortedUsers.map((user, index) => {
         const initials = initialsFromName(user.name);
         const ringClass = user.viewed
           ? "border-snow-200 dark:border-white/20"
@@ -91,6 +98,7 @@ export default function CommunityCategoryRow({
               type="button"
               className={`flex h-[80px] w-[80px] items-center justify-center rounded-full border-3 ${ringClass} cursor-pointer overflow-hidden`}
               aria-label={user.name}
+              onClick={() => onUserClick?.(user, index)}
             >
               {user.avatar ? (
                 <img
