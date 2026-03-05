@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ChevronUpDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import { getBasketballLeagues } from "@/lib/api/endpoints";
+import { useQuery } from "@tanstack/react-query";
+import { getBasketballLeagues } from "@/lib/api/basketball/index";
 import { navigate } from "@/lib/router/navigate";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 
@@ -85,7 +86,7 @@ const LeagueList: React.FC<LeagueListProps> = ({
       <li
         className={`flex mt-4 items-center gap-2 text-sm mb-2 cursor-pointer transition-colors ${
           selectedLeagueId === null
-            ? "text-brand-primary font-bold"
+            ? "text-brand-secondary font-bold"
             : "dark:text-snow-200 text-[#586069]"
         }`}
         onClick={() => {
@@ -158,51 +159,44 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
   selectedLeagueId = null,
   onSelectLeague,
 }) => {
-  const [loading, setLoading] = useState(true);
-  const [leagues, setLeagues] = useState<LeagueItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: leagues = [], isLoading: loading } = useQuery({
+    queryKey: ["basketball", "leagues", "all"],
+    queryFn: async () => {
+      const res = await getBasketballLeagues();
+      const rawItems = res?.responseObject?.items || [];
+      return rawItems
+        .map((l: any) => ({
+          name: l.name,
+          icon:
+            l.logo || l.image_path || "/assets/icons/league-placeholder.png",
+          id: l.league_id || l.leagueId || l.id,
+          category:
+            l.continent_name ||
+            l.continent ||
+            l.country_name ||
+            l.country ||
+            l.category ||
+            "General",
+        }))
+        .filter((l: any) => l.id && l.name) as LeagueItem[];
+    },
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - basketball leagues don't change often
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
-    const fetchLeagues = async () => {
-      try {
-        setLoading(true);
-        const res = await getBasketballLeagues();
-        if (cancelled) return;
-
-        const rawItems = res?.responseObject?.items || [];
-        const mapped = rawItems
-          .map((l: any) => ({
-            name: l.name,
-            icon:
-              l.logo || l.image_path || "/assets/icons/league-placeholder.png",
-            id: l.league_id || l.leagueId || l.id,
-            category:
-              l.continent_name ||
-              l.continent ||
-              l.country_name ||
-              l.country ||
-              l.category ||
-              "General",
-          }))
-          .filter((l: any) => l.id && l.name);
-
-        setLeagues(mapped);
-      } catch (error) {
-        console.error("Error fetching basketball leagues:", error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchLeagues();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Filter and sort popular leagues based on specific IDs
+  const popularLeagues = useMemo(() => {
+    const popularIds = [1046, 1287, 1014, 1011, 1571, 1001];
+    return popularIds
+      .map((id) => leagues.find((l) => l.id === id))
+      .filter((l): l is LeagueItem => !!l);
+  }, [leagues]);
 
   return (
     <div>
@@ -220,7 +214,7 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
                     <Skeleton className="w-24 h-4" />
                   </li>
                 ))
-              : leagues.slice(0, 5).map((league) => (
+              : popularLeagues.map((league) => (
                   <li
                     key={league.id}
                     className={`flex mt-5 items-center gap-2 text-sm mb-4 cursor-pointer transition-colors hover:text-brand-primary ${

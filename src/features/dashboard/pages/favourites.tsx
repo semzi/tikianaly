@@ -82,12 +82,13 @@ export const favourite = () => {
     },
   });
 
-  // Use pagination hook for leagues
+  // Use pagination hook for leagues - fetch all concurrently since leagues don't change often
   const leaguesHook = usePaginatedApi<FavouriteItem>({
     apiFunction: getAllLeagues,
     limit,
-    enableInfiniteScroll: true,
-    scrollThreshold: 0.8,
+    enableInfiniteScroll: false, // Disable infinite scroll since we fetch all at once
+    fetchAllConcurrently: true, // Fetch all pages at once
+    getTotalPages: (response: any) => response?.responseObject?.totalPages,
     transformResponse: (response: any) => {
       if (!response?.success || !response?.responseObject?.items) return [];
       return response.responseObject.items.map((league: any) => ({

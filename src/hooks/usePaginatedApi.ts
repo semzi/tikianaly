@@ -38,6 +38,18 @@ interface PaginatedApiOptions<T> {
    * Initial page number (default: 1)
    */
   initialPage?: number;
+
+  /**
+   * Fetch all pages concurrently on initial load (default: false)
+   * When true, fetches all pages at once instead of one by one
+   */
+  fetchAllConcurrently?: boolean;
+
+  /**
+   * Extract total pages from response
+   * Required when fetchAllConcurrently is true
+   */
+  getTotalPages?: (response: any) => number | undefined;
 }
 
 interface PaginatedApiResult<T> {
@@ -117,6 +129,8 @@ export function usePaginatedApi<T = any>(
       return items && items.length === limit;
     },
     initialPage = 1,
+    fetchAllConcurrently = false,
+    getTotalPages = (response: any) => response?.responseObject?.totalPages,
   } = options;
 
   const [items, setItems] = useState<T[]>([]);
@@ -218,14 +232,90 @@ export function usePaginatedApi<T = any>(
   }, [initialPage, fetchPage]);
 
   /**
+   * Fetch all pages concurrently
+   */
+  const fetchAllPagesConcurrently = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First request to get total pages
+      const firstResponse = await apiFunction(initialPage, limit);
+      const firstItems = transformResponse(firstResponse);
+      const totalPages = getTotalPages(firstResponse);
+
+      if (!firstItems || firstItems.length === 0) {
+        setHasMore(false);
+        setLoading(false);
+        setInitialLoading(false);
+        return;
+      }
+
+      // If only one page or no total pages info, just use first page
+      if (!totalPages || totalPages <= 1) {
+        setItems(firstItems);
+        setHasMore(false);
+        setLoading(false);
+        setInitialLoading(false);
+        return;
+      }
+
+      // Fetch all remaining pages concurrently
+      const remainingPages = Array.from(
+        { length: totalPages - 1 },
+        (_, i) => i + initialPage + 1
+      );
+      const pagePromises = remainingPages.map(page => apiFunction(page, limit));
+      
+      const responses = await Promise.all(pagePromises);
+
+      // Combine all results
+      const allItems = [...firstItems];
+      const seen = new Set(firstItems.map((item: any) => item.id || JSON.stringify(item)));
+
+      for (const response of responses) {
+        const newItems = transformResponse(response);
+        if (newItems && newItems.length > 0) {
+          for (const item of newItems) {
+            const key = item.id || JSON.stringify(item);
+            if (!seen.has(key)) {
+              seen.add(key);
+              allItems.push(item);
+            }
+          }
+        }
+      }
+
+      setItems(allItems);
+      setCurrentPage(totalPages);
+      setHasMore(false);
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to load data';
+      setError(errorMessage);
+      console.error('Error fetching all pages:', err);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  }, [apiFunction, limit, transformResponse, getTotalPages, initialPage]);
+
+  /**
    * Initial load
    */
   useEffect(() => {
     if (hasFetchedRef.current || isResetting) return;
 
     hasFetchedRef.current = true;
-    fetchPage(initialPage, false);
-  }, [initialPage, fetchPage, isResetting]);
+    
+    if (fetchAllConcurrently) {
+      fetchAllPagesConcurrently();
+    } else {
+      fetchPage(initialPage, false);
+    }
+  }, [initialPage, fetchPage, isResetting, fetchAllConcurrently, fetchAllPagesConcurrently]);
 
   /**
    * Infinite scroll handler

@@ -6,7 +6,7 @@ import { ChartBarIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import {
   getBasketballMatchPlayByPlay,
   getBasketballMatchDetail,
-} from "@/lib/api/endpoints";
+} from "@/lib/api/basketball/index";
 import { useParams } from "react-router-dom";
 
 interface Team {

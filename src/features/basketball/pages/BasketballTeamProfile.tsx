@@ -13,7 +13,7 @@ import {
 import {
   getBasketballTeamDetail,
   getBasketballStandings,
-} from "@/lib/api/endpoints";
+} from "@/lib/api/basketball/index";
 import { motion } from "framer-motion";
 
 interface TeamInfo {

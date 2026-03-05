@@ -1,15 +1,18 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import { ChevronUpDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { getAllLeagues } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import { navigate } from "@/lib/router/navigate";
 
-// Pulsating skeleton loader component
+// Shimmer skeleton loader component
 const Skeleton = ({ className = "" }: { className?: string }) => (
   <div
-    className={`animate-pulse bg-snow-200 rounded ${className}`}
+    className={`relative overflow-hidden bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
     style={{ minHeight: "1em" }}
-  />
+  >
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
 );
 
 interface LeagueItem {
@@ -129,12 +132,75 @@ const LeagueList: React.FC<LeagueListProps> = ({
   );
 };
 
+const mapLeague = (league: any): LeagueItem | null => {
+  const id = league?.leagueId ?? league?.id;
+  if (!id || !league?.name) return null;
+  return {
+    name: league.name,
+    icon: league.logo || league.image_path || "/assets/icons/league-placeholder.png",
+    id,
+    category: league.category,
+  };
+};
+
+// Fetch all leagues by making concurrent requests for all pages
+const fetchAllLeagues = async (): Promise<LeagueItem[]> => {
+  const limit = 100;
+  
+  // First request to get total pages
+  const first = await getAllLeagues(1, limit);
+  const firstItemsRaw = first?.responseObject?.items;
+  const firstMapped = Array.isArray(firstItemsRaw)
+    ? (firstItemsRaw.map(mapLeague).filter(Boolean) as LeagueItem[])
+    : [];
+  
+  const totalPages = first?.responseObject?.totalPages;
+  
+  // If there's only one page or no totalPages info, return what we have
+  if (!totalPages || totalPages <= 1) {
+    return firstMapped;
+  }
+  
+  // Fetch all remaining pages concurrently
+  const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+  const pagePromises = remainingPages.map(page => getAllLeagues(page, limit));
+  
+  const responses = await Promise.all(pagePromises);
+  
+  // Combine all results
+  const allLeagues = [...firstMapped];
+  const seen = new Set(firstMapped.map(l => l.id));
+  
+  for (const res of responses) {
+    const raw = res?.responseObject?.items;
+    const mapped = Array.isArray(raw)
+      ? (raw.map(mapLeague).filter(Boolean) as LeagueItem[])
+      : [];
+    
+    for (const league of mapped) {
+      if (!seen.has(league.id)) {
+        seen.add(league.id);
+        allLeagues.push(league);
+      }
+    }
+  }
+  
+  return allLeagues;
+};
+
 export const Leftbar = () => {
-  const [loading, setLoading] = useState(true);
-  const [leagues, setLeagues] = useState<LeagueItem[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const fetchRunIdRef = useRef(0);
+
+  const { data: leagues = [], isLoading: loading } = useQuery({
+    queryKey: ["football", "leagues", "all"],
+    queryFn: fetchAllLeagues,
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - leagues don't change often
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
   const popularLeagueIds = useMemo(
     () => [
@@ -162,87 +228,6 @@ export const Leftbar = () => {
     if (!id) return;
     navigate(`/league/profile/${encodeURIComponent(id)}`);
   };
-
-  useEffect(() => {
-    fetchRunIdRef.current += 1;
-    const runId = fetchRunIdRef.current;
-    let cancelled = false;
-
-    const mapLeague = (league: any): LeagueItem | null => {
-      const id = league?.leagueId ?? league?.id;
-      if (!id || !league?.name) return null;
-      return {
-        name: league.name,
-        icon: league.logo || league.image_path || "/assets/icons/league-placeholder.png",
-        id,
-        category: league.category,
-      };
-    };
-
-    const upsertLeagues = (items: LeagueItem[]) => {
-      setLeagues((prev) => {
-        const seen = new Set(prev.map((x) => x.id));
-        const next = [...prev];
-        for (const l of items) {
-          if (!seen.has(l.id)) {
-            seen.add(l.id);
-            next.push(l);
-          }
-        }
-        return next;
-      });
-    };
-
-    const fetchAllPages = async () => {
-      const limit = 100;
-
-      try {
-        setLoading(true);
-
-        const first = await getAllLeagues(1, limit);
-        const firstItemsRaw = first?.responseObject?.items;
-        const firstMapped = Array.isArray(firstItemsRaw)
-          ? (firstItemsRaw.map(mapLeague).filter(Boolean) as LeagueItem[])
-          : [];
-
-        if (cancelled || fetchRunIdRef.current !== runId) return;
-
-        setLeagues(firstMapped);
-        setLoading(false);
-
-        const totalPages = first?.responseObject?.totalPages;
-        let page = 1;
-        let hasMore =
-          typeof totalPages === "number" ? page < totalPages : firstMapped.length === limit;
-
-        while (!cancelled && hasMore) {
-          page += 1;
-          const res = await getAllLeagues(page, limit);
-          const raw = res?.responseObject?.items;
-          const mapped = Array.isArray(raw)
-            ? (raw.map(mapLeague).filter(Boolean) as LeagueItem[])
-            : [];
-
-          if (cancelled || fetchRunIdRef.current !== runId) return;
-          if (mapped.length > 0) upsertLeagues(mapped);
-
-          const pages = res?.responseObject?.totalPages;
-          hasMore = typeof pages === "number" ? page < pages : mapped.length === limit;
-
-          await new Promise((r) => setTimeout(r, 75));
-        }
-      } catch (error) {
-        console.error("Error fetching leagues:", error);
-        if (!cancelled && fetchRunIdRef.current === runId) setLoading(false);
-      }
-    };
-
-    fetchAllPages();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <div>

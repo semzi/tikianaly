@@ -3768,11 +3768,13 @@ export const gameInfo = () => {
 
                   <span
 
-                    className={`inline-flex items-center justify-center rounded-md p-1 ${
+                    className={`inline-flex items-center justify-center rounded-md p-1.5 transition-all duration-200 ${
 
-                      isPinned ? "bg-brand-secondary" : ""
+                      isPinned ? "bg-brand-secondary shadow-lg shadow-brand-secondary/30" : "hover:bg-white/10"
 
                     }`}
+
+                    title={isPinned ? "Unpin fixture" : "Pin fixture"}
 
                   >
 
@@ -3786,7 +3788,7 @@ export const gameInfo = () => {
 
                       fill={isPinned ? "currentColor" : "none"}
 
-                      className={isPinned ? "text-white" : "text-white"}
+                      className={`transition-all duration-200 ${isPinned ? "text-white scale-110" : "text-white/80 hover:text-white"}`}
 
                       xmlns="http://www.w3.org/2000/svg"
 
@@ -3794,53 +3796,61 @@ export const gameInfo = () => {
 
                       <path
 
-                        d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
-
-                        stroke="currentColor"
-
-                        strokeWidth="2"
-
-                        strokeLinecap="round"
-
-                        fill="none"
-
-                      />
-
-                      <path
-
-                        d="M8 9h8l-1 9H9L8 9Z"
+                        d="M12 2C12.5523 2 13 2.44772 13 3V10.5L15.5 13H8.5L11 10.5V3C11 2.44772 11.4477 2 12 2Z"
 
                         fill={isPinned ? "currentColor" : "none"}
 
-                        opacity="1"
-
-                      />
-
-                      <path
-
-                        d="M8 9h8l-1 9H9L8 9Z"
-
                         stroke="currentColor"
 
-                        strokeWidth="2"
-
-                        strokeLinejoin="round"
-
-                        fill="none"
-
-                      />
-
-                      <path
-
-                        d="M12 18v3"
-
-                        stroke="currentColor"
-
-                        strokeWidth="2"
+                        strokeWidth="1.5"
 
                         strokeLinecap="round"
 
-                        fill="none"
+                        strokeLinejoin="round"
+
+                      />
+
+                      <path
+
+                        d="M8.5 13V19C8.5 19.5523 8.94772 20 9.5 20H14.5C15.0523 20 15.5 19.5523 15.5 19V13"
+
+                        stroke="currentColor"
+
+                        strokeWidth="1.5"
+
+                        strokeLinecap="round"
+
+                        strokeLinejoin="round"
+
+                      />
+
+                      <path
+
+                        d="M6 13H18"
+
+                        stroke="currentColor"
+
+                        strokeWidth="1.5"
+
+                        strokeLinecap="round"
+
+                      />
+
+                      <circle
+
+                        cx="12"
+
+                        cy="6"
+
+                        r="1.5"
+
+                        fill={isPinned ? "currentColor" : "none"}
+
+                        stroke="currentColor"
+
+                        strokeWidth="1"
+
+                        className={isPinned ? "opacity-100" : "opacity-0"}
 
                       />
 

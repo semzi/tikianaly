@@ -11,17 +11,17 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import {
-  searchBasketballFixturesByStatus,
   getBasketballFixturesByDate,
+  getLiveBasketballMatches,
 } from "@/lib/api/endpoints";
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
 import Category from "@/features/dashboard/components/Category";
-import { subDays, addDays, isToday, format } from "date-fns";
+import { subDays, addDays, isToday, format, isValid, parseISO } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
   subscribeBasketballLiveMatchesStream,
-  closeLiveStream,
-} from "@/lib/api/livestream";
+  closeBasketballLiveStream,
+} from "@/lib/api/basketball/livestream";
 import DatePicker from "react-datepicker";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import RightBar from "@/components/layout/RightBar";
@@ -71,19 +71,15 @@ interface ApiResponse {
 }
 
 const BasketballPage = () => {
-  const tabs = [
-    { id: "live", label: "Live" },
-    { id: "fixtures", label: "Fixtures" },
-    { id: "results", label: "Results" },
-  ];
-
-  const [activeTab, setActiveTab] = useState("live");
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // SSE & Live Override state
+  const [liveMatches, setLiveMatches] = useState<Record<number, Match>>({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,49 +87,54 @@ const BasketballPage = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
+  const tabs = useMemo(() => {
+    let dateLabel = "Fixture";
+    if (selectedDate) {
+      if (isToday(selectedDate)) {
+        dateLabel = "Today";
+      } else {
+        dateLabel = format(selectedDate, "MMM d");
+      }
+    }
+    return [
+      { id: "all", label: "All" },
+      { id: "live", label: "Live" },
+      { id: "fixture", label: dateLabel },
+    ];
+  }, [selectedDate]);
+
   // Fetch data with React Query
   const fetchMatchesData = async () => {
-    let data: ApiResponse | null = null;
+    if (activeTab === "live") {
+      try {
+        return (await getLiveBasketballMatches(currentPage)) as ApiResponse;
+      } catch (err) {
+        console.error("Error fetching live basketball matches:", err);
+        return null;
+      }
+    }
+
     const formattedDate = selectedDate
       ? format(selectedDate, "yyyy-MM-dd")
       : "";
 
-    if (activeTab === "live") {
+    try {
+      const data = (await getBasketballFixturesByDate(
+        formattedDate,
+        currentPage,
+      )) as ApiResponse;
+      return data;
+    } catch (err) {
+      console.error("Error fetching basketball matches:", err);
       return null;
-    } else if (activeTab === "fixtures") {
-      try {
-        data = (await getBasketballFixturesByDate(
-          formattedDate,
-          currentPage,
-        )) as ApiResponse;
-      } catch (err) {
-        data = null;
-      }
-    } else {
-      try {
-        data = (await getBasketballFixturesByDate(
-          formattedDate,
-          currentPage,
-        )) as ApiResponse;
-        if (
-          !data ||
-          !data.success ||
-          !data.responseObject ||
-          data.responseObject.items.length === 0
-        ) {
-          data = (await searchBasketballFixturesByStatus(
-            "finished",
-            currentPage,
-          )) as ApiResponse;
-        }
-      } catch (err) {
-        data = null;
-      }
     }
-    return data;
   };
 
-  const { data: queryData, isLoading: isQueryLoading } = useQuery({
+  const {
+    data: queryData,
+    isLoading: isQueryLoading,
+    isFetching: isQueryFetching,
+  } = useQuery({
     queryKey: [
       "basketball-matches",
       activeTab,
@@ -141,92 +142,117 @@ const BasketballPage = () => {
       selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
     ],
     queryFn: fetchMatchesData,
-    enabled: activeTab !== "live",
     staleTime: 5 * 60 * 1000,
   });
 
-  // Sync state with React Query response
+  // Sync state with React Query response (pagination and loading only)
   useEffect(() => {
-    if (activeTab === "live") return;
-    setLoading(isQueryLoading);
-    if (!isQueryLoading) {
-      if (queryData && queryData.success && queryData.responseObject) {
-        let items = queryData.responseObject.items || [];
-
-        if (activeTab === "results") {
-          items = items.filter(
-            (m) =>
-              m.status.toLowerCase().includes("finished") ||
-              m.localteam.totalscore !== "",
-          );
-        }
-
-        if (selectedLeagueId) {
-          items = items.filter(
-            (m: any) => !m.league_id || m.league_id === selectedLeagueId,
-          );
-        }
-
-        setMatches(items);
-        setTotalPages(queryData.responseObject.totalPages || 1);
-        setHasNextPage(queryData.responseObject.hasNextPage || false);
-        setHasPreviousPage(queryData.responseObject.hasPreviousPage || false);
-        if (queryData.responseObject.page) {
-          setCurrentPage(queryData.responseObject.page);
-        }
-      } else {
-        setMatches([]);
-        setTotalPages(1);
-        setHasNextPage(false);
-        setHasPreviousPage(false);
-      }
+    if (isQueryLoading && Object.keys(liveMatches).length === 0) {
+      setLoading(true);
+    } else if (!isQueryFetching) {
+      setLoading(false);
     }
-  }, [queryData, isQueryLoading, activeTab, selectedLeagueId]);
+
+    if (queryData && queryData.success && queryData.responseObject) {
+      setTotalPages(queryData.responseObject.totalPages || 1);
+      setHasNextPage(queryData.responseObject.hasNextPage || false);
+      setHasPreviousPage(queryData.responseObject.hasPreviousPage || false);
+    }
+  }, [queryData, isQueryLoading, isQueryFetching]);
+
+  // Combine query data and SSE updates
+  const matches = useMemo(() => {
+    const baseItems = queryData?.responseObject?.items || [];
+    const merged = [...baseItems];
+
+    // Apply filters first if needed, or filter later
+    // Let's filter the final list
+
+    // 1. Update/Overwite baseItems with liveMatches
+    const finalItems = merged.map((m) => {
+      if (liveMatches[m.match_id]) {
+        return { ...m, ...liveMatches[m.match_id] };
+      }
+      return m;
+    });
+
+    // 2. Add live matches that aren't in the base items (if it's today)
+    if (
+      (activeTab === "all" || activeTab === "live") &&
+      isToday(selectedDate || new Date())
+    ) {
+      Object.values(liveMatches).forEach((liveMatch) => {
+        const alreadyExists = finalItems.some(
+          (m) => m.match_id === liveMatch.match_id,
+        );
+        if (!alreadyExists) {
+          if (activeTab === "all" || (activeTab === "live" && liveMatch)) {
+            finalItems.push(liveMatch);
+          }
+        }
+      });
+    }
+
+    // 3. Final filter by league
+    let filteredItems = finalItems;
+    if (selectedLeagueId) {
+      filteredItems = filteredItems.filter(
+        (m: Match) => !m.league_id || m.league_id === selectedLeagueId,
+      );
+    }
+
+    // 4. If viewing "live" tab, only show matches that are actually live
+    if (activeTab === "live") {
+      filteredItems = filteredItems.filter((m) => {
+        const s = (m.status || "").toLowerCase();
+        return (
+          s.includes("quarter") ||
+          s.includes("half") ||
+          s.includes("overtime") ||
+          s.includes("live")
+        );
+      });
+    }
+
+    return filteredItems;
+  }, [queryData, liveMatches, activeTab, selectedLeagueId, selectedDate]);
 
   // Handle SSE for Live matches
   useEffect(() => {
-    if (activeTab === "live") {
-      setLoading(true);
+    if (activeTab === "live" || activeTab === "all") {
       const eventSource = subscribeBasketballLiveMatchesStream({
         onUpdate: (fixtures) => {
-          setLoading(false);
-          let items = fixtures || [];
-          if (selectedLeagueId) {
-            items = items.filter(
-              (m: any) => !m.league_id || m.league_id === selectedLeagueId,
-            );
+          if (fixtures && fixtures.length > 0) {
+            setLiveMatches((prev) => {
+              const next = { ...prev };
+              fixtures.forEach((m) => {
+                next[m.match_id] = m;
+              });
+              return next;
+            });
           }
-          setMatches((prev) => (items.length > 0 ? items : prev));
         },
         onError: (err) => {
-          setLoading(false);
           console.error("Live SSE Error:", err);
         },
       });
 
-      return () => closeLiveStream(eventSource);
+      return () => closeBasketballLiveStream(eventSource);
     }
-  }, [activeTab, selectedLeagueId]);
+  }, [activeTab]); // Only restart on tab change if needed, but keeping it simple
 
-  // Reset to page 1 when changing tabs or league
+  // Reset to page 1 when changing tabs
   useEffect(() => {
     setCurrentPage(1);
+  }, [activeTab]);
 
-    // Adjust selected date if it falls out of range for the new tab
-    if (
-      activeTab === "fixtures" &&
-      selectedDate &&
-      selectedDate < new Date(new Date().setHours(0, 0, 0, 0))
-    ) {
-      setSelectedDate(new Date());
-    } else if (
-      activeTab === "results" &&
-      selectedDate &&
-      selectedDate > new Date()
-    ) {
-      setSelectedDate(new Date());
+  // Reset live overrides when changing date (unless it's today)
+  useEffect(() => {
+    setCurrentPage(1);
+    if (selectedDate && !isToday(selectedDate)) {
+      setLiveMatches({});
     }
-  }, [activeTab, selectedLeagueId, selectedDate]);
+  }, [selectedDate, selectedLeagueId]);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -249,21 +275,47 @@ const BasketballPage = () => {
       grouped[lid].items.push(match);
     });
 
-    // Sort items within each league by time/date
+    // Sort items within each league: Live > Upcoming > Finished
     Object.values(grouped).forEach((group) => {
       group.items.sort((a, b) => {
+        const getPriority = (m: Match) => {
+          const status = (m.status || "").toLowerCase();
+          // Live priorities
+          if (
+            status.includes("quarter") ||
+            status.includes("half") ||
+            status.includes("overtime") ||
+            status.includes("live")
+          )
+            return 1;
+          // Upcoming priorities
+          if (status.includes("not started") || status === "ns") return 2;
+          // Finished priorities
+          if (
+            status.includes("finished") ||
+            status === "ft" ||
+            status === "aot"
+          )
+            return 3;
+          return 4;
+        };
+
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        // Within same priority, sort by time/date
         const dateA = a.date || "";
         const dateB = b.date || "";
         if (dateA !== dateB) {
-          return activeTab === "results"
-            ? dateB.localeCompare(dateA) // Recent first for results
-            : dateA.localeCompare(dateB); // Upcoming first for fixtures
+          return (dateA || "").localeCompare(dateB || "");
         }
         const timeA = a.time || "00:00";
         const timeB = b.time || "00:00";
-        return activeTab === "results"
-          ? timeB.localeCompare(timeA) // Later time first for results on same day
-          : timeA.localeCompare(timeB); // Earlier time first for fixtures on same day
+        return (timeA || "").localeCompare(timeB || "");
       });
     });
 
@@ -278,22 +330,44 @@ const BasketballPage = () => {
   console.log("groupedMatches", groupedMatches);
 
   const getStatusDisplay = (match: Match) => {
-    if (activeTab === "live") {
+    const rawStatus = match.status || "";
+    const status = rawStatus.toLowerCase();
+    const isLive =
+      status.includes("quarter") ||
+      status.includes("half") ||
+      status.includes("overtime") ||
+      status.includes("live");
+
+    const safeFormat = (dateStr?: string, fmt: string = "MMM d") => {
+      if (!dateStr) return "";
+      try {
+        const d = parseISO(dateStr);
+        return isValid(d) ? format(d, fmt) : "";
+      } catch {
+        return "";
+      }
+    };
+
+    if (isLive) {
       return {
-        text: `${match.period || match.status}`,
+        text: `${match.period || rawStatus || "Live"}`,
         subtext: match.timer ? `${match.timer}'` : "",
         isLive: true,
       };
-    } else if (activeTab === "fixtures") {
+    } else if (
+      status.includes("finished") ||
+      status === "ft" ||
+      status === "aot"
+    ) {
       return {
-        text: match.date ? format(new Date(match.date), "MMM d") : "TBD",
-        subtext: match.time || "",
+        text: "FT",
+        subtext: safeFormat(match.date),
         isLive: false,
       };
     } else {
       return {
-        text: "FT",
-        subtext: match.date ? format(new Date(match.date), "MMM d") : "",
+        text: safeFormat(match.date) || "TBD",
+        subtext: match.time || "",
         isLive: false,
       };
     }
@@ -301,7 +375,10 @@ const BasketballPage = () => {
 
   const hasScores = (match: Match) => {
     return (
-      match.localteam.totalscore !== "" && match.awayteam.totalscore !== ""
+      match?.localteam?.totalscore !== undefined &&
+      match?.localteam?.totalscore !== "" &&
+      match?.awayteam?.totalscore !== undefined &&
+      match?.awayteam?.totalscore !== ""
     );
   };
 
@@ -329,44 +406,33 @@ const BasketballPage = () => {
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`pb-2 text-sm font-medium transition-colors relative ${
+                    className={`pb-2 text-sm font-medium transition-all duration-200 relative ${
                       activeTab === tab.id
-                        ? "text-brand-primary"
+                        ? "text-brand-secondary"
                         : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     }`}
                   >
                     {tab.label}
                     {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary" />
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-secondary transition-all duration-200" />
                     )}
                   </button>
                 ))}
               </div>
 
-              {/* Date Navigation (only for fixtures/results) */}
-              {(activeTab === "fixtures" || activeTab === "results") && (
+              {/* Date Navigation (only for all/fixture) */}
+              {(activeTab === "all" || activeTab === "fixture") && (
                 <div className="relative flex items-center justify-between dark:text-snow-200">
                   <ArrowLeftIcon
-                    className={`h-5 w-5 transition-colors ${
-                      activeTab === "fixtures" &&
-                      selectedDate &&
-                      isToday(selectedDate)
-                        ? "text-gray-300 cursor-not-allowed opacity-50"
-                        : "text-neutral-n4 cursor-pointer hover:text-brand-primary"
-                    }`}
+                    className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
                     onClick={() => {
-                      if (
-                        activeTab === "fixtures" &&
-                        selectedDate &&
-                        isToday(selectedDate)
-                      )
-                        return;
                       setSelectedDate((prev) => subDays(prev || new Date(), 1));
                     }}
                   />
                   <div
-                    className="flex gap-3 items-center cursor-pointer hover:text-brand-primary"
+                    className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
                     onClick={() => setShowDatePicker(!showDatePicker)}
                   >
                     <p className="font-medium">
@@ -379,20 +445,8 @@ const BasketballPage = () => {
                     <CalendarIcon className="h-5 w-5 text-neutral-n4" />
                   </div>
                   <ArrowRightIcon
-                    className={`h-5 w-5 transition-colors ${
-                      activeTab === "results" &&
-                      selectedDate &&
-                      isToday(selectedDate)
-                        ? "text-gray-300 cursor-not-allowed opacity-50"
-                        : "text-neutral-n4 cursor-pointer hover:text-brand-primary"
-                    }`}
+                    className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
                     onClick={() => {
-                      if (
-                        activeTab === "results" &&
-                        selectedDate &&
-                        isToday(selectedDate)
-                      )
-                        return;
                       setSelectedDate((prev) => addDays(prev || new Date(), 1));
                     }}
                   />
@@ -404,12 +458,6 @@ const BasketballPage = () => {
                           setSelectedDate(date);
                           setShowDatePicker(false);
                         }}
-                        minDate={
-                          activeTab === "fixtures" ? new Date() : undefined
-                        }
-                        maxDate={
-                          activeTab === "results" ? new Date() : undefined
-                        }
                         inline
                       />
                     </div>
@@ -501,12 +549,12 @@ const BasketballPage = () => {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-medium theme-text">
-                                    {match.localteam.name}
+                                    {match?.localteam?.name || "Unknown"}
                                   </span>
                                 </div>
                                 {showScores && (
                                   <span className="font-bold text-sm theme-text">
-                                    {match.localteam.totalscore}
+                                    {match?.localteam?.totalscore}
                                   </span>
                                 )}
                               </div>
@@ -515,12 +563,12 @@ const BasketballPage = () => {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-medium theme-text">
-                                    {match.awayteam.name}
+                                    {match?.awayteam?.name || "Unknown"}
                                   </span>
                                 </div>
                                 {showScores && (
                                   <span className="font-bold text-sm theme-text">
-                                    {match.awayteam.totalscore}
+                                    {match?.awayteam?.totalscore}
                                   </span>
                                 )}
                               </div>
@@ -561,10 +609,8 @@ const BasketballPage = () => {
               </div>
             )}
 
-            {/* Pagination (only for live/fixtures/results) */}
-            {(activeTab === "live" ||
-              activeTab === "fixtures" ||
-              activeTab === "results") &&
+            {/* Pagination (only for all/fixture) */}
+            {(activeTab === "all" || activeTab === "fixture") &&
               totalPages > 1 && (
                 <div className="flex items-center justify-between block-style">
                   <button

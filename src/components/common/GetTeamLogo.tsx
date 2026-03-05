@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getTeamById } from "@/lib/api/endpoints";
 
 interface GetTeamLogoProps {
@@ -20,8 +21,19 @@ interface TeamApiResponse {
   };
 }
 
-const teamLogoMemoryCache = new Map<string, string>();
-const teamLogoStorageKey = (id: string) => `team_logo_image_${id}`;
+const teamLogoFailedCache = new Set<string>();
+
+const extractImageUrl = (data: TeamApiResponse): string | null => {
+  const item = data?.responseObject?.item;
+  const team = Array.isArray(item) ? item[0] : item;
+  const rawImage = team?.image ? String(team.image).trim() : "";
+
+  if (!rawImage) return null;
+
+  return rawImage.startsWith("data:image")
+    ? rawImage
+    : `data:image/png;base64,${rawImage}`;
+};
 
 const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
   teamId,
@@ -30,98 +42,38 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
   width = 32,
   height = 32,
 }) => {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
   const safeAlt = String(alt ?? "").trim() || "Team";
+  const id = String(teamId ?? "").trim();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchTeamLogo = async () => {
-      setLoading(true);
-      setError(null);
-
-      const id = String(teamId);
-
-      const memoryCached = teamLogoMemoryCache.get(id);
-      if (memoryCached) {
-        setLogoUrl(memoryCached);
-        setLoading(false);
-        return;
+  const { data: logoUrl, isLoading: loading } = useQuery({
+    queryKey: ["team", "logo", id],
+    queryFn: async () => {
+      if (teamLogoFailedCache.has(id)) {
+        return null;
       }
 
       try {
-        const stored = sessionStorage.getItem(teamLogoStorageKey(id));
-        if (stored) {
-          teamLogoMemoryCache.set(id, stored);
-          setLogoUrl(stored);
-          setLoading(false);
-          return;
+        const res = (await getTeamById(id)) as TeamApiResponse;
+        const imageUrl = extractImageUrl(res);
+
+        if (!imageUrl) {
+          teamLogoFailedCache.add(id);
         }
+
+        return imageUrl;
       } catch {
-        // ignore storage errors
+        teamLogoFailedCache.add(id);
+        return null;
       }
-
-      try {
-        let res: unknown;
-        let lastErr: unknown;
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-          try {
-            if (controller.signal.aborted) return;
-            res = await getTeamById(id);
-            lastErr = undefined;
-            break;
-          } catch (e) {
-            lastErr = e;
-            if (controller.signal.aborted) return;
-            await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
-          }
-        }
-
-        if (lastErr) throw lastErr;
-        if (controller.signal.aborted) return;
-
-        const item = (res as TeamApiResponse)?.responseObject?.item;
-        const team = Array.isArray(item) ? item[0] : item;
-        const rawImage = team?.image ? String(team.image).trim() : "";
-
-        if (rawImage) {
-          const dataUri = rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
-          teamLogoMemoryCache.set(id, dataUri);
-          try {
-            sessionStorage.setItem(teamLogoStorageKey(id), dataUri);
-          } catch {
-            // ignore storage errors
-          }
-          setLogoUrl(dataUri);
-        } else {
-          setLogoUrl(null);
-        }
-      } catch (err: any) {
-        if (controller.signal.aborted) return;
-        console.error(`Error fetching logo for teamId ${teamId}:`, err);
-        const status = err?.response?.status;
-        const statusText = err?.response?.statusText;
-        setError(status ? `Failed to load logo (${status}${statusText ? ` ${statusText}` : ""})` : "Failed to load logo");
-        setLogoUrl(null);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    if (teamId === null || teamId === undefined || String(teamId).trim() === "") {
-      setLogoUrl(null);
-      setLoading(false);
-      return;
-    }
-
-    fetchTeamLogo();
-
-    return () => {
-      controller.abort();
-    };
-  }, [teamId]);
+    },
+    staleTime: 7 * 24 * 60 * 60 * 1000,
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: false,
+    enabled: id !== "",
+  });
 
   if (loading) {
     return (
@@ -131,10 +83,10 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
     );
   }
 
-  if (error || !logoUrl) {
+  if (!logoUrl) {
     return (
       <img
-        src={"/loading-state/shield.svg"}
+        src="/loading-state/shield.svg"
         alt={`${safeAlt} - No Logo`}
         loading="lazy"
         decoding="async"

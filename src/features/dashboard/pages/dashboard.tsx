@@ -19,6 +19,7 @@ import {
   InboxIcon,
   ArrowUturnLeftIcon,
   ChevronDownIcon,
+  StarIcon,
 } from "@heroicons/react/24/outline";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import Leftbar from "@/components/layout/LeftBar";
@@ -29,13 +30,17 @@ import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
+import { useQueryClient } from "@tanstack/react-query";
+import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
 
-// Pulsating skeleton loader component
+// Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
   <div
-    className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+    className={`relative overflow-hidden bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
     style={{ minHeight: "1em" }}
-  />
+  >
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
 );
 
 const AnimatedScore = ({
@@ -103,6 +108,8 @@ export const dashboard = () => {
     byMatchId: Map<string, any>;
     byFixtureId: Map<string, any>;
   }>({ byStaticId: new Map(), byMatchId: new Map(), byFixtureId: new Map() });
+
+  const queryClient = useQueryClient();
 
   const isInSseStream = (game: any) => {
     const staticIdKey = game?.static_id ? String(game.static_id) : "";
@@ -547,6 +554,7 @@ export const dashboard = () => {
     const fetchFixtures = async () => {
       try {
         setLoading(true);
+        setFixtures([]); // Clear previous fixtures immediately when date/mode changes
         leagueFixturesMapRef.current = new Map();
         if (flushFixturesTimeoutRef.current !== null) {
           window.clearTimeout(flushFixturesTimeoutRef.current);
@@ -710,7 +718,11 @@ export const dashboard = () => {
 
         const fetchLeague = async (leagueId: number) => {
           try {
-            const response = await getFixturesByLeague(leagueId, formattedDate, 1, 100);
+            const response = await queryClient.ensureQueryData<any>({
+              queryKey: ["leagueFixturesByDate", { leagueId, date: formattedDate }],
+              queryFn: () => getFixturesByLeague(leagueId, formattedDate, 1, 100),
+              staleTime: 120 * 60 * 1000, // cache per league+date for 120 minutes
+            });
             if (
               response?.success &&
               response?.responseObject?.items &&
@@ -808,30 +820,18 @@ export const dashboard = () => {
                   </div>
                 )}
               </div>
-              {/* Filter Buttons */}
-              <div className="flex gap-3 overflow-x-auto overflow-y-hidden">
-                <div
-                  className=" dark:text-snow-200 overflow-x-hidden flex gap-3 w-full hide-scrollbar"
-                >
-                  <button
-                    className={`filter-btn dark:border-[#1F2937] ${fixturesMode === "all" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-                    onClick={() => setFixturesMode("all")}
-                  >
-                    All
-                  </button>
-                  <button
-                    className={`filter-btn dark:border-[#1F2937] ${fixturesMode === "live" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-                    onClick={() => setFixturesMode("live")}
-                  >
-                    Live Games
-                  </button>
-                  <button
-                    className={`filter-btn dark:border-[#1F2937] ${fixturesMode === "date" ? "text-brand-secondary hover:text-white" : "hover:text-white"}`}
-                    onClick={() => setFixturesMode("date")}
-                  >
-                    By Date
-                  </button>
-                </div>
+              {/* Filter Segmented Selector */}
+              <div className="mt-3">
+                <SegmentedSelector
+                  value={fixturesMode}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "live", label: "Live" },
+                    { value: "date", label: "By Date" },
+                  ]}
+                  onChange={(value) => setFixturesMode(value as "all" | "live" | "date")}
+                  size="md"
+                />
               </div>
             </div>
           </div>
@@ -1079,40 +1079,7 @@ export const dashboard = () => {
                                   onClick={() => togglePinnedFixture(fixtureIdForPin)}
                                   aria-label="Unpin fixture"
                                 >
-                                  <svg
-                                    width="22"
-                                    height="22"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <path
-                                      d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      fill="none"
-                                    />
-                                    <path
-                                      d="M8 9h8l-1 9H9L8 9Z"
-                                      fill="currentColor"
-                                      opacity="1"
-                                    />
-                                    <path
-                                      d="M8 9h8l-1 9H9L8 9Z"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinejoin="round"
-                                      fill="none"
-                                    />
-                                    <path
-                                      d="M12 18v3"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      fill="none"
-                                    />
-                                  </svg>
+                                  <StarIcon className="w-5 h-5 text-white fill-current" />
                                 </button>
                               </div>
 
@@ -1291,8 +1258,8 @@ export const dashboard = () => {
                 }
 
                 return (
-                  <div key={leagueFixture.leagueId + "-" + leagueIdx} className="block-style">
-                    <div className="flex gap-3 border-b-1 px-5 py-3  border-snow-200 dark:border-[#1F2937]">
+                  <div key={leagueFixture.leagueId + "-" + leagueIdx} className="block-style !p-0">
+                    <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20">
                       {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                         <GetLeagueLogo
                           leagueId={leagueFixture.leagueId}
@@ -1506,41 +1473,9 @@ export const dashboard = () => {
                               pinned ? "bg-brand-secondary" : ""
                             }`}
                           >
-                            <svg
-                              width="22"
-                              height="22"
-                              viewBox="0 0 24 24"
-                              fill={pinned ? "currentColor" : "none"}
-                              className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                fill="none"
-                              />
-                              <path
-                                d="M8 9h8l-1 9H9L8 9Z"
-                                fill={pinned ? "currentColor" : "none"}
-                                opacity="1"
-                              />
-                              <path
-                                d="M8 9h8l-1 9H9L8 9Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinejoin="round"
-                                fill="none"
-                              />
-                              <path
-                                d="M12 18v3"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                fill="none"
-                              />
-                            </svg>
+                            <StarIcon
+                              className={`w-5 h-5 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
+                            />
                           </span>
                         </button>
                       </div>
@@ -1782,9 +1717,9 @@ export const dashboard = () => {
               return (
                 <div
                   key={leagueFixture.leagueId + "-" + leagueIdx}
-                  className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
+                  className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded overflow-hidden"
                 >
-                  <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200">
+                  <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20">
                     {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                       <GetLeagueLogo
                         leagueId={leagueFixture.leagueId}
@@ -1949,41 +1884,9 @@ export const dashboard = () => {
                             pinned ? "bg-brand-secondary" : ""
                           }`}
                         >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill={pinned ? "currentColor" : "none"}
-                            className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              fill="none"
-                            />
-                            <path
-                              d="M8 9h8l-1 9H9L8 9Z"
-                              fill={pinned ? "currentColor" : "none"}
-                              opacity="1"
-                            />
-                            <path
-                              d="M8 9h8l-1 9H9L8 9Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinejoin="round"
-                              fill="none"
-                            />
-                            <path
-                              d="M12 18v3"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              fill="none"
-                            />
-                          </svg>
+                          <StarIcon
+                            className={`w-4 h-4 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
+                          />
                         </span>
                       </button>
                     </div>

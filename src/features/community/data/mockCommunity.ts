@@ -43,6 +43,17 @@ export type CommunityFeedItem = {
   shares: number;
 };
 
+export type CommunityReply = {
+  id: string;
+  author: string;
+  handle: string;
+  avatar: string;
+  time: string;
+  content: string;
+  likes: number;
+  replies?: CommunityReply[];
+};
+
 export type CommunityUserOrb = {
   id: string;
   name: string;
@@ -88,7 +99,7 @@ export const communityStories: CommunityStory[] = [
   },
 
   {
-    id: "story-2",
+    id: "story-3",
     posterLabel: "Highlights",
     posterIcon: "/assets/community/hat.png",
     title: "What a finish! Last minute goal to win the game!",
@@ -99,7 +110,7 @@ export const communityStories: CommunityStory[] = [
   },
 
   {
-    id: "story-2",
+    id: "story-4",
     posterLabel: "Highlights",
     posterIcon: "/assets/community/hat.png",
     title: "What a finish! Last minute goal to win the game!",
@@ -110,7 +121,7 @@ export const communityStories: CommunityStory[] = [
   },
 
   {
-    id: "story-2",
+    id: "story-5",
     posterLabel: "Highlights",
     posterIcon: "/assets/community/hat.png",
     title: "What a finish! Last minute goal to win the game!",
@@ -138,22 +149,22 @@ export const suggestedCommunities: SuggestedCommunity[] = [
     image: "/assets/community/story-messi.jpg",
   },
   {
-    id: "messi",
+    id: "messi-2",
     name: "Leo Messi GANG",
     image: "/assets/community/story-messi.jpg",
   },
   {
-    id: "clasico",
+    id: "clasico-2",
     name: "El-Classico",
     image: "/assets/community/story-messi.jpg",
   },
   {
-    id: "prem",
+    id: "prem-2",
     name: "Premier League",
     image: "/assets/community/story-messi.jpg",
   },
   {
-    id: "messi",
+    id: "messi-3",
     name: "Leo Messi GANG",
     image: "/assets/community/story-messi.jpg",
   },
@@ -308,3 +319,83 @@ export const communityUserOrbs: CommunityUserOrb[] = [
     viewed: true,
   },
 ];
+
+export const communityThreads: Record<string, CommunityReply[]> = {
+  "feed-1": [
+    {
+      id: "reply-1",
+      author: "Semzi",
+      handle: "@semzi",
+      avatar: "/assets/community/story-messi.jpg",
+      time: "23m",
+      content:
+        "If Flick keeps this tempo, Barca really can flirt with that number. The midfield structure is doing a lot of work.",
+      likes: 126,
+      replies: [
+        {
+          id: "reply-1-1",
+          author: "Kian",
+          handle: "@kianball",
+          avatar: "/assets/community/story-messi.jpg",
+          time: "14m",
+          content:
+            "True. The front line gets the headlines, but the spacing is what makes the overloads feel easy.",
+          likes: 34,
+        },
+      ],
+    },
+    {
+      id: "reply-2",
+      author: "Abdulrafiu",
+      handle: "@abdulcodes",
+      avatar: "/assets/community/story-messi.jpg",
+      time: "12m",
+      content:
+        "I want to see how they sustain it against more compact teams before I fully buy into the 200 goals talk.",
+      likes: 88,
+    },
+  ],
+  "feed-2": [
+    {
+      id: "reply-3",
+      author: "Modric",
+      handle: "@modric",
+      avatar: "/assets/community/story-messi.jpg",
+      time: "31m",
+      content: "That image is cold. Clean post, but the caption needs one more line.",
+      likes: 19,
+    },
+  ],
+  "feed-7": [
+    {
+      id: "reply-4",
+      author: "Saka",
+      handle: "@bukayo",
+      avatar: "/assets/community/story-messi.jpg",
+      time: "44m",
+      content:
+        "This is the kind of conversation I like in community. Strong take, strong reactions, good football talk.",
+      likes: 241,
+      replies: [
+        {
+          id: "reply-4-1",
+          author: "James",
+          handle: "@james",
+          avatar: "/assets/community/story-messi.jpg",
+          time: "28m",
+          content: "Exactly. Feels like matchday Twitter without the chaos.",
+          likes: 17,
+        },
+        {
+          id: "reply-4-2",
+          author: "Neymar",
+          handle: "@neyjr",
+          avatar: "/assets/community/story-messi.jpg",
+          time: "19m",
+          content: "Now imagine this with live clips and polls.",
+          likes: 53,
+        },
+      ],
+    },
+  ],
+};

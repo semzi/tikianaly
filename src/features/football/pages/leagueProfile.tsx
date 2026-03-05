@@ -21,6 +21,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
+import { useQuery } from "@tanstack/react-query";
 
 type LeagueApiItem = {
   id?: number;
@@ -216,9 +217,25 @@ const LeagueProfile = () => {
   const leagueIdFromQuery = searchParams.get("id") ?? undefined;
   const leagueId = leagueIdParam ?? leagueIdFromQuery;
 
-  const [league, setLeague] = useState<LeagueApiItem | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: leagueResponse,
+    isLoading: isLeagueLoading,
+    error: leagueError,
+  } = useQuery<LeagueApiResponse>({
+    queryKey: ["league", leagueId],
+    queryFn: async () =>
+      (await getLeagueById(String(leagueId ?? ""))) as LeagueApiResponse,
+    enabled: !!leagueId,
+  });
+
+  const league: LeagueApiItem | null = useMemo(() => {
+    const item = leagueResponse?.responseObject?.item;
+    const resolved = Array.isArray(item) ? item[0] : item;
+    return resolved ?? null;
+  }, [leagueResponse]);
+
+  const leagueErrorMessage =
+    leagueError instanceof Error ? leagueError.message : leagueError ? "Failed to load league" : null;
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -238,34 +255,6 @@ const LeagueProfile = () => {
     const newUrl = `${window.location.pathname}${window.location.search}#${tabId}`;
     window.history.replaceState(null, "", newUrl);
   };
-
-  useEffect(() => {
-    const run = async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = (await getLeagueById(id)) as LeagueApiResponse;
-        const item = res?.responseObject?.item;
-        const resolved = Array.isArray(item) ? item[0] : item;
-        setLeague(resolved ?? null);
-      } catch (e: any) {
-        setError(String(e?.message ?? "Failed to load league"));
-        setLeague(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const id = String(leagueId ?? "").trim();
-    if (!id) {
-      setLeague(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    run(id);
-  }, [leagueId]);
 
   const resolvedLeagueId = useMemo(() => {
     const fromItem = league?.league_id ?? league?.leagueId ?? league?.id;
@@ -514,8 +503,8 @@ const LeagueProfile = () => {
               </div>
 
               <div className="text-white text-sm">
-                {loading ? "Loading…" : null}
-                {error ? <span className="text-ui-negative">{error}</span> : null}
+                {isLeagueLoading ? "Loading…" : null}
+                {leagueErrorMessage ? <span className="text-ui-negative">{leagueErrorMessage}</span> : null}
               </div>
             </div>
           </div>

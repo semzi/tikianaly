@@ -18,12 +18,7 @@ export default function CommunityHighlightCard({
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       <div className="absolute bottom-3 left-3 right-3 text-white">
         <div className="flex items-center gap-2 text-xs text-white/80">
-          <img
-            src={story.posterIcon}
-            alt=""
-            className="h-4 w-4"
-            loading="lazy"
-          />
+          <img src={story.posterIcon} alt="" className="h-4 w-4" loading="lazy" />
           <span>{story.posterLabel}</span>
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -37,9 +32,7 @@ export default function CommunityHighlightCard({
           ) : (
             <div className="h-8 w-8 rounded-full bg-white/30" />
           )}
-          <p className="text-sm font-semibold">
-            {story.author} • {story.time}
-          </p>
+          <p className="text-sm font-semibold">{`${story.author} | ${story.time}`}</p>
         </div>
         <p className="mt-2 text-sm font-medium">{story.title}</p>
       </div>
