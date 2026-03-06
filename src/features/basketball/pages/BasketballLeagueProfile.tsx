@@ -24,6 +24,7 @@ import { format, isToday, subDays, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import GetBasketballLeagueLogo from "@/components/common/GetBasketballLeagueLogo";
 
 interface LeagueInfo {
   id: number;
@@ -406,10 +407,12 @@ const BasketballLeagueProfile = () => {
                 </button>
 
                 <div className="bg-white p-3 rounded-xl shadow-lg flex-shrink-0">
-                  <img
-                    src={leagueInfo?.logo || "/loading-state/league.svg"}
+                  <GetBasketballLeagueLogo
+                    leagueId={leagueId}
                     alt={leagueInfo?.name}
                     className="w-20 h-20 object-contain"
+                    width={80}
+                    height={80}
                   />
                 </div>
 

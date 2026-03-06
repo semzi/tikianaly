@@ -70,11 +70,11 @@ export const SegmentedSelector = <T extends string>({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex w-full max-w-sm items-center rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-snow-100/60 dark:bg-white/5 p-1 ${sizeCls.root} ${className}`}
+      className={`relative flex w-full items-center rounded-full bg-snow-200 dark:bg-[#1F2937] p-1 ${sizeCls.root} ${className}`}
       role="tablist"
     >
       <div
-        className="absolute top-1 bottom-1 rounded-full bg-brand-secondary border border-brand-secondary shadow-sm transition-[left,width] duration-200 ease-out"
+        className="absolute top-1 bottom-1 rounded-full bg-brand-secondary transition-all duration-300 ease-in-out"
         style={{ left: pill.left, width: pill.width }}
         aria-hidden="true"
       />
@@ -88,7 +88,7 @@ export const SegmentedSelector = <T extends string>({
           ? "opacity-40 cursor-not-allowed"
           : selected
             ? "text-white"
-            : "text-neutral-n5 dark:text-snow-200 hover:text-neutral-n4";
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
 
         return (
           <button

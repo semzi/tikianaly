@@ -3,14 +3,178 @@ import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
 import { ChartBarIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon } from "@heroicons/react/24/solid";
 import {
-  getBasketballMatchPlayByPlay,
   getBasketballMatchDetail,
 } from "@/lib/api/basketball/index";
 import { useParams } from "react-router-dom";
+import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
+
+// Shimmer skeleton loader component with sleek animation
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`relative overflow-hidden bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+    style={{ minHeight: "1em" }}
+  >
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
+);
+
+// Skeleton for the match header section
+const MatchHeaderSkeleton = () => (
+  <div className="relative isolate overflow-hidden bg-gradient-to-r from-orange-500 to-red-500 text-white">
+    {/* Themed strip background */}
+    <div
+      className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
+      style={{
+        backgroundImage:
+          "repeating-linear-gradient(135deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+      }}
+    />
+    <div className="page-padding-x py-6 relative z-[2]">
+      {/* Back button skeleton */}
+      <div className="flex items-center gap-2 mb-4">
+        <Skeleton className="h-5 w-5 bg-white/30" />
+        <Skeleton className="h-4 w-12 bg-white/30" />
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="md:hidden">
+        <div className="grid grid-cols-3 items-start gap-2">
+          {/* Home Team */}
+          <div className="min-w-0 flex flex-col items-center">
+            <div className="h-12 w-12 shrink-0 bg-white/30 rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <Skeleton className="h-8 w-8 bg-white/30" />
+            </div>
+            <Skeleton className="mt-1 h-4 w-16 bg-white/30" />
+          </div>
+
+          {/* Center Status */}
+          <div className="flex justify-center">
+            <Skeleton className="h-5 w-14 bg-white/30 rounded" />
+          </div>
+
+          {/* Away Team */}
+          <div className="min-w-0 flex flex-col items-center">
+            <div className="h-12 w-12 shrink-0 bg-white/30 rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <Skeleton className="h-8 w-8 bg-white/30" />
+            </div>
+            <Skeleton className="mt-1 h-4 w-16 bg-white/30" />
+          </div>
+        </div>
+
+        {/* Mobile Score */}
+        <div className="mt-2 flex justify-center items-center gap-3">
+          <Skeleton className="h-12 w-10 bg-white/30" />
+          <Skeleton className="h-8 w-4 bg-white/30" />
+          <Skeleton className="h-12 w-10 bg-white/30" />
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:flex items-center justify-between">
+        <div className="flex-1 text-center flex flex-col items-center">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-white/30 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+            <Skeleton className="h-12 w-12 md:h-16 md:w-16 bg-white/30" />
+          </div>
+          <Skeleton className="h-6 w-28 bg-white/30" />
+          <Skeleton className="mt-2 h-10 w-12 bg-white/30" />
+        </div>
+
+        <div className="flex flex-col items-center px-6">
+          <Skeleton className="h-6 w-16 bg-white/30 rounded-full" />
+          <Skeleton className="mt-2 h-4 w-10 bg-white/30" />
+        </div>
+
+        <div className="flex-1 text-center flex flex-col items-center">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-white/30 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+            <Skeleton className="h-12 w-12 md:h-16 md:w-16 bg-white/30" />
+          </div>
+          <Skeleton className="h-6 w-28 bg-white/30" />
+          <Skeleton className="mt-2 h-10 w-12 bg-white/30" />
+        </div>
+      </div>
+
+      {/* League Info */}
+      <div className="flex justify-center mt-4">
+        <Skeleton className="h-4 w-40 bg-white/30" />
+      </div>
+    </div>
+  </div>
+);
+
+// Skeleton for the tab bar
+const TabBarSkeleton = () => (
+  <div className="flex h-12 w-full bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0">
+    <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
+      <Skeleton className="h-8 w-16" />
+    </div>
+  </div>
+);
+
+// Skeleton for the info tab content
+const InfoTabSkeleton = () => (
+  <div className="page-padding-x my-8">
+    <div className="space-y-6">
+      {/* Score Summary Table */}
+      <div className="block-style !p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <div className="p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-32" />
+              <div className="flex gap-3">
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-5 w-8" />
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-32" />
+              <div className="flex gap-3">
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-5 w-8" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stadium Info */}
+      <div className="block-style">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <div>
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="mt-1 h-4 w-32" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Main skeleton for the match detail page
+const BasketballMatchDetailSkeleton = () => (
+  <div className="min-h-screen dark:bg-[#0D1117]">
+    <PageHeader />
+    <MatchHeaderSkeleton />
+    <TabBarSkeleton />
+    <InfoTabSkeleton />
+    <FooterComp />
+  </div>
+);
 
 interface Team {
-  id: number;
+  id: string | number;
+  team_id?: string | number;
   name: string;
   totalscore: string | number;
   q1: string | number;
@@ -23,25 +187,6 @@ interface Team {
   possession?: boolean;
   team_fouls?: number;
   timeouts_left?: number;
-}
-
-interface PlayEvent {
-  _id: string;
-  number: number;
-  team_scored: "home" | "away";
-  home_score: number;
-  away_score: number;
-  leader_team: "home" | "away" | "draw";
-  points_difference: number;
-}
-
-interface PlayByPlayData {
-  _id: string;
-  match_id: number;
-  quarter_name: string;
-  plays: PlayEvent[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface MatchDetail {
@@ -66,9 +211,6 @@ const BasketballMatchDetail = () => {
 
   const [activeTab, setActiveTab] = useState("info");
   const [matchData, setMatchData] = useState<MatchDetail | null>(null);
-  const [playByPlayData, setPlayByPlayData] = useState<PlayByPlayData | null>(
-    null,
-  );
   const [loading, setLoading] = useState(true);
 
   const { matchId } = useParams<{ matchId: string }>();
@@ -79,14 +221,7 @@ const BasketballMatchDetail = () => {
 
       setLoading(true);
       try {
-        const [pbpResponse, detailResponse] = await Promise.all([
-          getBasketballMatchPlayByPlay(matchId),
-          getBasketballMatchDetail(matchId),
-        ]);
-
-        if (pbpResponse.success && pbpResponse.responseObject) {
-          setPlayByPlayData(pbpResponse.responseObject.item);
-        }
+        const detailResponse = await getBasketballMatchDetail(matchId);
 
         if (detailResponse.success && detailResponse.responseObject) {
           setMatchData(detailResponse.responseObject.item);
@@ -111,109 +246,36 @@ const BasketballMatchDetail = () => {
     };
   }, [matchId]);
 
-  // Helper to calculate quarter scores from PBP data
-  const calculateScores = () => {
-    const scores = {
-      home: { q1: 0, q2: 0, q3: 0, q4: 0, ot: 0, total: 0 },
-      away: { q1: 0, q2: 0, q3: 0, q4: 0, ot: 0, total: 0 },
-    };
+  // Get scores - show actual score or empty string for scheduled games
+  const homeScore = matchData?.localteam?.totalscore || "";
+  const awayScore = matchData?.awayteam?.totalscore || "";
 
-    if (!playByPlayData || !playByPlayData.plays.length) {
-      // Fallback to matchData if PBP is missing
-      return {
-        home: {
-          q1: Number(matchData?.localteam.q1) || 0,
-          q2: Number(matchData?.localteam.q2) || 0,
-          q3: Number(matchData?.localteam.q3) || 0,
-          q4: Number(matchData?.localteam.q4) || 0,
-          ot: Number(matchData?.localteam.ot) || 0,
-          total: Number(matchData?.localteam.totalscore) || 0,
-        },
-        away: {
-          q1: Number(matchData?.awayteam.q1) || 0,
-          q2: Number(matchData?.awayteam.q2) || 0,
-          q3: Number(matchData?.awayteam.q3) || 0,
-          q4: Number(matchData?.awayteam.q4) || 0,
-          ot: Number(matchData?.awayteam.ot) || 0,
-          total: Number(matchData?.awayteam.totalscore) || 0,
-        },
-      };
-    }
+  // Check if we have scores to display
+  const hasScores = homeScore !== "" && awayScore !== "";
 
-    const plays = playByPlayData.plays;
-    const quarters: { home: number; away: number }[] = [];
-    let currentHome = 0;
-    let currentAway = 0;
-
-    for (let i = 0; i < plays.length; i++) {
-      const play = plays[i];
-      const nextPlay = plays[i + 1];
-
-      // Check for quarter reset (e.g., number 26 -> 2)
-      if (nextPlay && nextPlay.number < play.number) {
-        quarters.push({
-          home: play.home_score - currentHome,
-          away: play.away_score - currentAway,
-        });
-        currentHome = play.home_score;
-        currentAway = play.away_score;
-      }
-
-      // Last play of the data
-      if (i === plays.length - 1) {
-        quarters.push({
-          home: play.home_score - currentHome,
-          away: play.away_score - currentAway,
-        });
-        scores.home.total = play.home_score;
-        scores.away.total = play.away_score;
-      }
-    }
-
-    // Map calculated quarters to q1, q2, q3, q4, ot
-    if (quarters[0]) {
-      scores.home.q1 = quarters[0].home;
-      scores.away.q1 = quarters[0].away;
-    }
-    if (quarters[1]) {
-      scores.home.q2 = quarters[1].home;
-      scores.away.q2 = quarters[1].away;
-    }
-    if (quarters[2]) {
-      scores.home.q3 = quarters[2].home;
-      scores.away.q3 = quarters[2].away;
-    }
-    if (quarters[3]) {
-      scores.home.q4 = quarters[3].home;
-      scores.away.q4 = quarters[3].away;
-    }
-    if (quarters[4]) {
-      scores.home.ot = quarters[4].home;
-      scores.away.ot = quarters[4].away;
-    }
-
-    return scores;
+  // Format date and time for display
+  const formatMatchDateTime = () => {
+    if (!matchData?.date) return null;
+    const dateObj = new Date(matchData.date);
+    const formattedDate = dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    const formattedTime = matchData.time || dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return { date: formattedDate, time: formattedTime };
   };
 
-  const calculatedScores = calculateScores();
-  const homeScore =
-    calculatedScores.home.total || matchData?.localteam.totalscore || 0;
-  const awayScore =
-    calculatedScores.away.total || matchData?.awayteam.totalscore || 0;
+  const matchDateTime = formatMatchDateTime();
+
+  // Helper to display score or "-"
+  const displayQuarter = (value: string | number | undefined) => {
+    if (value === "" || value === undefined || value === null) return "-";
+    return String(value);
+  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen dark:bg-[#0D1117]">
-        <PageHeader />
-        <div className="page-padding-x py-12">
-          <div className="animate-pulse space-y-6">
-            <div className="h-32 bg-snow-200 dark:bg-[#1F2937] rounded-lg" />
-            <div className="h-64 bg-snow-200 dark:bg-[#1F2937] rounded-lg" />
-          </div>
-        </div>
-        <FooterComp />
-      </div>
-    );
+    return <BasketballMatchDetailSkeleton />;
   }
 
   return (
@@ -221,8 +283,19 @@ const BasketballMatchDetail = () => {
       <PageHeader />
 
       {/* Match Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
-        <div className="page-padding-x py-6">
+      <div className="relative isolate overflow-hidden bg-gradient-to-r from-orange-500 to-red-500 text-white">
+        {/* Themed strip background */}
+        <div
+          className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+          }}
+        />
+
+       
+
+        <div className="page-padding-x py-6 relative z-[2]">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 mb-4 hover:opacity-80 transition"
@@ -231,10 +304,170 @@ const BasketballMatchDetail = () => {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          {/* League Info */}
-          <div className="flex items-center gap-2 mb-4">
+          {/* Mobile Layout - 3 column grid like football */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-3 items-start gap-2">
+              {/* Home Team */}
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-12 w-12 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+                  <GetBasketballTeamLogo
+                    teamId={matchData?.localteam?.team_id || matchData?.localteam?.id}
+                    alt={matchData?.localteam.name}
+                    className="h-8 w-8 object-contain"
+                    width={32}
+                    height={32}
+                  />
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {matchData?.localteam.name || "Home Team"}
+                </p>
+              </div>
+
+              {/* Center Status */}
+              <div className="flex justify-center">
+                <span className="shrink-0 text-[11px] font-bold  bg-snow-100 text-brand-secondary px-2 py-0.5 rounded">
+                  {hasScores ? (matchData?.period || matchData?.status || "VS") : (matchData?.time || matchData?.status || "Scheduled")}
+                </span>
+              </div>
+
+              {/* Away Team */}
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-12 w-12 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+                  <GetBasketballTeamLogo
+                    teamId={matchData?.awayteam?.team_id || matchData?.awayteam?.id}
+                    alt={matchData?.awayteam.name}
+                    className="h-8 w-8 object-contain"
+                    width={32}
+                    height={32}
+                  />
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {matchData?.awayteam.name || "Away Team"}
+                </p>
+              </div>
+            </div>
+
+            {/* Mobile Score or Scheduled Time */}
+            <div className="mt-2 flex flex-col items-center">
+              {!hasScores ? (
+                <div className="flex flex-col items-center">
+                  {matchDateTime ? (
+                    <>
+                      <div className="flex items-center gap-2 text-white/90">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm font-semibold">{matchDateTime.date}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-sm font-semibold">Match Scheduled</span>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-center items-center gap-3 font-bold leading-none tabular-nums text-[46px]">
+                    <p className="leading-none">{homeScore}</p>
+                    <p className="text-[32px] leading-none">-</p>
+                    <p className="leading-none">{awayScore}</p>
+                  </div>
+                  {matchData?.timer && (
+                    <p className="mt-1 text-[11px] opacity-90">{matchData.timer}'</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center justify-between">
+            <div className="flex-1 text-center flex flex-col items-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+                <GetBasketballTeamLogo
+                  teamId={matchData?.localteam?.team_id || matchData?.localteam?.id}
+                  alt={matchData?.localteam.name}
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                  width={64}
+                  height={64}
+                />
+              </div>
+              <p className="font-semibold text-lg md:text-xl mb-1">
+                {matchData?.localteam.name || "Home Team"}
+              </p>
+              {!!hasScores && (
+                <p className="text-3xl md:text-5xl font-bold">{homeScore}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center px-6">
+              <span className="text-xs mb-1 font-bold uppercase tracking-widest bg-snow-100 text-brand-secondary px-3 py-1 rounded-full">
+                {!hasScores ? (matchData?.time || "Scheduled") : (matchData?.period || matchData?.status || "VS")}
+              </span>
+              {!hasScores ? (
+                <div className="flex flex-col items-center mt-2">
+                  {matchDateTime ? (
+                    <>
+                      <div className="flex items-center gap-2 text-white/90">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm font-semibold">{matchDateTime.date}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-sm font-semibold">Match Scheduled</span>
+                  )}
+                </div>
+              ) : (
+                matchData?.timer && (
+                  <span className="text-sm font-bold mt-2">
+                    {matchData.timer}'
+                  </span>
+                )
+              )}
+            </div>
+
+            <div className="flex-1 text-center flex flex-col items-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
+                <GetBasketballTeamLogo
+                  teamId={matchData?.awayteam?.team_id || matchData?.awayteam?.id}
+                  alt={matchData?.awayteam.name}
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                  width={64}
+                  height={64}
+                />
+              </div>
+              <p className="font-semibold text-lg md:text-xl mb-1">
+                {matchData?.awayteam.name || "Away Team"}
+              </p>
+              {!!hasScores && (
+                <p className="text-3xl md:text-5xl font-bold">{awayScore}</p>
+              )}
+            </div>
+          </div>
+
+          {/* League Info with Logo, Season and Location - Bottom Center */}
+          {/* Mobile Layout */}
+          <div className="md:hidden flex flex-col items-center gap-1 mt-4 text-center">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium">
+                {matchData?.league_name || "Basketball Match"}
+                {matchData?.season ? `, ${matchData.season}` : ""}
+              </span>
+            </div>
+            {matchData?.venue && (
+              <div className="flex items-center gap-1">
+                <MapPinIcon className="w-3 h-3 opacity-70" />
+                <span className="text-[11px] opacity-90">{matchData.venue}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center justify-center gap-2 mt-4 text-center">
             <span className="text-sm font-medium">
               {matchData?.league_name || "Basketball Match"}
+              {matchData?.season ? `, ${matchData.season}` : ""}
             </span>
             {matchData?.venue && (
               <>
@@ -242,56 +475,6 @@ const BasketballMatchDetail = () => {
                 <span className="text-sm opacity-90">{matchData.venue}</span>
               </>
             )}
-          </div>
-
-          {/* Score Display */}
-          <div className="flex items-center justify-between">
-            <div className="flex-1 text-center flex flex-col items-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white/10 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
-                <img
-                  src={
-                    matchData?.localteam.logo ||
-                    matchData?.localteam.image_path ||
-                    "/loading-state/shield.svg"
-                  }
-                  alt={matchData?.localteam.name}
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                />
-              </div>
-              <p className="font-semibold text-lg md:text-xl mb-1">
-                {matchData?.localteam.name || "Home Team"}
-              </p>
-              <p className="text-3xl md:text-4xl font-bold">{homeScore}</p>
-            </div>
-
-            <div className="flex flex-col items-center px-6">
-              <span className="text-xs mb-1 font-bold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">
-                Vs
-              </span>
-              {matchData?.timer && (
-                <span className="text-sm font-bold mt-2">
-                  {matchData.timer}'
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 text-center flex flex-col items-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white/10 rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
-                <img
-                  src={
-                    matchData?.awayteam.logo ||
-                    matchData?.awayteam.image_path ||
-                    "/loading-state/shield.svg"
-                  }
-                  alt={matchData?.awayteam.name}
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                />
-              </div>
-              <p className="font-semibold text-lg md:text-xl mb-1">
-                {matchData?.awayteam.name || "Away Team"}
-              </p>
-              <p className="text-3xl md:text-4xl font-bold">{awayScore}</p>
-            </div>
           </div>
         </div>
       </div>
@@ -327,13 +510,18 @@ const BasketballMatchDetail = () => {
             <div className="block-style !p-0 overflow-hidden">
               <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
                 <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
-                  Score Summary
+                  {!hasScores ? "Match Info" : "Score Summary"}
                 </h3>
               </div>
-              <div className="overflow-x-auto">
-                {(playByPlayData?.plays && playByPlayData.plays.length > 0) ||
-                (matchData?.localteam.totalscore !== undefined &&
-                  matchData?.localteam.totalscore !== "") ? (
+              {!hasScores ? (
+                <div className="p-8 flex flex-col items-center justify-center text-center">
+                  <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">Match info not available</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs theme-text uppercase opacity-70 border-b border-snow-200 dark:border-[#1F2937]">
                       <tr>
@@ -353,19 +541,19 @@ const BasketballMatchDetail = () => {
                           {matchData?.localteam.name || "Home Team"}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.home.q1}
+                          {displayQuarter(matchData?.localteam?.q1)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.home.q2}
+                          {displayQuarter(matchData?.localteam?.q2)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.home.q3}
+                          {displayQuarter(matchData?.localteam?.q3)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.home.q4}
+                          {displayQuarter(matchData?.localteam?.q4)}
                         </td>
                         <td className="px-4 py-4 text-center font-bold text-brand-primary">
-                          {calculatedScores.home.total}
+                          {displayQuarter(matchData?.localteam?.totalscore)}
                         </td>
                       </tr>
                       <tr className="theme-text">
@@ -373,31 +561,25 @@ const BasketballMatchDetail = () => {
                           {matchData?.awayteam.name || "Away Team"}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.away.q1}
+                          {displayQuarter(matchData?.awayteam?.q1)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.away.q2}
+                          {displayQuarter(matchData?.awayteam?.q2)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.away.q3}
+                          {displayQuarter(matchData?.awayteam?.q3)}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          {calculatedScores.away.q4}
+                          {displayQuarter(matchData?.awayteam?.q4)}
                         </td>
                         <td className="px-4 py-4 text-center font-bold text-brand-primary">
-                          {calculatedScores.away.total}
+                          {displayQuarter(matchData?.awayteam?.totalscore)}
                         </td>
                       </tr>
                     </tbody>
                   </table>
-                ) : (
-                  <div className="py-12 text-center">
-                    <p className="text-neutral-n4 dark:text-snow-200 font-medium italic">
-                      Match not started so no match details
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Stadium Info */}

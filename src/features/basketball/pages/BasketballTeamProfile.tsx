@@ -15,6 +15,7 @@ import {
   getBasketballStandings,
 } from "@/lib/api/basketball/index";
 import { motion } from "framer-motion";
+import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
 
 interface TeamInfo {
   id: number;
@@ -130,10 +131,12 @@ const BasketballTeamProfile = () => {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white/95 dark:bg-[#161B22]/90 backdrop-blur-xl p-6 rounded-[2rem] shadow-2xl border border-white/20 dark:border-white/5"
             >
-              <img
-                src={teamInfo?.logo || "/loading-state/shield.svg"}
+              <GetBasketballTeamLogo
+                teamId={teamId}
                 alt={teamInfo?.name}
                 className="w-24 h-24 md:w-32 md:h-32 object-contain"
+                width={128}
+                height={128}
               />
             </motion.div>
 

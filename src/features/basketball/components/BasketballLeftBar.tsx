@@ -6,14 +6,16 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getBasketballLeagues } from "@/lib/api/basketball/index";
 import { navigate } from "@/lib/router/navigate";
-import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import GetBasketballLeagueLogo from "@/components/common/GetBasketballLeagueLogo";
 
-// Pulsating skeleton loader component
+// Shimmer skeleton loader component
 const Skeleton = ({ className = "" }: { className?: string }) => (
   <div
-    className={`animate-pulse bg-snow-200 rounded ${className}`}
+    className={`relative overflow-hidden bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
     style={{ minHeight: "1em" }}
-  />
+  >
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
 );
 
 interface LeagueItem {
@@ -134,7 +136,7 @@ const LeagueList: React.FC<LeagueListProps> = ({
                     navigate(`/basketball/league/${league.id}`);
                   }}
                 >
-                  <GetLeagueLogo
+                  <GetBasketballLeagueLogo
                     leagueId={league.id}
                     alt={league.name}
                     className="w-6 h-6 object-contain"
@@ -226,7 +228,7 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
                       navigate(`/basketball/league/${league.id}`);
                     }}
                   >
-                    <GetLeagueLogo
+                    <GetBasketballLeagueLogo
                       leagueId={league.id}
                       alt={league.name}
                       className="w-6 h-6 object-contain"

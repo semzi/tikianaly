@@ -721,7 +721,7 @@ export const dashboard = () => {
             const response = await queryClient.ensureQueryData<any>({
               queryKey: ["leagueFixturesByDate", { leagueId, date: formattedDate }],
               queryFn: () => getFixturesByLeague(leagueId, formattedDate, 1, 100),
-              staleTime: 120 * 60 * 1000, // cache per league+date for 120 minutes
+              staleTime: 3 * 60 * 60 * 1000, // cache per league+date for 3 hrs
             });
             if (
               response?.success &&
@@ -827,7 +827,7 @@ export const dashboard = () => {
                   options={[
                     { value: "all", label: "All" },
                     { value: "live", label: "Live" },
-                    { value: "date", label: "By Date" },
+                    { value: "date", label: "Fixture" },
                   ]}
                   onChange={(value) => setFixturesMode(value as "all" | "live" | "date")}
                   size="md"
@@ -1035,39 +1035,31 @@ export const dashboard = () => {
                                     </>
                                   ) : (
                                     <>
-                                      <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
+                                      {/* Time */}
+                                      <div className="w-12 text-center flex-shrink-0">
+                                        <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
+                                      </div>
+                                      {/* Home team */}
+                                      <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
                                         <IndicatorCard count={homeRedCards} variant="red" />
-                                        <p className="inline-flex items-center gap-1">
-                                          {game.localteam?.name ?? game?.localteam_name ?? "Home"}
-                                          {pen.show && pen.winner === "localteam" ? (
-                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                              PEN
-                                            </span>
-                                          ) : null}
-                                        </p>
+                                        <span className="text-sm font-medium theme-text">{game.localteam?.name ?? game?.localteam_name ?? "Home"}</span>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                       </div>
-                                      <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
-                                        {statusLabel}
-                                      </p>
-                                      <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                      {/* Score placeholders */}
+                                      <div className="flex justify-center gap-2 flex-shrink-0">
+                                        <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                                        <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                                      </div>
+                                      {/* Away team */}
+                                      <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
-                                        <p className="inline-flex items-center gap-1">
-                                          {game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
-                                          {pen.show && pen.winner === "visitorteam" ? (
-                                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                              PEN
-                                            </span>
-                                          ) : null}
-                                        </p>
+                                        <span className="text-sm font-medium theme-text">{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</span>
                                         <IndicatorCard count={awayRedCards} variant="red" />
                                       </div>
                                     </>
@@ -1422,35 +1414,27 @@ export const dashboard = () => {
                           </>
                         ) : (
                           <>
-                            <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <p className="inline-flex items-center gap-1">
-                                {game.localteam.name}
-                                {pen.show && pen.winner === "localteam" ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                    PEN
-                                  </span>
-                                ) : null}
-                              </p>
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                            {/* Time */}
+                            <div className="w-12 text-center flex-shrink-0">
+                              <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
                             </div>
-                            <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
-                              {statusLabel}
-                            </p>
-                            <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                            {/* Home team */}
+                            <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
+                              <IndicatorCard count={homeRedCards} variant="red" />
+                              <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
+                              <IndicatorCard count={homeStreams} variant="stream" />
+                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                            </div>
+                            {/* Score placeholders */}
+                            <div className="flex justify-center gap-2 flex-shrink-0">
+                              <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                              <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                            </div>
+                            {/* Away team */}
+                            <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
+                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                               <IndicatorCard count={awayStreams} variant="stream" />
-                              <p className="inline-flex items-center gap-1">
-                                {game.visitorteam.name}
-                                {pen.show && pen.winner === "visitorteam" ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                    PEN
-                                  </span>
-                                ) : null}
-                              </p>
+                              <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
                               <IndicatorCard count={awayRedCards} variant="red" />
                             </div>
                           </>
@@ -1625,35 +1609,27 @@ export const dashboard = () => {
                         </>
                       ) : (
                         <>
-                          <div className="flex dark:text-white flex-5/11 justify-end items-center gap-3">
-                            <IndicatorCard count={homeRedCards} variant="red" />
-                            <p className="inline-flex items-center gap-1">
-                              {game.localteam.name}
-                              {pen.show && pen.winner === "localteam" ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                  PEN
-                                </span>
-                              ) : null}
-                            </p>
-                            <IndicatorCard count={homeStreams} variant="stream" />
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                          {/* Time */}
+                          <div className="w-12 text-center flex-shrink-0">
+                            <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
                           </div>
-                          <p className="neutral-n1 flex-2/11 items-center whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200">
-                            {statusLabel}
-                          </p>
-                          <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                          {/* Home team */}
+                          <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
+                            <IndicatorCard count={homeRedCards} variant="red" />
+                            <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
+                            <IndicatorCard count={homeStreams} variant="stream" />
+                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                          </div>
+                          {/* Score placeholders */}
+                          <div className="flex justify-center gap-2 flex-shrink-0">
+                            <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                            <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                          </div>
+                          {/* Away team */}
+                          <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
+                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                             <IndicatorCard count={awayStreams} variant="stream" />
-                            <p className="inline-flex items-center gap-1">
-                              {game.visitorteam.name}
-                              {pen.show && pen.winner === "visitorteam" ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                  PEN
-                                </span>
-                              ) : null}
-                            </p>
+                            <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
                             <IndicatorCard count={awayRedCards} variant="red" />
                           </div>
                         </>

@@ -16,7 +16,7 @@ import {
 } from "@/lib/api/endpoints";
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
 import Category from "@/features/dashboard/components/Category";
-import { subDays, addDays, isToday, format, isValid, parseISO } from "date-fns";
+import { subDays, addDays, isToday, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
   subscribeBasketballLiveMatchesStream,
@@ -24,10 +24,124 @@ import {
 } from "@/lib/api/basketball/livestream";
 import DatePicker from "react-datepicker";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
 import RightBar from "@/components/layout/RightBar";
+
+// Shimmer skeleton loader component with sleek animation
+const Skeleton = ({ className = "" }) => (
+  <div
+    className={`relative overflow-hidden bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
+    style={{ minHeight: "1em" }}
+  >
+    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+  </div>
+);
+
+// Skeleton for a league group header
+const SkeletonLeagueHeader = () => (
+  <div className="flex gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937]">
+    <Skeleton className="h-6 w-6 rounded" />
+    <Skeleton className="h-5 w-32" />
+    <Skeleton className="h-5 w-5 ml-auto" />
+  </div>
+);
+
+// Skeleton for a match row (desktop)
+const SkeletonMatchRow = () => (
+  <div className="hidden md:flex items-center gap-4 px-5 py-4">
+    {/* Status */}
+    <Skeleton className="h-4 w-12" />
+    {/* Teams and Scores */}
+    <div className="flex-1 flex items-center gap-4">
+      {/* Home Team */}
+      <div className="flex-1 flex items-center justify-end gap-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-5 w-5 rounded" />
+      </div>
+      {/* Scores */}
+      <div className="w-20 flex justify-center gap-3">
+        <Skeleton className="h-5 w-5 rounded" />
+        <Skeleton className="h-5 w-5 rounded" />
+      </div>
+      {/* Away Team */}
+      <div className="flex-1 flex items-center justify-start gap-2">
+        <Skeleton className="h-5 w-5 rounded" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+    {/* Favorite */}
+    <Skeleton className="h-6 w-6 rounded-full" />
+  </div>
+);
+
+// Skeleton for a match row (mobile)
+const SkeletonMatchRowMobile = () => (
+  <div className="flex md:hidden items-center justify-between px-3 py-3">
+    <div className="flex flex-1 items-center">
+      <Skeleton className="h-4 w-10" />
+      <div className="flex-1 flex flex-col gap-2 mx-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="h-5 w-5 rounded" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="h-5 w-5 rounded" />
+        </div>
+      </div>
+    </div>
+    <Skeleton className="h-6 w-6 rounded-full" />
+  </div>
+);
+
+// Skeleton for a full league group with matches
+const SkeletonLeagueGroup = ({ matchCount = 3 }: { matchCount?: number }) => (
+  <div className="block-style !p-0 overflow-hidden">
+    <SkeletonLeagueHeader />
+    <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+      {Array.from({ length: matchCount }).map((_, i) => (
+        <div key={i}>
+          <SkeletonMatchRow />
+          <SkeletonMatchRowMobile />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// Main skeleton for the dashboard loading state
+const BasketballDashboardSkeleton = () => (
+  <div className="flex flex-col gap-y-4">
+    {/* Control bar skeleton */}
+    <div className="block-style flex flex-col gap-4">
+      <div className="relative flex items-center justify-between dark:text-snow-200">
+        <Skeleton className="h-5 w-5" />
+        <div className="flex gap-3 items-center">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-5" />
+        </div>
+        <Skeleton className="h-5 w-5" />
+      </div>
+      <div className="relative flex w-full bg-snow-200 dark:bg-[#1F2937] rounded-full p-1 h-9">
+        <Skeleton className="h-7 w-1/3 rounded-full bg-brand-secondary/50" />
+      </div>
+    </div>
+    {/* League groups skeleton */}
+    <SkeletonLeagueGroup matchCount={3} />
+    <SkeletonLeagueGroup matchCount={2} />
+    <SkeletonLeagueGroup matchCount={4} />
+  </div>
+);
 
 interface Team {
   id: number;
+  team_id?: number;
   name: string;
   totalscore: string | number;
   q1: string | number;
@@ -338,16 +452,6 @@ const BasketballPage = () => {
       status.includes("overtime") ||
       status.includes("live");
 
-    const safeFormat = (dateStr?: string, fmt: string = "MMM d") => {
-      if (!dateStr) return "";
-      try {
-        const d = parseISO(dateStr);
-        return isValid(d) ? format(d, fmt) : "";
-      } catch {
-        return "";
-      }
-    };
-
     if (isLive) {
       return {
         text: `${match.period || rawStatus || "Live"}`,
@@ -361,13 +465,14 @@ const BasketballPage = () => {
     ) {
       return {
         text: "FT",
-        subtext: safeFormat(match.date),
+        subtext: "",
         isLive: false,
       };
     } else {
+      // Show only time for upcoming matches
       return {
-        text: safeFormat(match.date) || "TBD",
-        subtext: match.time || "",
+        text: match.time || "TBD",
+        subtext: "",
         isLive: false,
       };
     }
@@ -399,85 +504,79 @@ const BasketballPage = () => {
         {/* Main Content Area */}
         <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
           {/* Controls */}
-          <div className="block-style">
-            <div className="flex flex-col gap-4">
-              {/* Tabs */}
-              <div className="flex gap-4 border-b border-snow-200 dark:border-[#1F2937]">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`pb-2 text-sm font-medium transition-all duration-200 relative ${
-                      activeTab === tab.id
-                        ? "text-brand-secondary"
-                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {tab.label}
-                    {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-secondary transition-all duration-200" />
-                    )}
-                  </button>
-                ))}
+          <div className="block-style flex flex-col gap-4">
+            {/* Date Navigation */}
+            <div className="relative flex items-center justify-between dark:text-snow-200">
+              <ArrowLeftIcon
+                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
+                onClick={() => {
+                  setSelectedDate((prev) => subDays(prev || new Date(), 1));
+                }}
+              />
+              <div
+                className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+              >
+                <p className="font-semibold theme-text">
+                  {selectedDate && isToday(selectedDate)
+                    ? "Today"
+                    : selectedDate
+                      ? format(selectedDate, "EEE, MMM d, yyyy")
+                      : "Select Date"}
+                </p>
+                <CalendarIcon className="h-5 w-5 text-neutral-n4" />
               </div>
-
-              {/* Date Navigation (only for all/fixture) */}
-              {(activeTab === "all" || activeTab === "fixture") && (
-                <div className="relative flex items-center justify-between dark:text-snow-200">
-                  <ArrowLeftIcon
-                    className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                    onClick={() => {
-                      setSelectedDate((prev) => subDays(prev || new Date(), 1));
+              <ArrowRightIcon
+                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
+                onClick={() => {
+                  setSelectedDate((prev) => addDays(prev || new Date(), 1));
+                }}
+              />
+              {showDatePicker && (
+                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
+                  <DatePicker
+                    selected={selectedDate}
+                    onChange={(date: Date | null) => {
+                      setSelectedDate(date);
+                      setShowDatePicker(false);
                     }}
+                    inline
                   />
-                  <div
-                    className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
-                    onClick={() => setShowDatePicker(!showDatePicker)}
-                  >
-                    <p className="font-medium">
-                      {selectedDate && isToday(selectedDate)
-                        ? "Today"
-                        : selectedDate
-                          ? format(selectedDate, "EEE, MMM d, yyyy")
-                          : "Select Date"}
-                    </p>
-                    <CalendarIcon className="h-5 w-5 text-neutral-n4" />
-                  </div>
-                  <ArrowRightIcon
-                    className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                    onClick={() => {
-                      setSelectedDate((prev) => addDays(prev || new Date(), 1));
-                    }}
-                  />
-                  {showDatePicker && (
-                    <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
-                      <DatePicker
-                        selected={selectedDate}
-                        onChange={(date: Date | null) => {
-                          setSelectedDate(date);
-                          setShowDatePicker(false);
-                        }}
-                        inline
-                      />
-                    </div>
-                  )}
                 </div>
               )}
+            </div>
+
+            {/* Pill Tabs */}
+            <div className="relative flex w-full bg-snow-200 dark:bg-[#1F2937] rounded-full p-1">
+              {/* Sliding indicator */}
+              <div
+                className="absolute top-1 bottom-1 rounded-full bg-brand-secondary transition-all duration-300 ease-in-out"
+                style={{
+                  width: `calc(${100 / tabs.length}% - 4px)`,
+                  left: `calc(${tabs.findIndex((t) => t.id === activeTab) * (100 / tabs.length)}% + 2px)`,
+                }}
+              />
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${
+                    activeTab === tab.id
+                      ? "text-white"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Matches */}
           <div className="flex flex-col gap-y-4">
             {loading ? (
-              <div className="block-style space-y-4 animate-pulse">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-32 bg-snow-200 dark:bg-[#1F2937] rounded-lg"
-                  />
-                ))}
-              </div>
+              <BasketballDashboardSkeleton />
             ) : groupedMatches.length > 0 ? (
               groupedMatches.map((group) => (
                 <div
@@ -485,23 +584,24 @@ const BasketballPage = () => {
                   className="block-style !p-0 overflow-hidden"
                 >
                   {/* League Header */}
-                  <div className="flex items-center gap-3 px-5 py-3 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                  <div className="flex gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/20 dark:to-orange-500/20">
                     <GetLeagueLogo
                       leagueId={group.leagueId}
                       alt={group.leagueName}
                       className="w-6 h-6 object-contain"
                     />
-                    <p className="font-semibold theme-text text-sm md:text-base">
+                    <p className="font-[500] text-[#23272A] dark:text-neutral-m6 text-[14px] md:text-base">
                       {group.leagueName}
                     </p>
                     <button
+                      type="button"
                       onClick={() =>
                         navigate(`/basketball/league/${group.leagueId}`)
                       }
-                      className="ml-auto p-1.5 rounded-full text-brand-primary hover:bg-brand-primary/10 transition-all"
-                      title="View League Profile"
+                      className="ml-auto text-brand-secondary hover:opacity-80"
+                      aria-label="Open league profile"
                     >
-                      <ChevronRightIcon className="w-5 h-5" />
+                      <ArrowRightIcon className="w-5 h-5" />
                     </button>
                   </div>
 
@@ -519,58 +619,74 @@ const BasketballPage = () => {
                       return (
                         <div
                           key={matchUniqueId}
-                          className="px-5 py-4 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors cursor-pointer group"
-                          onClick={() =>
-                            navigate(`/basketball/match/${match.match_id}`)
-                          }
+                          className="hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors dark:border-[#1F2937] border-snow-200/70 last:border-b-0"
                         >
-                          <div className="flex items-center gap-4">
-                            {/* Time/Status */}
-                            <div className="w-16 text-center">
-                              <p
-                                className={`text-xs font-bold ${
-                                  status.isLive
-                                    ? "text-red-500 animate-pulse"
-                                    : "theme-text opacity-70"
-                                }`}
-                              >
-                                {status.text}
-                              </p>
-                              {status.subtext && (
-                                <p className="text-[10px] theme-text opacity-50">
-                                  {status.subtext}
+                          {/* Desktop Layout - Horizontal */}
+                          <div
+                            className="hidden md:flex items-center gap-4 px-5 py-4 cursor-pointer"
+                            onClick={() =>
+                              navigate(`/basketball/match/${match.match_id}`)
+                            }
+                          >
+                            {/* Time/Status - Styled box for upcoming games */}
+                            {status.isLive || status.text === "FT" ? (
+                              <div className="w-12 text-center">
+                                <p
+                                  className={`text-xs font-bolder ${
+                                    status.isLive
+                                      ? "text-red-500 animate-pulse"
+                                      : "theme-text "
+                                  }`}
+                                >
+                                  {status.text}
                                 </p>
-                              )}
-                            </div>
+                              </div>
+                            ) : (
+                              <div className="w-12 text-center">
+                                <p className="theme-text opacity-70 text-xs font-bold">
+                                  {status.text}
+                                </p>
+                              </div>
+                            )}
 
                             {/* Teams and Scores */}
-                            <div className="flex-1 space-y-2">
+                            <div className="flex-1 flex items-center gap-4">
                               {/* Home Team */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium theme-text">
-                                    {match?.localteam?.name || "Unknown"}
-                                  </span>
-                                </div>
-                                {showScores && (
-                                  <span className="font-bold text-sm theme-text">
-                                    {match?.localteam?.totalscore}
-                                  </span>
-                                )}
+                              <div className="flex-1 flex items-center justify-end gap-2">
+                                <span className="text-sm font-medium theme-text">
+                                  {match?.localteam?.name || "Unknown"}
+                                </span>
+                                <GetBasketballTeamLogo
+                                  teamId={match?.localteam?.team_id || match?.localteam?.id}
+                                  alt={match?.localteam?.name}
+                                  className="w-5 h-5 object-contain"
+                                  width={20}
+                                  height={20}
+                                />
+                              </div>
+
+                              {/* Scores */}
+                              <div className="w-20 flex justify-center gap-3">
+                                <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                  {showScores ? match?.localteam?.totalscore : "-"}
+                                </span>
+                                <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                  {showScores ? match?.awayteam?.totalscore : "-"}
+                                </span>
                               </div>
 
                               {/* Away Team */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium theme-text">
-                                    {match?.awayteam?.name || "Unknown"}
-                                  </span>
-                                </div>
-                                {showScores && (
-                                  <span className="font-bold text-sm theme-text">
-                                    {match?.awayteam?.totalscore}
-                                  </span>
-                                )}
+                              <div className="flex-1 flex items-center justify-start gap-2">
+                                <GetBasketballTeamLogo
+                                  teamId={match?.awayteam?.team_id || match?.awayteam?.id}
+                                  alt={match?.awayteam?.name}
+                                  className="w-5 h-5 object-contain"
+                                  width={20}
+                                  height={20}
+                                />
+                                <span className="text-sm font-medium theme-text">
+                                  {match?.awayteam?.name || "Unknown"}
+                                </span>
                               </div>
                             </div>
 
@@ -587,6 +703,85 @@ const BasketballPage = () => {
                               }`}
                             >
                               <StarIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {/* Mobile Layout - Stacked */}
+                          <div className="flex md:hidden items-center justify-between px-3 py-3">
+                            <div
+                              className="flex flex-1 items-center cursor-pointer"
+                              onClick={() =>
+                                navigate(`/basketball/match/${match.match_id}`)
+                              }
+                            >
+                              {/* Status */}
+                              <div className="w-12 text-center">
+                                <p
+                                  className={`text-xs font-bold ${
+                                    status.isLive
+                                      ? "text-red-500 animate-pulse"
+                                      : "theme-text opacity-70"
+                                  }`}
+                                >
+                                  {status.text}
+                                </p>
+                              </div>
+
+                              {/* Teams Column */}
+                              <div className="flex-1 flex flex-col gap-2 mx-2">
+                                {/* Home Team */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <GetBasketballTeamLogo
+                                      teamId={match?.localteam?.team_id || match?.localteam?.id}
+                                      alt={match?.localteam?.name}
+                                      className="w-5 h-5 object-contain"
+                                      width={20}
+                                      height={20}
+                                    />
+                                    <span className="text-sm font-medium theme-text">
+                                      {match?.localteam?.name || "Unknown"}
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                    {showScores ? match?.localteam?.totalscore : "-"}
+                                  </span>
+                                </div>
+
+                                {/* Away Team */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <GetBasketballTeamLogo
+                                      teamId={match?.awayteam?.team_id || match?.awayteam?.id}
+                                      alt={match?.awayteam?.name}
+                                      className="w-5 h-5 object-contain"
+                                      width={20}
+                                      height={20}
+                                    />
+                                    <span className="text-sm font-medium theme-text">
+                                      {match?.awayteam?.name || "Unknown"}
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                    {showScores ? match?.awayteam?.totalscore : "-"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Favorite Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(matchUniqueId);
+                              }}
+                              className={`p-2 rounded transition-all ${
+                                favorites[matchUniqueId]
+                                  ? "bg-brand-primary text-white"
+                                  : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
+                              }`}
+                            >
+                              <StarIcon className={`w-4 h-4 ${favorites[matchUniqueId] ? "fill-current" : ""}`} />
                             </button>
                           </div>
                         </div>
