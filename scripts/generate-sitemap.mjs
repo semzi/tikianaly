@@ -7,8 +7,8 @@ const __dirname = dirname(__filename);
 
 const SITE_URL = (process.env.SITE_URL || "https://tikianaly.com").replace(/\/+$/, "");
 
-const BLOG_API_BASE = "https://tikianaly-blog.onrender.com/api/v1";
-const FOOTBALL_API_BASE = "https://tikianaly-service-backend.onrender.com";
+const BLOG_API_BASE = "https://blogapi.tikianaly.com/api/v1";
+const FOOTBALL_API_BASE = "https://api.tikianaly.com";
 
 const ENABLE_FIXTURES = String(process.env.SITEMAP_ENABLE_FIXTURES ?? "0") === "1";
 const FIXTURE_LEAGUE_LIMIT = Number(process.env.SITEMAP_FIXTURE_LEAGUE_LIMIT ?? 6);

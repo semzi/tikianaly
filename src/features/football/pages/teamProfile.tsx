@@ -28,7 +28,7 @@ import {
 } from "recharts";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
-import { useBackendStatus } from "@/context/BackendStatusContext";
+// import { useBackendStatus } from "@/context/BackendStatusContext";
 import { DropdownSelector } from "@/components/ui/DropdownSelector";
 
 type TeamTransferRow = {
@@ -327,7 +327,7 @@ const positionRank = (pos?: string): number => {
 
 const TeamProfile = () => {
   const toast = useToast();
-  const backendStatus = useBackendStatus();
+  // const backendStatus = useBackendStatus();
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "matches", label: "Matches" },
@@ -441,9 +441,7 @@ const TeamProfile = () => {
   const teamName = String(team?.name ?? "").trim();
   const displayTeamName = teamName
     ? teamName
-    : backendStatus.isOnline
-      ? "Team Profile"
-      : "Service Unavailable";
+    : "Team Profile";
 
   const canonicalUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}${window.location.search}`
@@ -1078,9 +1076,7 @@ const TeamProfile = () => {
 
         {error && (
           <div className="my-4 block-style border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 p-3 rounded">
-            {backendStatus.isOnline
-              ? "We couldn’t load this team right now. Please try again in a moment."
-              : "Service temporarily unavailable. Retrying connection…"}
+            "We couldn't load this team right now. Please try again in a moment."
           </div>
         )}
 

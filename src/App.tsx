@@ -22,8 +22,8 @@ import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/layout/Navigation";
 import { setNavigator } from "./lib/router/navigate";
 import { useEffect, lazy, Suspense } from "react";
-import { BackendStatusProvider } from "@/context/BackendStatusContext";
-import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
+// import { BackendStatusProvider } from "@/context/BackendStatusContext";
+// import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
@@ -484,7 +484,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <BackendStatusBanner />
+      {/* <BackendStatusBanner /> */}
       {!shouldHideNav && <Navigation />}
       <main>{children}</main>
     </>
@@ -495,14 +495,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BackendStatusProvider>
+        {/* <BackendStatusProvider> */}
           <BrowserRouter>
             <ScrollToTop />
             <Layout>
               <AnimatedRoutes />
             </Layout>
           </BrowserRouter>
-        </BackendStatusProvider>
+        {/* </BackendStatusProvider> */}
       </ThemeProvider>
     </QueryClientProvider>
   );

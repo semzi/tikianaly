@@ -1,7 +1,7 @@
 import axios from "../axios";
 
 // ensure axios instance uses blog API base so relative paths work
-const BLOG_API_BASE = "https://tikianaly-blog.onrender.com/api/v1/";
+const BLOG_API_BASE = "https://blogapi.tikianaly.com/api/v1/";
 
 export const getAllPosts = async (page: number = 1, limit: number = 20) => {
   const { data } = await axios.get(`${BLOG_API_BASE}blogpost?page=${page}&limit=${limit}`);

@@ -44,7 +44,7 @@ if (typeof window !== "undefined") {
 }
 
 const apiClient = axios.create({
-    baseURL: 'https://tikianaly-service-backend.onrender.com/',
+    baseURL: 'https://api.tikianaly.com/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -52,7 +52,7 @@ const apiClient = axios.create({
 
 // blog  baserurl 
 const API = axios.create({
-  baseURL: "https://tikianaly-blog.onrender.com/api/v1/",
+  baseURL: 'https://blogapi.tikianaly.com/',
   headers: {
     "Content-Type": "application/json",
   },
