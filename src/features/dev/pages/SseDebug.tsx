@@ -11,7 +11,7 @@ type LogItem = {
 };
 
 const DEFAULT_URL =
-  "https://tikianaly-service-backend.onrender.com/api/v1/football/live/live-stream";
+  "https://api.tikianaly.com/api/v1/football/live/live-stream";
 
 export const SseDebug = () => {
   const [searchParams] = useSearchParams();

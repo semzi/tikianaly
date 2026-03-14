@@ -211,10 +211,6 @@ const News = () => {
         <div className="block-style p-4 sm:p-5">
           <div className="flex mb-4 justify-between items-center">
             <p className="text-lg sm:text-xl font-medium text-neutral-n4 dark:text-white">All News</p>
-            <div className="flex items-center text-neutral-n4 dark:text-white hover:text-brand-secondary transition-colors cursor-pointer text-sm">
-              <AdjustmentsHorizontalIcon className="w-5 h-5" />
-              <span className="ml-2 hidden sm:inline">Filter</span>
-            </div>
           </div>
 
           {loading && remainingPosts.length === 0

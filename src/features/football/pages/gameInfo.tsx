@@ -3700,20 +3700,6 @@ export const gameInfo = () => {
 
             />
 
-            {/* Floating SVG background */}
-
-            <img
-
-              src="./icons/football-line-1.svg"
-
-              className="absolute w-60 md:w-150 invert sepia opacity-8 pointer-events-none z-[1] float-edges"
-
-              alt=""
-
-              style={{ animation: "float-around-edges 12s linear infinite" }}
-
-            />
-
             {/* Foreground content */}
 
             <div className="relative px-3 z-[2] grid grid-cols-3 items-center">
@@ -4126,7 +4112,7 @@ export const gameInfo = () => {
 
                   <img
 
-                    src="./icons/football-line-1.svg"
+                    src="/icons/football-line-1.svg"
 
                     className=" w-3 md:w-4 invert sepia"
 
@@ -4228,7 +4214,7 @@ export const gameInfo = () => {
 
               <img
 
-                src="./icons/football-line-1.svg"
+                src="/icons/football-line-1.svg"
 
                 className=" w-4 invert sepia"
 
@@ -4302,7 +4288,7 @@ export const gameInfo = () => {
 
               <img
 
-                src="./icons/football-line-1.svg"
+                src="/icons/football-line-1.svg"
 
                 className=" w-3 md:w-4 invert sepia"
 
@@ -4316,7 +4302,7 @@ export const gameInfo = () => {
 
               <img
 
-                src="./icons/football-line-1.svg"
+                src="/icons/football-line-1.svg"
 
                 className=" w-3 md:w-4 invert sepia"
 

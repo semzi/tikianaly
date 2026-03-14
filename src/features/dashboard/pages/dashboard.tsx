@@ -240,6 +240,17 @@ export const dashboard = () => {
     }
   }, [fixturesMode, selectedDate]);
 
+  // Auto-switch to fixtures tab when date is not today
+  useEffect(() => {
+    try {
+      if (!isToday(selectedDate ?? new Date())) {
+        setFixturesMode("date");
+      }
+    } catch {
+      // ignore date comparison errors
+    }
+  }, [selectedDate]);
+
   useEffect(() => {
     if (!shouldShowReturnToToday) return;
     if (!isMobile) {
