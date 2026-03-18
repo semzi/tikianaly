@@ -2,7 +2,7 @@ import apiClient from "../axios";
 import { apiCache } from "../cache";
 
 export const FOOTBALL_COMMENTARY_SSE_URL =
-  "https://tikianaly-service-backend.onrender.com/api/v1/football/sse/stream-comment";
+  "https://api.tikianaly.com/api/v1/football/sse/stream-comment";
 
 // Football Players Endpoints
 

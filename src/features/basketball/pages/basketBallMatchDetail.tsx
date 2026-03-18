@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
@@ -6,6 +6,7 @@ import { ChartBarIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { MapPinIcon } from "@heroicons/react/24/solid";
 import {
   getBasketballMatchDetail,
+  getBasketballMatchPlayByPlay,
 } from "@/lib/api/basketball/index";
 import { useParams } from "react-router-dom";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
@@ -172,6 +173,272 @@ const BasketballMatchDetailSkeleton = () => (
   </div>
 );
 
+
+
+// Stat Row Component - Unique Design with Progress Bars
+interface StatRowProps {
+  label: string;
+  teamAValue: string;
+  teamBValue: string;
+  teamAPercentage: number;
+  teamBPercentage: number;
+  teamAColor: string;
+  teamBColor: string;
+}
+
+const StatRow: React.FC<StatRowProps> = ({
+  label,
+  teamAValue,
+  teamBValue,
+  teamAPercentage,
+  teamBPercentage,
+  teamAColor,
+  teamBColor,
+}) => {
+  const colorClassesA = {
+    green: "bg-gradient-to-r from-green-400 to-green-500",
+    blue: "bg-gradient-to-r from-blue-400 to-blue-500",
+  };
+
+  const colorClassesB = {
+    green: "bg-gradient-to-l from-green-400 to-green-500",
+    blue: "bg-gradient-to-l from-blue-400 to-blue-500",
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Label */}
+      <div className="text-center mb-3">
+        <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+
+      {/* Progress Bars & Values */}
+      <div className="flex items-center gap-4">
+        {/* Left Team */}
+        <div className="flex-1 flex flex-col items-end gap-1">
+          <span className="text-sm font-bold theme-text">{teamAValue}</span>
+          <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${colorClassesA[teamAColor as keyof typeof colorClassesA]} rounded-full transition-all duration-700 ease-out`}
+              style={{ width: `${teamAPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Right Team */}
+        <div className="flex-1 flex flex-col items-start gap-1">
+          <span className="text-sm font-bold theme-text">{teamBValue}</span>
+          <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${colorClassesB[teamBColor as keyof typeof colorClassesB]} rounded-full transition-all duration-700 ease-out`}
+              style={{ width: `${teamBPercentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Rebound Bar Component - Enhanced Visual Design
+interface ReboundBarProps {
+  label: string;
+  teamAValue: number;
+  teamBValue: number;
+  teamAColor: string;
+  teamBColor: string;
+}
+
+const ReboundBar: React.FC<ReboundBarProps> = ({
+  label,
+  teamAValue,
+  teamBValue,
+  teamAColor,
+  teamBColor,
+}) => {
+  const total = teamAValue + teamBValue;
+  const aPercentage = total > 0 ? (teamAValue / total) * 100 : 50;
+  
+  const colorClassesA = {
+    green: "bg-gradient-to-r from-green-400 to-green-500",
+    blue: "bg-gradient-to-r from-blue-400 to-blue-500",
+  };
+
+  const colorClassesB = {
+    green: "bg-gradient-to-l from-green-400 to-green-500",
+    blue: "bg-gradient-to-l from-blue-400 to-blue-500",
+  };
+
+  return (
+    <div className="space-y-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-bold theme-text uppercase tracking-wider">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-md">
+            Home: {teamAValue}
+          </span>
+          <span className="text-xs font-semibold px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md">
+            Away: {teamBValue}
+          </span>
+        </div>
+      </div>
+      <div className="relative h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+        <div className="absolute inset-0 flex">
+          <div
+            className={`h-full ${colorClassesA[teamAColor as keyof typeof colorClassesA]} transition-all duration-700 ease-out shadow-lg`}
+            style={{ width: `${aPercentage}%` }}
+          />
+          <div
+            className={`h-full ${colorClassesB[teamBColor as keyof typeof colorClassesB]} transition-all duration-700 ease-out shadow-lg`}
+            style={{ width: `${100 - aPercentage}%` }}
+          />
+        </div>
+        {/* Center marker */}
+        <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/50 dark:bg-black/30 transform -translate-x-1/2" />
+      </div>
+      <div className="flex justify-between text-xs font-semibold theme-text opacity-60">
+        <span>{aPercentage.toFixed(1)}%</span>
+        <span>{(100 - aPercentage).toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+};
+
+// Quarter Section Component - Enhanced Play-by-Play Timeline
+interface QuarterSectionProps {
+  period: number;
+  homeScore: number;
+  awayScore: number;
+  events: PlayByPlayEvent[];
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+const QuarterSection: React.FC<QuarterSectionProps> = ({
+  period,
+  homeScore,
+  awayScore,
+  events,
+  isExpanded,
+  onToggle,
+}) => {
+  return (
+    <div className="border-b border-snow-200 dark:border-[#1F2937] last:border-0">
+      {/* Quarter Header - Collapsible */}
+      <button
+        onClick={onToggle}
+        className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold theme-text uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+            Q{period}
+          </span>
+          <span className="text-sm font-bold theme-text">
+            {homeScore} - {awayScore}
+          </span>
+        </div>
+        <svg
+          className={`w-5 h-5 theme-text transition-transform duration-300 ${
+            isExpanded ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Events List */}
+      {isExpanded && (
+        <div className="px-5 pb-4 space-y-2 animate-fadeIn">
+          {events.map((event) => {
+            // Determine which team the event belongs to
+            const isHomeEvent = event.team_id.toString() !== event.away_score.toString();
+            
+            return (
+              <div
+                key={event._id}
+                className={`flex items-center justify-between py-3 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${
+                  isHomeEvent ? "flex-row" : "flex-row-reverse"
+                }`}
+              >
+                {/* Left Side (Home Team Events) */}
+                <div className={`flex-1 ${isHomeEvent ? "text-right" : "text-left"}`}>
+                  {isHomeEvent ? (
+                    <>
+                      {/* Time */}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                        {event.time}
+                      </span>
+                      {/* Player Name */}
+                      {event.player_name && (
+                        <p className="text-sm font-medium theme-text leading-tight mb-0.5">
+                          {event.player_name}
+                        </p>
+                      )}
+                      {/* Action Description */}
+                      <p className="text-xs theme-text opacity-60 leading-tight">
+                        {event.event_description}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="h-full" />
+                  )}
+                </div>
+
+                {/* Center - Score */}
+                <div className="flex flex-col items-center px-4 min-w-[100px]">
+                  {/* Points Indicator */}
+                  {event.points_scored && (
+                    <span className={`text-[10px] font-black mb-0.5 px-1.5 py-0.5 rounded-full ${
+                      isHomeEvent 
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    }`}>
+                      +{event.points_scored}
+                    </span>
+                  )}
+                  {/* Score */}
+                  <span className="text-base font-black theme-text tabular-nums">
+                    {event.home_score} - {event.away_score}
+                  </span>
+                </div>
+
+                {/* Right Side (Away Team Events) */}
+                <div className={`flex-1 ${!isHomeEvent ? "text-right" : "text-left"}`}>
+                  {!isHomeEvent ? (
+                    <>
+                      {/* Time */}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                        {event.time}
+                      </span>
+                      {/* Player Name */}
+                      {event.player_name && (
+                        <p className="text-sm font-medium theme-text leading-tight mb-0.5">
+                          {event.player_name}
+                        </p>
+                      )}
+                      {/* Action Description */}
+                      <p className="text-xs theme-text opacity-60 leading-tight">
+                        {event.event_description}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="h-full" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Team {
   id: string | number;
   team_id?: string | number;
@@ -187,6 +454,61 @@ interface Team {
   possession?: boolean;
   team_fouls?: number;
   timeouts_left?: number;
+}
+
+interface MatchStats {
+  teamA: {
+    freeThrowsMade: number;
+    freeThrowsAttempted: number;
+    twoPointsMade: number;
+    twoPointsAttempted: number;
+    threePointsMade: number;
+    threePointsAttempted: number;
+    fieldGoalsMade: number;
+    fieldGoalsAttempted: number;
+    rebounds: number;
+    assists: number;
+    turnovers: number;
+    steals: number;
+    blocks: number;
+  };
+  teamB: {
+    freeThrowsMade: number;
+    freeThrowsAttempted: number;
+    twoPointsMade: number;
+    twoPointsAttempted: number;
+    threePointsMade: number;
+    threePointsAttempted: number;
+    fieldGoalsMade: number;
+    fieldGoalsAttempted: number;
+    rebounds: number;
+    assists: number;
+    turnovers: number;
+    steals: number;
+    blocks: number;
+  };
+}
+
+interface PlayByPlayEvent {
+  _id: string;
+  match_id: number;
+  period: number;
+  time: string;
+  team_id: number;
+  player_name?: string;
+  event_type: string;
+  event_description: string;
+  points_scored?: number;
+  assist_player?: string;
+  home_score: number;
+  away_score: number;
+}
+
+interface QuarterGroup {
+  period: number;
+  events: PlayByPlayEvent[];
+  homeScore: number;
+  awayScore: number;
 }
 
 interface MatchDetail {
@@ -207,11 +529,23 @@ interface MatchDetail {
 }
 
 const BasketballMatchDetail = () => {
-  const tabs = [{ id: "info", label: "Info", icon: ChartBarIcon }];
+  const tabs = [
+    { id: "stats", label: "Stats", icon: ChartBarIcon },
+    { id: "timeline", label: "Timeline", icon: ChartBarIcon },
+    { id: "info", label: "Info", icon: ChartBarIcon },
+  ];
 
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState("stats");
   const [matchData, setMatchData] = useState<MatchDetail | null>(null);
+  const [playByPlay, setPlayByPlay] = useState<PlayByPlayEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedQuarter, setSelectedQuarter] = useState<string>("ALL");
+  const [expandedQuarters, setExpandedQuarters] = useState<Record<number, boolean>>({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+  });
 
   const { matchId } = useParams<{ matchId: string }>();
 
@@ -222,9 +556,14 @@ const BasketballMatchDetail = () => {
       setLoading(true);
       try {
         const detailResponse = await getBasketballMatchDetail(matchId);
+        const pbpResponse = await getBasketballMatchPlayByPlay(matchId);
 
         if (detailResponse.success && detailResponse.responseObject) {
           setMatchData(detailResponse.responseObject.item);
+        }
+
+        if (pbpResponse.success && pbpResponse.responseObject) {
+          setPlayByPlay(pbpResponse.responseObject.item || []);
         }
       } catch (error) {
         console.error("Error fetching match data:", error);
@@ -245,6 +584,82 @@ const BasketballMatchDetail = () => {
       if (interval) clearInterval(interval);
     };
   }, [matchId]);
+
+  // Toggle quarter expansion
+  const toggleQuarter = (period: number) => {
+    setExpandedQuarters((prev) => ({
+      ...prev,
+      [period]: !prev[period],
+    }));
+  };
+
+  // Group play-by-play events by quarter
+  const groupEventsByQuarter = (): QuarterGroup[] => {
+    const quarters: Record<number, QuarterGroup> = {};
+    
+    playByPlay.forEach((event) => {
+      const period = event.period;
+      if (!quarters[period]) {
+        quarters[period] = {
+          period,
+          events: [],
+          homeScore: 0,
+          awayScore: 0,
+        };
+      }
+      quarters[period].events.push(event);
+      // Track final scores for each quarter
+      if (quarters[period].events.length > 0) {
+        const lastEvent = quarters[period].events[quarters[period].events.length - 1];
+        quarters[period].homeScore = lastEvent.home_score;
+        quarters[period].awayScore = lastEvent.away_score;
+      }
+    });
+
+    return Object.values(quarters).sort((a, b) => a.period - b.period);
+  };
+
+  const groupedEvents = groupEventsByQuarter();
+
+  // Calculate stats percentages
+  const calculatePercentage = (made: number, attempted: number) => {
+    if (attempted === 0) return 0;
+    return Math.round((made / attempted) * 100);
+  };
+
+  // Mock stats data (replace with actual API call when available)
+  const mockStats: MatchStats = {
+    teamA: {
+      freeThrowsMade: 22,
+      freeThrowsAttempted: 29,
+      twoPointsMade: 35,
+      twoPointsAttempted: 58,
+      threePointsMade: 12,
+      threePointsAttempted: 32,
+      fieldGoalsMade: 47,
+      fieldGoalsAttempted: 90,
+      rebounds: 45,
+      assists: 28,
+      turnovers: 12,
+      steals: 8,
+      blocks: 5,
+    },
+    teamB: {
+      freeThrowsMade: 18,
+      freeThrowsAttempted: 23,
+      twoPointsMade: 32,
+      twoPointsAttempted: 55,
+      threePointsMade: 10,
+      threePointsAttempted: 28,
+      fieldGoalsMade: 42,
+      fieldGoalsAttempted: 83,
+      rebounds: 42,
+      assists: 25,
+      turnovers: 15,
+      steals: 6,
+      blocks: 7,
+    },
+  };
 
   // Get scores - show actual score or empty string for scheduled games
   const homeScore = matchData?.localteam?.totalscore || "";
@@ -502,7 +917,162 @@ const BasketballMatchDetail = () => {
         </div>
       </div>
 
+
       <div className="page-padding-x my-8">
+        {/* Stats Tab */}
+        {activeTab === "stats" && (
+          <div className="space-y-6">
+            {/* Quarter Filter */}
+            <div className="flex justify-center gap-2">
+              {["ALL", "Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+                <button
+                  key={quarter}
+                  onClick={() => setSelectedQuarter(quarter)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedQuarter === quarter
+                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                      : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {quarter}
+                </button>
+              ))}
+            </div>
+
+            {/* Stats Comparison Panel */}
+            <div className="block-style !p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
+                  Team Statistics
+                </h3>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* Free Throws */}
+                <StatRow
+                  label="Free throws"
+                  teamAValue={`${mockStats.teamA.freeThrowsMade}/${mockStats.teamA.freeThrowsAttempted}`}
+                  teamBValue={`${mockStats.teamB.freeThrowsMade}/${mockStats.teamB.freeThrowsAttempted}`}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.freeThrowsMade, mockStats.teamA.freeThrowsAttempted)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.freeThrowsMade, mockStats.teamB.freeThrowsAttempted)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* 2 Pointers */}
+                <StatRow
+                  label="2 pointers"
+                  teamAValue={`${mockStats.teamA.twoPointsMade}/${mockStats.teamA.twoPointsAttempted}`}
+                  teamBValue={`${mockStats.teamB.twoPointsMade}/${mockStats.teamB.twoPointsAttempted}`}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.twoPointsMade, mockStats.teamA.twoPointsAttempted)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.twoPointsMade, mockStats.teamB.twoPointsAttempted)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* 3 Pointers */}
+                <StatRow
+                  label="3 pointers"
+                  teamAValue={`${mockStats.teamA.threePointsMade}/${mockStats.teamA.threePointsAttempted}`}
+                  teamBValue={`${mockStats.teamB.threePointsMade}/${mockStats.teamB.threePointsAttempted}`}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.threePointsMade, mockStats.teamA.threePointsAttempted)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.threePointsMade, mockStats.teamB.threePointsAttempted)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Field Goals */}
+                <StatRow
+                  label="Field goals"
+                  teamAValue={`${mockStats.teamA.fieldGoalsMade}/${mockStats.teamA.fieldGoalsAttempted}`}
+                  teamBValue={`${mockStats.teamB.fieldGoalsMade}/${mockStats.teamB.fieldGoalsAttempted}`}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.fieldGoalsMade, mockStats.teamA.fieldGoalsAttempted)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.fieldGoalsMade, mockStats.teamB.fieldGoalsAttempted)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Rebounds - Special Bar */}
+                <ReboundBar
+                  label="Rebounds"
+                  teamAValue={mockStats.teamA.rebounds}
+                  teamBValue={mockStats.teamB.rebounds}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Assists */}
+                <StatRow
+                  label="Assists"
+                  teamAValue={mockStats.teamA.assists.toString()}
+                  teamBValue={mockStats.teamB.assists.toString()}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.assists, mockStats.teamA.assists + mockStats.teamB.assists)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.assists, mockStats.teamA.assists + mockStats.teamB.assists)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Turnovers */}
+                <StatRow
+                  label="Turnovers"
+                  teamAValue={mockStats.teamA.turnovers.toString()}
+                  teamBValue={mockStats.teamB.turnovers.toString()}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.turnovers, mockStats.teamA.turnovers + mockStats.teamB.turnovers)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.turnovers, mockStats.teamA.turnovers + mockStats.teamB.turnovers)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Steals */}
+                <StatRow
+                  label="Steals"
+                  teamAValue={mockStats.teamA.steals.toString()}
+                  teamBValue={mockStats.teamB.steals.toString()}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.steals, mockStats.teamA.steals + mockStats.teamB.steals)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.steals, mockStats.teamA.steals + mockStats.teamB.steals)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+
+                {/* Blocks */}
+                <StatRow
+                  label="Blocks"
+                  teamAValue={mockStats.teamA.blocks.toString()}
+                  teamBValue={mockStats.teamB.blocks.toString()}
+                  teamAPercentage={calculatePercentage(mockStats.teamA.blocks, mockStats.teamA.blocks + mockStats.teamB.blocks)}
+                  teamBPercentage={calculatePercentage(mockStats.teamB.blocks, mockStats.teamA.blocks + mockStats.teamB.blocks)}
+                  teamAColor="green"
+                  teamBColor="blue"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Timeline Tab */}
+        {activeTab === "timeline" && (
+          <div className="space-y-4">
+            <div className="block-style !p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
+                  Play by Play
+                </h3>
+              </div>
+              <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                {groupedEvents.map((quarter) => (
+                  <QuarterSection
+                    key={quarter.period}
+                    period={quarter.period}
+                    homeScore={quarter.homeScore}
+                    awayScore={quarter.awayScore}
+                    events={quarter.events}
+                    isExpanded={expandedQuarters[quarter.period] || false}
+                    onToggle={() => toggleQuarter(quarter.period)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Info Tab */}
         {activeTab === "info" && (
           <div className="space-y-6">

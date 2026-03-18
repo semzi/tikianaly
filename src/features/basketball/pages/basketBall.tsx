@@ -9,6 +9,7 @@ import {
   CalendarIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  ArrowUturnLeftIcon,
 } from "@heroicons/react/24/outline";
 import {
   getBasketballFixturesByDate,
@@ -185,12 +186,14 @@ interface ApiResponse {
 }
 
 const BasketballPage = () => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("fixture");
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
 
   // SSE & Live Override state
   const [liveMatches, setLiveMatches] = useState<Record<number, Match>>({});
@@ -211,7 +214,6 @@ const BasketballPage = () => {
       }
     }
     return [
-      { id: "all", label: "All" },
       { id: "live", label: "Live" },
       { id: "fixture", label: dateLabel },
     ];
@@ -259,6 +261,47 @@ const BasketballPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Auto-switch to fixtures tab when date is not today
+  useEffect(() => {
+    try {
+      if (!isToday(selectedDate ?? new Date())) {
+        setActiveTab("fixture");
+      }
+    } catch {
+      // ignore date comparison errors
+    }
+  }, [selectedDate]);
+
+  // Handle window resize for mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const shouldShowReturnToToday = useMemo(() => {
+    if (activeTab !== "fixture") return false;
+    try {
+      return !isToday(selectedDate ?? new Date());
+    } catch {
+      return false;
+    }
+  }, [activeTab, selectedDate]);
+
+  useEffect(() => {
+    if (!shouldShowReturnToToday) return;
+    if (!isMobile) {
+      setIsReturnToTodayCollapsed(false);
+      return;
+    }
+    setIsReturnToTodayCollapsed(false);
+    const t = window.setTimeout(() => setIsReturnToTodayCollapsed(true), 5000);
+    return () => window.clearTimeout(t);
+  }, [shouldShowReturnToToday, isMobile]);
+
   // Sync state with React Query response (pagination and loading only)
   useEffect(() => {
     if (isQueryLoading && Object.keys(liveMatches).length === 0) {
@@ -292,7 +335,7 @@ const BasketballPage = () => {
 
     // 2. Add live matches that aren't in the base items (if it's today)
     if (
-      (activeTab === "all" || activeTab === "live") &&
+      activeTab === "live" &&
       isToday(selectedDate || new Date())
     ) {
       Object.values(liveMatches).forEach((liveMatch) => {
@@ -300,7 +343,7 @@ const BasketballPage = () => {
           (m) => m.match_id === liveMatch.match_id,
         );
         if (!alreadyExists) {
-          if (activeTab === "all" || (activeTab === "live" && liveMatch)) {
+          if (activeTab === "live" && liveMatch) {
             finalItems.push(liveMatch);
           }
         }
@@ -333,7 +376,7 @@ const BasketballPage = () => {
 
   // Handle SSE for Live matches
   useEffect(() => {
-    if (activeTab === "live" || activeTab === "all") {
+    if (activeTab === "live") {
       const eventSource = subscribeBasketballLiveMatchesStream({
         onUpdate: (fixtures) => {
           if (fixtures && fixtures.length > 0) {
@@ -804,8 +847,8 @@ const BasketballPage = () => {
               </div>
             )}
 
-            {/* Pagination (only for all/fixture) */}
-            {(activeTab === "all" || activeTab === "fixture") &&
+            {/* Pagination (only for fixture) */}
+            {activeTab === "fixture" &&
               totalPages > 1 && (
                 <div className="flex items-center justify-between block-style">
                   <button
@@ -853,6 +896,46 @@ const BasketballPage = () => {
       </div>
 
       <FooterComp />
+
+      {shouldShowReturnToToday && (
+        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
+          <button
+            type="button"
+            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${
+              isMobile && isReturnToTodayCollapsed
+                ? "w-14 h-14 rounded-full flex items-center justify-center"
+                : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
+            }`}
+            onClick={() => {
+              setSelectedDate(new Date());
+              setActiveTab("fixture");
+              setShowDatePicker(false);
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            {isMobile && isReturnToTodayCollapsed ? (
+              <ArrowUturnLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
+                  <ArrowUturnLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Return to Today</p>
+                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">Go back to today's matches</p>
+                </div>
+                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
+                  Open
+                </div>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

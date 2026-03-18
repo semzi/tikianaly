@@ -197,10 +197,10 @@ export const dashboard = () => {
   const [loadingLeagueIds, setLoadingLeagueIds] = useState<Set<number>>(
     () => new Set()
   );
-  const [fixturesMode, setFixturesMode] = useState<"all" | "live" | "date">(() => {
+  const [fixturesMode, setFixturesMode] = useState<"live" | "date">(() => {
     try {
       const stored = localStorage.getItem("dashboard_fixtures_mode");
-      if (stored === "all" || stored === "live" || stored === "date") return stored;
+      if (stored === "live" || stored === "date") return stored;
     } catch {
       // ignore storage errors
     }
@@ -502,7 +502,7 @@ export const dashboard = () => {
 
   const extraLiveLeagueBlocks = useMemo(() => {
     void sseRevision;
-    if (fixturesMode !== "all") return [] as Array<{ leagueId: number; fixtures: any[] }>;
+    if (fixturesMode !== "live") return [] as Array<{ leagueId: number; fixtures: any[] }>;
     if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[] }>;
 
     const existingMatchIds = new Set<string>();
@@ -571,7 +571,7 @@ export const dashboard = () => {
           window.clearTimeout(flushFixturesTimeoutRef.current);
           flushFixturesTimeoutRef.current = null;
         }
-        if (fixturesMode === "date" || fixturesMode === "all") {
+        if (fixturesMode === "date") {
           setLoadingLeagueIds(new Set(topLeagueIds));
         } else {
           setLoadingLeagueIds(new Set());
@@ -599,7 +599,7 @@ export const dashboard = () => {
             fixtures: fx,
           }));
 
-          if (fixturesMode === "date" || fixturesMode === "all") {
+          if (fixturesMode === "date") {
             blocks.sort(
               (a, b) =>
                 (topLeagueOrder.get(a.leagueId) ?? 999999) -
@@ -622,7 +622,7 @@ export const dashboard = () => {
 
         const upsertLeagueFixtures = (leagueId: number, leagueFixtures: any[]) => {
           const fixturesToInsert =
-            fixturesMode === "date" || fixturesMode === "all" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
+            fixturesMode === "date" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
           leagueFixturesMapRef.current.set(leagueId, sortFixturesLiveFirst(fixturesToInsert));
           scheduleFlushFixtures();
         };
@@ -671,7 +671,7 @@ export const dashboard = () => {
               return;
             }
 
-            // fixturesMode === "date" | "all": merge SSE updates into existing date fixtures
+            // fixturesMode === "date": merge SSE updates into existing date fixtures
             const updatesByStaticId = new Map<string, any>();
             const updatesByFixtureId = new Map<string, any>();
             const updatesByMatchId = new Map<string, any>();
@@ -836,11 +836,10 @@ export const dashboard = () => {
                 <SegmentedSelector
                   value={fixturesMode}
                   options={[
-                    { value: "all", label: "All" },
                     { value: "live", label: "Live" },
                     { value: "date", label: "Fixture" },
                   ]}
-                  onChange={(value) => setFixturesMode(value as "all" | "live" | "date")}
+                  onChange={(value) => setFixturesMode(value as "live" | "date")}
                   size="md"
                 />
               </div>
@@ -852,7 +851,7 @@ export const dashboard = () => {
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-y-3 md:gap-y-6">
-            {(fixturesMode === "date" || fixturesMode === "all") && pinnedFixtureIds.length > 0 && (
+                        {(fixturesMode === "date") && pinnedFixtureIds.length > 0 && (
               <div className="block-style">
                 <button
                   type="button"
@@ -1481,7 +1480,7 @@ export const dashboard = () => {
                 );
               })}
 
-              {fixturesMode === "all" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
+              {fixturesMode === "date" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
                 <div key={`extra-live-${leagueFixture.leagueId}-${leagueIdx}`} className="block-style">
                   <div className="flex gap-3 border-b-1 px-5 py-3  border-snow-200 dark:border-[#1F2937]">
                     {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
@@ -1884,7 +1883,7 @@ export const dashboard = () => {
               );
             })}
 
-            {fixturesMode === "all" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
+            {fixturesMode === "date" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
               <div
                 key={`extra-live-mobile-${leagueFixture.leagueId}-${leagueIdx}`}
                 className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
