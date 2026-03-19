@@ -75,3 +75,10 @@ export {
   getBasketballTeamLogoById,
   getBasketballPlayerImageById,
 } from "./basketball";
+
+// Tennis exports
+export {
+  getTennisLiveMatches,
+  getTennisMatchesByDayOffset,
+  getTennisLeagues,
+} from "./tennis";

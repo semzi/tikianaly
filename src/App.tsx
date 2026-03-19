@@ -63,6 +63,7 @@ const BasketballLeagueProfile = lazy(
 const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
 );
+const TennisPage = lazy(() => import("./features/tennis/pages/Tennis"));
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -275,6 +276,20 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <BasketballLeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisPage />
                 </m.div>
               }
             />
