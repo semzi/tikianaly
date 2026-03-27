@@ -46,6 +46,41 @@ const isLiveStatus = (status?: string) => {
   );
 };
 
+const getStatusLabel = (status?: string): string => {
+  const value = String(status ?? "").toLowerCase();
+
+  // If not started yet (check this first!)
+  if (
+    value === "not started" ||
+    value.includes("postponed") ||
+    value.includes("cancelled")
+  ) {
+    return "Starts";
+  }
+
+  // If already started or in progress
+  if (
+    value === "live" ||
+    value.includes("live") ||
+    value.includes("in progress") ||
+    value.includes("set")
+  ) {
+    return "Started";
+  }
+
+  // If finished/completed
+  if (
+    value.includes("finished") ||
+    value.includes("completed") ||
+    value.includes("ended")
+  ) {
+    return "Finished";
+  }
+
+  // Default
+  return "Starts";
+};
+
 const normalizeMatch = (raw: any): TennisMatch => {
   const p1 =
     raw?.player1 ?? raw?.home ?? raw?.localteam ?? raw?.player?.[0] ?? {};
@@ -115,7 +150,7 @@ const Tennis = () => {
   const [liveOverrides, setLiveOverrides] = useState<
     Record<string, TennisMatch>
   >({});
-  const liveSourceRef = useRef<EventSource | null>(null);
+  const livestreamRef = useRef<WebSocket | null>(null);
 
   const tabOptions: Array<{ value: TennisTab; label: string }> = [
     { value: "live", label: "Live" },
@@ -157,12 +192,12 @@ const Tennis = () => {
 
   useEffect(() => {
     if (activeTab !== "live") {
-      closeTennisLiveStream(liveSourceRef.current);
-      liveSourceRef.current = null;
+      closeTennisLiveStream(livestreamRef.current);
+      livestreamRef.current = null;
       return;
     }
 
-    const eventSource = subscribeTennisLiveMatchesStream({
+    const ws = subscribeTennisLiveMatchesStream({
       onUpdate: (payload) => {
         const normalized = normalizeMatches(payload);
         if (normalized.length === 0) return;
@@ -177,11 +212,11 @@ const Tennis = () => {
       },
     });
 
-    liveSourceRef.current = eventSource;
+    livestreamRef.current = ws;
 
     return () => {
-      closeTennisLiveStream(eventSource);
-      liveSourceRef.current = null;
+      closeTennisLiveStream(ws);
+      livestreamRef.current = null;
     };
   }, [activeTab]);
 
@@ -199,7 +234,7 @@ const Tennis = () => {
           <div className="block-style">
             <h1 className="text-xl md:text-2xl font-bold theme-text">Tennis</h1>
             <p className="text-sm text-neutral-n4 dark:text-snow-200 mt-1">
-              Live updates via SSE with today and upcoming fixtures.
+              Live updates via WebSocket with today and upcoming fixtures.
             </p>
           </div>
 
@@ -222,11 +257,12 @@ const Tennis = () => {
             </div>
           ) : matches.length === 0 ? (
             <div className="block-style text-center py-12">
+              <div className="text-6xl mb-4">🎾</div>
               <p className="text-lg font-semibold theme-text mb-2">
-                No matches yet
+                No {activeTab} matches
               </p>
               <p className="text-sm text-neutral-n4 dark:text-snow-200">
-                No tennis matches found for this tab.
+                There are no {activeTab} matches at the moment.
               </p>
             </div>
           ) : (
@@ -251,7 +287,7 @@ const Tennis = () => {
                           : "bg-snow-200 text-neutral-n4 dark:bg-[#1F2937] dark:text-snow-200"
                       }`}
                     >
-                      {match.status}
+                      {getStatusLabel(match.status)}
                     </span>
                   </div>
 

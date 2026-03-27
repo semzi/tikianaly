@@ -1,50 +1,21 @@
-import apiClient from "../axios";
+// WebSocket-based live stream for Goalserve tennis updates
+// Connects to: ws://localhost:7824/
+// Uses: { "action": "subscribe", "url": "..." }
 
-export type TennisLiveStreamOptions = {
-  url?: string;
-  withCredentials?: boolean;
-};
+const WS_URL = "ws://localhost:7824/";
+const TENNIS_LIVE_ENDPOINT =
+  "http://localhost:7824/api/tennis_scores/home?json=1";
 
-export type TennisLiveStreamHandlers<T = any> = {
-  onOpen?: (ev: Event) => void;
-  onMessage: (data: T, ev: MessageEvent) => void;
-  onError?: (ev: Event) => void;
-  parse?: (raw: string) => T;
-};
-
-export const createTennisLiveStream = <T = any>(
-  handlers: TennisLiveStreamHandlers<T>,
-  options: TennisLiveStreamOptions = {},
-): EventSource => {
-  const baseUrl = String(apiClient.defaults.baseURL ?? "");
-  const url =
-    options.url ??
-    `${baseUrl.replace(/\/+$/, "")}/api/v1/tennis/sse/stream-live`;
-
-  const eventSource = new EventSource(url, {
-    withCredentials: options.withCredentials ?? false,
-  });
-
-  eventSource.onopen = (ev) => handlers.onOpen?.(ev);
-
-  eventSource.onmessage = (ev) => {
-    const raw = String(ev.data ?? "");
-    const data = handlers.parse ? handlers.parse(raw) : (raw as unknown as T);
-    handlers.onMessage(data, ev);
-  };
-
-  eventSource.onerror = (ev) => handlers.onError?.(ev);
-
-  return eventSource;
-};
+let webSocket: WebSocket | null = null;
 
 export type TennisDashboardStreamHandlers = {
   onOpen?: (ev: Event) => void;
   onUpdate: (matches: any[], ev: MessageEvent) => void;
-  onError?: (ev: Event) => void;
+  onError?: (ev: Event | Error) => void;
 };
 
 const normalizeLivePayload = (payload: any): any[] => {
+  // Handle Goalserve response format
   if (Array.isArray(payload)) return payload;
 
   if (Array.isArray(payload?.items)) return payload.items;
@@ -58,29 +29,51 @@ const normalizeLivePayload = (payload: any): any[] => {
 
 export const subscribeTennisLiveMatchesStream = (
   handlers: TennisDashboardStreamHandlers,
-  options: TennisLiveStreamOptions = {},
-): EventSource => {
-  return createTennisLiveStream<any>(
-    {
-      onOpen: handlers.onOpen,
-      onError: handlers.onError,
-      parse: (raw) => {
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return [];
-        }
-      },
-      onMessage: (payload, ev) => {
-        handlers.onUpdate(normalizeLivePayload(payload), ev);
-      },
-    },
-    options,
-  );
+): WebSocket => {
+  if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+    return webSocket;
+  }
+
+  webSocket = new WebSocket(WS_URL);
+
+  webSocket.onopen = (ev) => {
+    // Subscribe to tennis live scores
+    const subscribeMsg = {
+      action: "subscribe",
+      url: TENNIS_LIVE_ENDPOINT,
+    };
+    webSocket?.send(JSON.stringify(subscribeMsg));
+    handlers.onOpen?.(ev);
+  };
+
+  webSocket.onmessage = (ev) => {
+    try {
+      const message = JSON.parse(ev.data);
+      // Goalserve format: { type: "update", url: "...", payload: {...} }
+      if (message.type === "update" && message.payload) {
+        const matches = normalizeLivePayload(message.payload);
+        handlers.onUpdate(matches, ev);
+      }
+    } catch (err) {
+      handlers.onError?.(err instanceof Error ? err : new Error(String(err)));
+    }
+  };
+
+  webSocket.onerror = (ev) => {
+    handlers.onError?.(ev);
+  };
+
+  return webSocket;
 };
 
-export const closeTennisLiveStream = (
-  eventSource: EventSource | null | undefined,
-) => {
-  eventSource?.close();
+export const closeTennisLiveStream = (ws: WebSocket | null | undefined) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    // Unsubscribe before closing
+    const unsubscribeMsg = {
+      action: "unsubscribe",
+      url: TENNIS_LIVE_ENDPOINT,
+    };
+    ws.send(JSON.stringify(unsubscribeMsg));
+    ws.close();
+  }
 };
