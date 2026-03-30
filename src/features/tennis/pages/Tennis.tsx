@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CalendarIcon,
+} from "@heroicons/react/24/outline";
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  isToday,
+  startOfDay,
+} from "date-fns";
+import DatePicker from "react-datepicker";
 import { PageHeader } from "@/components/layout/PageHeader";
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
@@ -21,7 +34,7 @@ import {
   type TennisMatch,
 } from "../data/mockTennis";
 
-type TennisTab = "live" | "today" | "upcoming";
+type TennisTab = "all" | "live" | "date";
 
 type TennisApiResponse = {
   responseObject?: {
@@ -136,30 +149,70 @@ const normalizeMatches = (
       []);
 
   if (!Array.isArray(source)) return [];
-  return source.map(normalizeMatch);
+
+  const parseDateTime = (raw: any): number | null => {
+    const dateValue = String(raw?.date ?? "").trim();
+    const timeValue = String(raw?.time ?? "").trim();
+
+    if (!dateValue && !timeValue) return null;
+
+    let normalizedDate = dateValue;
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateValue)) {
+      const [day, month, year] = dateValue.split(".");
+      normalizedDate = `${year}-${month}-${day}`;
+    }
+
+    const isoLike =
+      `${normalizedDate}${timeValue ? ` ${timeValue}` : ""}`.trim();
+    const timestamp = Date.parse(isoLike);
+    return Number.isNaN(timestamp) ? null : timestamp;
+  };
+
+  const sortedSource = [...source].sort((a, b) => {
+    const tsA = parseDateTime(a);
+    const tsB = parseDateTime(b);
+    if (tsA === null || tsB === null) return 0;
+    return tsA - tsB;
+  });
+
+  return sortedSource.map(normalizeMatch);
 };
 
 const getFallbackMatches = (tab: TennisTab): TennisMatch[] => {
+  if (tab === "all") return mockTennisTodayMatches;
   if (tab === "live") return mockTennisLiveMatches;
-  if (tab === "upcoming") return mockTennisUpcomingMatches;
-  return mockTennisTodayMatches;
+  return mockTennisUpcomingMatches;
 };
 
+const clampOffset = (value: number) => Math.max(-7, Math.min(7, value));
+
 const Tennis = () => {
-  const [activeTab, setActiveTab] = useState<TennisTab>("live");
+  const [activeTab, setActiveTab] = useState<TennisTab>("all");
+  const [selectedDayOffset, setSelectedDayOffset] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [liveOverrides, setLiveOverrides] = useState<
     Record<string, TennisMatch>
   >({});
   const livestreamRef = useRef<WebSocket | null>(null);
 
+  const selectedDate = useMemo(
+    () => addDays(new Date(), selectedDayOffset),
+    [selectedDayOffset],
+  );
+
+  const dateTabLabel = useMemo(() => {
+    if (isToday(selectedDate)) return "Today";
+    return format(selectedDate, "MMM d");
+  }, [selectedDate]);
+
   const tabOptions: Array<{ value: TennisTab; label: string }> = [
+    { value: "all", label: "All" },
     { value: "live", label: "Live" },
-    { value: "today", label: "Today" },
-    { value: "upcoming", label: "Upcoming" },
+    { value: "date", label: dateTabLabel },
   ];
 
   const query = useQuery({
-    queryKey: ["tennis", activeTab],
+    queryKey: ["tennis", activeTab, selectedDayOffset],
     queryFn: async () => {
       try {
         if (activeTab === "live") {
@@ -170,7 +223,7 @@ const Tennis = () => {
             : getFallbackMatches("live");
         }
 
-        const offset = activeTab === "today" ? 0 : 1;
+        const offset = activeTab === "all" ? 0 : selectedDayOffset;
         const data = await getTennisMatchesByDayOffset(offset);
         const normalized = normalizeMatches(data);
         return normalized.length > 0
@@ -234,8 +287,53 @@ const Tennis = () => {
           <div className="block-style">
             <h1 className="text-xl md:text-2xl font-bold theme-text">Tennis</h1>
             <p className="text-sm text-neutral-n4 dark:text-snow-200 mt-1">
-              Live updates via WebSocket with today and upcoming fixtures.
+              Live updates via WebSocket with date-based fixtures.
             </p>
+          </div>
+
+          <div className="block-style">
+            <div className="relative flex items-center justify-between dark:text-snow-200">
+              <ArrowLeftIcon
+                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
+                onClick={() =>
+                  setSelectedDayOffset((prev) => clampOffset(prev - 1))
+                }
+              />
+              <div
+                className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
+                onClick={() => setShowDatePicker((prev) => !prev)}
+              >
+                <p className="font-semibold theme-text">
+                  {isToday(selectedDate)
+                    ? "Today"
+                    : format(selectedDate, "EEE, MMM d, yyyy")}
+                </p>
+                <CalendarIcon className="h-5 w-5 text-neutral-n4" />
+              </div>
+              <ArrowRightIcon
+                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
+                onClick={() =>
+                  setSelectedDayOffset((prev) => clampOffset(prev + 1))
+                }
+              />
+              {showDatePicker && (
+                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
+                  <DatePicker
+                    selected={selectedDate}
+                    onChange={(date: Date | null) => {
+                      if (!date) return;
+                      const offset = differenceInCalendarDays(
+                        startOfDay(date),
+                        startOfDay(new Date()),
+                      );
+                      setSelectedDayOffset(clampOffset(offset));
+                      setShowDatePicker(false);
+                    }}
+                    inline
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="block-style">

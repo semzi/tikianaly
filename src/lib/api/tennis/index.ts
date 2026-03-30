@@ -17,7 +17,10 @@ export const getTennisLiveMatches = async () => {
 
 export const getTennisMatchesByDayOffset = async (dayOffset: number) => {
   // By day: 0=today, -1=yesterday, 1=tomorrow, range: d-7 to d7
-  const endpoint = `/api/tennis_scores/d${dayOffset}?json=1`;
+  const endpoint =
+    dayOffset === 0
+      ? "/api/tennis_scores/home?json=1"
+      : `/api/tennis_scores/d${dayOffset}?json=1`;
   const response = await tennisClient.get(endpoint);
   return response.data;
 };
