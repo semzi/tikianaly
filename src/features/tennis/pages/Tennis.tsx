@@ -285,13 +285,6 @@ const Tennis = () => {
 
         <div className="w-full lg:w-3/5 space-y-4 pb-24 lg:pb-8">
           <div className="block-style">
-            <h1 className="text-xl md:text-2xl font-bold theme-text">Tennis</h1>
-            <p className="text-sm text-neutral-n4 dark:text-snow-200 mt-1">
-              Live updates via WebSocket with date-based fixtures.
-            </p>
-          </div>
-
-          <div className="block-style">
             <div className="relative flex items-center justify-between dark:text-snow-200">
               <ArrowLeftIcon
                 className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
