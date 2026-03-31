@@ -211,6 +211,11 @@ const Tennis = () => {
     { value: "date", label: dateTabLabel },
   ];
 
+  const activeTabLabel =
+    tabOptions
+      .find((option) => option.value === activeTab)
+      ?.label?.toLowerCase() ?? activeTab;
+
   const query = useQuery({
     queryKey: ["tennis", activeTab, selectedDayOffset],
     queryFn: async () => {
@@ -327,14 +332,14 @@ const Tennis = () => {
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="block-style">
-            <SegmentedSelector
-              value={activeTab}
-              options={tabOptions}
-              onChange={(value) => setActiveTab(value)}
-            />
+            <div className="mt-4">
+              <SegmentedSelector
+                value={activeTab}
+                options={tabOptions}
+                onChange={(value) => setActiveTab(value)}
+              />
+            </div>
           </div>
 
           {query.isLoading ? (
@@ -350,10 +355,10 @@ const Tennis = () => {
             <div className="block-style text-center py-12">
               <div className="text-6xl mb-4">🎾</div>
               <p className="text-lg font-semibold theme-text mb-2">
-                No {activeTab} matches
+                No {activeTabLabel} matches
               </p>
               <p className="text-sm text-neutral-n4 dark:text-snow-200">
-                There are no {activeTab} matches at the moment.
+                There are no {activeTabLabel} matches at the moment.
               </p>
             </div>
           ) : (
