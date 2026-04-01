@@ -1,0 +1,74 @@
+{
+  "popular_leagues": [
+    { "id": "atp-1000-indian-wells", "name": "ATP Masters 1000 Indian Wells", "category": "ATP" },
+    { "id": "atp-1000-miami", "name": "ATP Masters 1000 Miami", "category": "ATP" },
+    { "id": "atp-1000-madrid", "name": "ATP Masters 1000 Madrid", "category": "ATP" },
+    { "id": "atp-1000-rome", "name": "ATP Masters 1000 Rome", "category": "ATP" },
+    { "id": "wta-1000-doha", "name": "WTA 1000 Doha", "category": "WTA" },
+    { "id": "wta-1000-indian-wells", "name": "WTA 1000 Indian Wells", "category": "WTA" },
+    { "id": "wimbledon", "name": "Grand Slam Wimbledon", "category": "Grand Slam" },
+    { "id": "us-open", "name": "Grand Slam US Open", "category": "Grand Slam" }
+  ],
+  "items": [
+    { "id": "australian-open", "name": "Grand Slam Australian Open", "category": "Grand Slam" },
+    { "id": "roland-garros", "name": "Grand Slam Roland Garros", "category": "Grand Slam" },
+    { "id": "wimbledon", "name": "Grand Slam Wimbledon", "category": "Grand Slam" },
+    { "id": "us-open", "name": "Grand Slam US Open", "category": "Grand Slam" },
+
+    { "id": "atp-finals", "name": "ATP Finals", "category": "ATP" },
+    { "id": "atp-1000-indian-wells", "name": "ATP Masters 1000 Indian Wells", "category": "ATP" },
+    { "id": "atp-1000-miami", "name": "ATP Masters 1000 Miami", "category": "ATP" },
+    { "id": "atp-1000-monte-carlo", "name": "ATP Masters 1000 Monte Carlo", "category": "ATP" },
+    { "id": "atp-1000-madrid", "name": "ATP Masters 1000 Madrid", "category": "ATP" },
+    { "id": "atp-1000-rome", "name": "ATP Masters 1000 Rome", "category": "ATP" },
+    { "id": "atp-1000-canada", "name": "ATP Masters 1000 Canada", "category": "ATP" },
+    { "id": "atp-1000-cincinnati", "name": "ATP Masters 1000 Cincinnati", "category": "ATP" },
+    { "id": "atp-1000-shanghai", "name": "ATP Masters 1000 Shanghai", "category": "ATP" },
+    { "id": "atp-1000-paris", "name": "ATP Masters 1000 Paris", "category": "ATP" },
+    { "id": "atp-500-rotterdam", "name": "ATP 500 Rotterdam", "category": "ATP" },
+    { "id": "atp-500-dubai", "name": "ATP 500 Dubai", "category": "ATP" },
+    { "id": "atp-500-queen", "name": "ATP 500 Queen's Club", "category": "ATP" },
+    { "id": "atp-500-halle", "name": "ATP 500 Halle", "category": "ATP" },
+    { "id": "atp-500-beijing", "name": "ATP 500 Beijing", "category": "ATP" },
+    { "id": "atp-500-tokyo", "name": "ATP 500 Tokyo", "category": "ATP" },
+
+    { "id": "wta-finals", "name": "WTA Finals", "category": "WTA" },
+    { "id": "wta-1000-doha", "name": "WTA 1000 Doha", "category": "WTA" },
+    { "id": "wta-1000-dubai", "name": "WTA 1000 Dubai", "category": "WTA" },
+    { "id": "wta-1000-indian-wells", "name": "WTA 1000 Indian Wells", "category": "WTA" },
+    { "id": "wta-1000-miami", "name": "WTA 1000 Miami", "category": "WTA" },
+    { "id": "wta-1000-madrid", "name": "WTA 1000 Madrid", "category": "WTA" },
+    { "id": "wta-1000-rome", "name": "WTA 1000 Rome", "category": "WTA" },
+    { "id": "wta-1000-montreal", "name": "WTA 1000 Montreal", "category": "WTA" },
+    { "id": "wta-1000-cincinnati", "name": "WTA 1000 Cincinnati", "category": "WTA" },
+    { "id": "wta-1000-beijing", "name": "WTA 1000 Beijing", "category": "WTA" },
+    { "id": "wta-500-charleston", "name": "WTA 500 Charleston", "category": "WTA" },
+    { "id": "wta-500-stuttgart", "name": "WTA 500 Stuttgart", "category": "WTA" },
+    { "id": "wta-500-eastbourne", "name": "WTA 500 Eastbourne", "category": "WTA" },
+
+    { "id": "davis-cup", "name": "Davis Cup", "category": "International" },
+    { "id": "billie-jean-king-cup", "name": "Billie Jean King Cup", "category": "International" },
+    { "id": "olympic-games", "name": "Olympic Games", "category": "International" },
+
+    { "id": "atp-challenger-phoenix", "name": "ATP Challenger Phoenix", "category": "Challenger" },
+    { "id": "atp-challenger-bordeaux", "name": "ATP Challenger Bordeaux", "category": "Challenger" },
+    { "id": "atp-challenger-heilbronn", "name": "ATP Challenger Heilbronn", "category": "Challenger" },
+
+    { "id": "itf-m25-tunis", "name": "ITF M25 Tunis", "category": "ITF Men" },
+    { "id": "itf-m15-antalya", "name": "ITF M15 Antalya", "category": "ITF Men" },
+    { "id": "itf-w100-midland", "name": "ITF W100 Midland", "category": "ITF Women" },
+    { "id": "itf-w75-chiasso", "name": "ITF W75 Chiasso", "category": "ITF Women" }
+  ],
+  "small_leagues": [
+    { "id": "itf-juniors-j1", "name": "ITF Juniors J1", "category": "Juniors" },
+    { "id": "itf-juniors-j2", "name": "ITF Juniors J2", "category": "Juniors" },
+    { "id": "itf-juniors-j3", "name": "ITF Juniors J3", "category": "Juniors" },
+    { "id": "itf-juniors-j4", "name": "ITF Juniors J4", "category": "Juniors" },
+    { "id": "itf-juniors-j5", "name": "ITF Juniors J5", "category": "Juniors" },
+    { "id": "utrf-pro-series-men", "name": "UTR Pro Tennis Series Men", "category": "Regional" },
+    { "id": "utrf-pro-series-women", "name": "UTR Pro Tennis Series Women", "category": "Regional" },
+    { "id": "itf-beach-tour", "name": "ITF Beach Tennis Tour", "category": "Special" },
+    { "id": "itf-wheelchair-series", "name": "ITF Wheelchair Series", "category": "Special" },
+    { "id": "itf-seniors-world-tour", "name": "ITF Seniors World Tour", "category": "Special" }
+  ]
+}
