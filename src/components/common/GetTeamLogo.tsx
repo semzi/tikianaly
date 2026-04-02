@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTeamById } from "@/lib/api/endpoints";
+import Image from "./Image";
 
 interface GetTeamLogoProps {
   teamId?: string | number;
@@ -83,22 +84,8 @@ const GetTeamLogo: React.FC<GetTeamLogoProps> = ({
     );
   }
 
-  if (!logoUrl) {
-    return (
-      <img
-        src="/loading-state/shield.svg"
-        alt={`${safeAlt} - No Logo`}
-        loading="lazy"
-        decoding="async"
-        width={width}
-        height={height}
-        className={`object-contain ${className ?? ""}`}
-      />
-    );
-  }
-
   return (
-    <img
+    <Image
       src={logoUrl}
       alt={safeAlt}
       loading="lazy"

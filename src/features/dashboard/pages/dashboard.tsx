@@ -26,8 +26,8 @@ import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
 import { Link } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
-import GetTeamLogo from "@/components/common/GetTeamLogo";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import Image from "@/components/common/Image";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
@@ -801,57 +801,57 @@ export const dashboard = () => {
 
         {/* Main Content Area */}
         <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
-          
+
           {/* Date and Filter Controls */}
           <div className="flex-col">
-          {/* <AfconBanner /> */}
-          <div className="block-style ">
-            <div className="flex dark:text-snow-200 justify-center flex-col">
-              {/* Date Navigation */}
-              <div className="relative flex items-center mb-3 justify-between">
-                <ArrowLeftIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))} />
-                <div className="flex gap-3  items-center cursor-pointer" onClick={() => setShowDatePicker(!showDatePicker)}>
-                  <p>{selectedDate && isToday(selectedDate) ? "Today" : (selectedDate ? selectedDate.toDateString() : new Date().toDateString())}</p>
-                  <CalendarIcon className="text-neutral-n4 h-5" />
-                </div>
-                <ArrowRightIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))} />
-                {showDatePicker && (
-                  <div className="absolute z-10 top-full right-0 mt-2">
-                    <DatePicker
-                      selected={selectedDate}
-                      calendarClassName="bg-black"
-                      onChange={(date: Date | null) => {
-                        setSelectedDate(date);
-                        setFixturesMode("date");
-                        setShowDatePicker(false); // Close date picker after selection
-                      }}
-                      dateFormat="yyyy-MM-dd"
-                      inline
-                    />
+            {/* <AfconBanner /> */}
+            <div className="block-style ">
+              <div className="flex dark:text-snow-200 justify-center flex-col">
+                {/* Date Navigation */}
+                <div className="relative flex items-center mb-3 justify-between">
+                  <ArrowLeftIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))} />
+                  <div className="flex gap-3  items-center cursor-pointer" onClick={() => setShowDatePicker(!showDatePicker)}>
+                    <p>{selectedDate && isToday(selectedDate) ? "Today" : (selectedDate ? selectedDate.toDateString() : new Date().toDateString())}</p>
+                    <CalendarIcon className="text-neutral-n4 h-5" />
                   </div>
-                )}
-              </div>
-              {/* Filter Segmented Selector */}
-              <div className="mt-3">
-                <SegmentedSelector
-                  value={fixturesMode}
-                  options={[
-                    { value: "live", label: "Live" },
-                    { value: "date", label: "Fixture" },
-                  ]}
-                  onChange={(value) => setFixturesMode(value as "live" | "date")}
-                  size="md"
-                />
+                  <ArrowRightIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))} />
+                  {showDatePicker && (
+                    <div className="absolute z-10 top-full right-0 mt-2">
+                      <DatePicker
+                        selected={selectedDate}
+                        calendarClassName="bg-black"
+                        onChange={(date: Date | null) => {
+                          setSelectedDate(date);
+                          setFixturesMode("date");
+                          setShowDatePicker(false); // Close date picker after selection
+                        }}
+                        dateFormat="yyyy-MM-dd"
+                        inline
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Filter Segmented Selector */}
+                <div className="mt-3">
+                  <SegmentedSelector
+                    value={fixturesMode}
+                    options={[
+                      { value: "live", label: "Live" },
+                      { value: "date", label: "Fixture" },
+                    ]}
+                    onChange={(value) => setFixturesMode(value as "live" | "date")}
+                    size="md"
+                  />
+                </div>
               </div>
             </div>
-          </div>
           </div>
 
 
 
           {/* Main Content Games Loop */}
           <div className="flex flex-col gap-y-3 md:gap-y-6">
-                        {(fixturesMode === "date") && pinnedFixtureIds.length > 0 && (
+            {(fixturesMode === "date") && pinnedFixtureIds.length > 0 && (
               <div className="block-style">
                 <button
                   type="button"
@@ -947,9 +947,8 @@ export const dashboard = () => {
                               key={`pinned-${idx}`}
                             >
                               <div
-                                className={`hidden md:flex relative hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${
-                                  idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0  border-b-0" : ""
-                                }`}
+                                className={`hidden md:flex relative hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 ${idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0  border-b-0" : ""
+                                  }`}
                               >
                                 <Link
                                   to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
@@ -971,7 +970,7 @@ export const dashboard = () => {
                                         </p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -980,7 +979,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p className="inline-flex items-center gap-1">
@@ -1003,7 +1002,7 @@ export const dashboard = () => {
                                         <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -1012,7 +1011,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
@@ -1027,7 +1026,7 @@ export const dashboard = () => {
                                         <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -1036,7 +1035,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
@@ -1055,7 +1054,7 @@ export const dashboard = () => {
                                         <span className="text-sm font-medium theme-text">{game.localteam?.name ?? game?.localteam_name ?? "Home"}</span>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                                          <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                       </div>
                                       {/* Score placeholders */}
@@ -1066,7 +1065,7 @@ export const dashboard = () => {
                                       {/* Away team */}
                                       <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                          <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <span className="text-sm font-medium theme-text">{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</span>
@@ -1086,20 +1085,18 @@ export const dashboard = () => {
                               </div>
 
                               <div
-                                className={`flex md:hidden relative items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 bg-neutral-n9 ${
-                                  idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0" : ""
-                                }`}
+                                className={`flex md:hidden relative items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 bg-neutral-n9 ${idx === pinnedFixturesWithLive.length - 1 ? "last:border-b-0" : ""
+                                  }`}
                               >
                                 <Link
                                   to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
                                   className="flex flex-1 items-center justify-between pr-10"
                                 >
                                   <p
-                                    className={`text-xs text-center w-15 px-2 font-bold ${
-                                      ui.state === "timer" || ui.state === "ht"
-                                        ? "text-brand-secondary animate-pulse"
-                                        : "text-neutral-n4 dark:text-snow-200 font-medium"
-                                    }`}
+                                    className={`text-xs text-center w-15 px-2 font-bold ${ui.state === "timer" || ui.state === "ht"
+                                      ? "text-brand-secondary animate-pulse"
+                                      : "text-neutral-n4 dark:text-snow-200 font-medium"
+                                      }`}
                                   >
                                     {statusLabel}
                                   </p>
@@ -1107,7 +1104,7 @@ export const dashboard = () => {
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1">
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
+                                          <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.localteam?.name ?? game?.localteam_name ?? "Home"}
@@ -1138,7 +1135,7 @@ export const dashboard = () => {
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
+                                          <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
@@ -1334,145 +1331,142 @@ export const dashboard = () => {
                         const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                         return (
-                      <div
-                        key={gameIdx}
-                        className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-1 dark:border-[#1F2937] border-snow-200/70 ${
-                          gameIdx === leagueFixture.fixtures.length - 1
-                            ? "last:border-b-0  border-b-0"
-                            : ""
-                        }`}
-                      >
-                      <Link
-                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                        className="flex flex-1 rounded items-center gap-2"
-                      >
-                        {ui.state === "ft" ? (
-                          <>
-                            <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
-                            <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <p className="inline-flex items-center gap-1">
-                                {game.localteam.name}
-                                {pen.show && pen.winner === "localteam" ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                    PEN
-                                  </span>
-                                ) : null}
-                              </p>
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
-                            </div>
-                            <div className="flex-2/11 flex  justify-between">
-                              <p className="score">{game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? '-'}</p>
-                              <p className="score">{game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? '-'}</p>
-                            </div>
-                            <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
-                              <IndicatorCard count={awayStreams} variant="stream" />
-                              <p className="inline-flex items-center gap-1">
-                                {game.visitorteam.name}
-                                {pen.show && pen.winner === "visitorteam" ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                    PEN
-                                  </span>
-                                ) : null}
-                              </p>
-                              <IndicatorCard count={awayRedCards} variant="red" />
-                            </div>
-                          </>
-                        ) : ui.state === "ht" ? (
-                          <>
-                            <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
-                            <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <p>{game.localteam.name}</p>
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
-                            </div>
-                            <div className="flex-2/11 flex  justify-between">
-                              <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                            </div>
-                            <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
-                              <IndicatorCard count={awayStreams} variant="stream" />
-                              <p>{game.visitorteam.name}</p>
-                              <IndicatorCard count={awayRedCards} variant="red" />
-                            </div>
-                          </>
-                        ) : ui.state === "timer" ? (
-                          <>
-                            <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
-                            <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <p>{game.localteam.name}</p>
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
-                            </div>
-                            <div className="flex-2/11 flex  justify-between">
-                              <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                            </div>
-                            <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
-                              <IndicatorCard count={awayStreams} variant="stream" />
-                              <p>{game.visitorteam.name}</p>
-                              <IndicatorCard count={awayRedCards} variant="red" />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {/* Time */}
-                            <div className="w-12 text-center flex-shrink-0">
-                              <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
-                            </div>
-                            {/* Home team */}
-                            <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                              <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
-                            </div>
-                            {/* Score placeholders */}
-                            <div className="flex justify-center gap-2 flex-shrink-0">
-                              <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
-                              <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
-                            </div>
-                            {/* Away team */}
-                            <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
-                              <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
-                              <IndicatorCard count={awayStreams} variant="stream" />
-                              <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
-                              <IndicatorCard count={awayRedCards} variant="red" />
-                            </div>
-                          </>
-                        )}
-                      </Link>
-
-                        <button
-                          type="button"
-                          className={`ml-2 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
-                            fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
-                          }`}
-                          onClick={() => {
-                            if (!fixtureIdForPin) return;
-                            togglePinnedFixture(fixtureIdForPin);
-                          }}
-                          aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
-                        >
-                          <span
-                            className={`inline-flex items-center justify-center rounded-md p-1 ${
-                              pinned ? "bg-brand-secondary" : ""
-                            }`}
+                          <div
+                            key={gameIdx}
+                            className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors items-center gap-2 border-b-1 px-5 py-1 dark:border-[#1F2937] border-snow-200/70 ${gameIdx === leagueFixture.fixtures.length - 1
+                              ? "last:border-b-0  border-b-0"
+                              : ""
+                              }`}
                           >
-                            <StarIcon
-                              className={`w-5 h-5 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
-                            />
-                          </span>
-                        </button>
-                      </div>
+                            <Link
+                              to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                              className="flex flex-1 rounded items-center gap-2"
+                            >
+                              {ui.state === "ft" ? (
+                                <>
+                                  <p className="text-brand-secondary flex-1/11 font-bold">FT</p>
+                                  <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                    <IndicatorCard count={homeRedCards} variant="red" />
+                                    <p className="inline-flex items-center gap-1">
+                                      {game.localteam.name}
+                                      {pen.show && pen.winner === "localteam" ? (
+                                        <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                          <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                          PEN
+                                        </span>
+                                      ) : null}
+                                    </p>
+                                    <IndicatorCard count={homeStreams} variant="stream" />
+                                    <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                  </div>
+                                  <div className="flex-2/11 flex  justify-between">
+                                    <p className="score">{game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? '-'}</p>
+                                    <p className="score">{game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? '-'}</p>
+                                  </div>
+                                  <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                    <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <IndicatorCard count={awayStreams} variant="stream" />
+                                    <p className="inline-flex items-center gap-1">
+                                      {game.visitorteam.name}
+                                      {pen.show && pen.winner === "visitorteam" ? (
+                                        <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                          <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                          PEN
+                                        </span>
+                                      ) : null}
+                                    </p>
+                                    <IndicatorCard count={awayRedCards} variant="red" />
+                                  </div>
+                                </>
+                              ) : ui.state === "ht" ? (
+                                <>
+                                  <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
+                                  <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                    <IndicatorCard count={homeRedCards} variant="red" />
+                                    <p>{game.localteam.name}</p>
+                                    <IndicatorCard count={homeStreams} variant="stream" />
+                                    <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                  </div>
+                                  <div className="flex-2/11 flex  justify-between">
+                                    <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                    <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                  </div>
+                                  <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                    <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <IndicatorCard count={awayStreams} variant="stream" />
+                                    <p>{game.visitorteam.name}</p>
+                                    <IndicatorCard count={awayRedCards} variant="red" />
+                                  </div>
+                                </>
+                              ) : ui.state === "timer" ? (
+                                <>
+                                  <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
+                                  <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                    <IndicatorCard count={homeRedCards} variant="red" />
+                                    <p>{game.localteam.name}</p>
+                                    <IndicatorCard count={homeStreams} variant="stream" />
+                                    <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                  </div>
+                                  <div className="flex-2/11 flex  justify-between">
+                                    <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                    <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                  </div>
+                                  <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                    <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <IndicatorCard count={awayStreams} variant="stream" />
+                                    <p>{game.visitorteam.name}</p>
+                                    <IndicatorCard count={awayRedCards} variant="red" />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Time */}
+                                  <div className="w-12 text-center flex-shrink-0">
+                                    <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
+                                  </div>
+                                  {/* Home team */}
+                                  <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
+                                    <IndicatorCard count={homeRedCards} variant="red" />
+                                    <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
+                                    <IndicatorCard count={homeStreams} variant="stream" />
+                                    <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                                  </div>
+                                  {/* Score placeholders */}
+                                  <div className="flex justify-center gap-2 flex-shrink-0">
+                                    <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                                    <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                                  </div>
+                                  {/* Away team */}
+                                  <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
+                                    <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                    <IndicatorCard count={awayStreams} variant="stream" />
+                                    <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
+                                    <IndicatorCard count={awayRedCards} variant="red" />
+                                  </div>
+                                </>
+                              )}
+                            </Link>
+
+                            <button
+                              type="button"
+                              className={`ml-2 p-2 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                                }`}
+                              onClick={() => {
+                                if (!fixtureIdForPin) return;
+                                togglePinnedFixture(fixtureIdForPin);
+                              }}
+                              aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                            >
+                              <span
+                                className={`inline-flex items-center justify-center rounded-md p-1 ${pinned ? "bg-brand-secondary" : ""
+                                  }`}
+                              >
+                                <StarIcon
+                                  className={`w-5 h-5 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
+                                />
+                              </span>
+                            </button>
+                          </div>
                         );
                       })()
                     ))}
@@ -1554,104 +1548,103 @@ export const dashboard = () => {
                       const statusLabel = getStatusLabel(game, ui);
 
                       return (
-                    <Link
-                      to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                      key={gameIdx}
-                      className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-2 dark:border-[#1F2937] border-snow-200 ${
-                        gameIdx === leagueFixture.fixtures.length - 1 ? "last:border-b-0  border-b-0" : ""
-                      }`}
-                    >
-                      {ui.state === "ht" ? (
-                        <>
-                          <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
-                          <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
-                            <IndicatorCard count={homeRedCards} variant="red" />
-                            <p>{game.localteam.name}</p>
-                            <IndicatorCard count={homeStreams} variant="stream" />
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
-                          </div>
-                          <div className="flex-2/11 flex  justify-between">
-                            <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                            <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                          </div>
-                          <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
-                            <IndicatorCard count={awayStreams} variant="stream" />
-                            <p className="inline-flex items-center gap-1">
-                              {game.visitorteam.name}
-                              {pen.show && pen.winner === "visitorteam" ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                  PEN
-                                </span>
-                              ) : null}
-                            </p>
-                            <IndicatorCard count={awayRedCards} variant="red" />
-                          </div>
-                        </>
-                      ) : ui.state === "timer" ? (
-                        <>
-                          <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
-                          <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
-                            <IndicatorCard count={homeRedCards} variant="red" />
-                            <p>{game.localteam.name}</p>
-                            <IndicatorCard count={homeStreams} variant="stream" />
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-fit h-5 mr-1" />
-                          </div>
-                          <div className="flex-2/11 flex  justify-between">
-                            <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                            <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                          </div>
-                          <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
-                            <IndicatorCard count={awayStreams} variant="stream" />
-                            <p className="inline-flex items-center gap-1">
-                              {game.visitorteam.name}
-                              {pen.show && pen.winner === "visitorteam" ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                  PEN
-                                </span>
-                              ) : null}
-                            </p>
-                            <IndicatorCard count={awayRedCards} variant="red" />
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* Time */}
-                          <div className="w-12 text-center flex-shrink-0">
-                            <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
-                          </div>
-                          {/* Home team */}
-                          <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
-                            <IndicatorCard count={homeRedCards} variant="red" />
-                            <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
-                            <IndicatorCard count={homeStreams} variant="stream" />
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5 object-contain" />
-                          </div>
-                          {/* Score placeholders */}
-                          <div className="flex justify-center gap-2 flex-shrink-0">
-                            <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
-                            <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
-                          </div>
-                          {/* Away team */}
-                          <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
-                            <IndicatorCard count={awayStreams} variant="stream" />
-                            <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
-                            <IndicatorCard count={awayRedCards} variant="red" />
-                          </div>
-                        </>
-                      )}
-                    </Link>
+                        <Link
+                          to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                          key={gameIdx}
+                          className={`flex hover:bg-snow-100 dark:hover:bg-neutral-n2 cursor-pointer transition-colors items-center gap-2 border-b-1 px-5 py-2 dark:border-[#1F2937] border-snow-200 ${gameIdx === leagueFixture.fixtures.length - 1 ? "last:border-b-0  border-b-0" : ""
+                            }`}
+                        >
+                          {ui.state === "ht" ? (
+                            <>
+                              <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">HT</p>
+                              <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                <IndicatorCard count={homeRedCards} variant="red" />
+                                <p>{game.localteam.name}</p>
+                                <IndicatorCard count={homeStreams} variant="stream" />
+                                <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                              </div>
+                              <div className="flex-2/11 flex  justify-between">
+                                <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                              </div>
+                              <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                <IndicatorCard count={awayStreams} variant="stream" />
+                                <p className="inline-flex items-center gap-1">
+                                  {game.visitorteam.name}
+                                  {pen.show && pen.winner === "visitorteam" ? (
+                                    <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                      <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                      PEN
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <IndicatorCard count={awayRedCards} variant="red" />
+                              </div>
+                            </>
+                          ) : ui.state === "timer" ? (
+                            <>
+                              <p className="text-brand-secondary animate-pulse flex-1/11 font-bold">{statusLabel}</p>
+                              <div className="flex dark:text-white flex-4/11 justify-end items-center gap-3">
+                                <IndicatorCard count={homeRedCards} variant="red" />
+                                <p>{game.localteam.name}</p>
+                                <IndicatorCard count={homeStreams} variant="stream" />
+                                <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                              </div>
+                              <div className="flex-2/11 flex  justify-between">
+                                <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                              </div>
+                              <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
+                                <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                <IndicatorCard count={awayStreams} variant="stream" />
+                                <p className="inline-flex items-center gap-1">
+                                  {game.visitorteam.name}
+                                  {pen.show && pen.winner === "visitorteam" ? (
+                                    <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                      <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                      PEN
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <IndicatorCard count={awayRedCards} variant="red" />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Time */}
+                              <div className="w-12 text-center flex-shrink-0">
+                                <p className="text-xs font-bold theme-text opacity-70">{statusLabel}</p>
+                              </div>
+                              {/* Home team */}
+                              <div className="flex-1 flex items-center justify-end gap-2 dark:text-white">
+                                <IndicatorCard count={homeRedCards} variant="red" />
+                                <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
+                                <IndicatorCard count={homeStreams} variant="stream" />
+                                <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                              </div>
+                              {/* Score placeholders */}
+                              <div className="flex justify-center gap-2 flex-shrink-0">
+                                <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                                <span className="font-bold text-xs whitespace-nowrap text-center py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">-</span>
+                              </div>
+                              {/* Away team */}
+                              <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
+                                <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                <IndicatorCard count={awayStreams} variant="stream" />
+                                <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
+                                <IndicatorCard count={awayRedCards} variant="red" />
+                              </div>
+                            </>
+                          )}
+                        </Link>
                       );
                     })()
                   ))}
                 </div>
               ))}
             </div>
-            
+
 
             {/* Mobile Section */}
             {(fixturesMode === "live"
@@ -1775,107 +1768,103 @@ export const dashboard = () => {
                       const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                       return (
-                    <div
-                      key={gameIdx}
-                      className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
-                    >
-                      <Link
-                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                        className="flex flex-1 items-center justify-between"
-                      >
-                        <p
-                          className={`text-xs text-center w-15 px-2 font-bold ${
-                            ui.state === "timer" || ui.state === "ht"
-                              ? "text-brand-secondary animate-pulse"
-                              : "text-neutral-n4 dark:text-snow-200 font-medium"
-                          }`}
+                        <div
+                          key={gameIdx}
+                          className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                         >
-                          {statusLabel}
-                        </p>
-                        <div className="flex flex-col flex-1 mx-1 gap-0.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                            <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                            <span className={`text-sm font-medium dark:text-white text-neutral-n4 ${
-                              pen.show && pen.winner === "localteam" ? "font-bold text-brand-secondary" : ""
-                            }`}>
-                              {game.localteam.name}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <IndicatorCard count={homeRedCards} variant="red" />
-                              <IndicatorCard count={homeStreams} variant="stream" />
-                            </span>
-                          </div>
-                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                              {fixturesMode === "live" ? (
-                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                              ) : ui.state === "ft" ? (
-                                  game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
-                                ) : ui.state === "timer" || ui.state === "ht" ? (
-                                  <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                                ) : (
-                                  "-"
-                                )}
-                              </span>
+                          <Link
+                            to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                            className="flex flex-1 items-center justify-between"
+                          >
+                            <p
+                              className={`text-xs text-center w-15 px-2 font-bold ${ui.state === "timer" || ui.state === "ht"
+                                ? "text-brand-secondary animate-pulse"
+                                : "text-neutral-n4 dark:text-snow-200 font-medium"
+                                }`}
+                            >
+                              {statusLabel}
+                            </p>
+                            <div className="flex flex-col flex-1 mx-1 gap-0.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <Image src={game.awayTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
+                                  <span className={`text-sm font-medium dark:text-white text-neutral-n4 ${pen.show && pen.winner === "localteam" ? "font-bold text-brand-secondary" : ""
+                                    }`}>
+                                    {game.localteam.name}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <IndicatorCard count={homeRedCards} variant="red" />
+                                    <IndicatorCard count={homeStreams} variant="stream" />
+                                  </span>
+                                </div>
+                                <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                  <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                    {fixturesMode === "live" ? (
+                                      <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                    ) : ui.state === "ft" ? (
+                                      game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
+                                    ) : ui.state === "timer" || ui.state === "ht" ? (
+                                      <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                    ) : (
+                                      "-"
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <Image src={game.homeTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
+                                  <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
+                                    {game.visitorteam.name}
+                                    {pen.show && pen.winner === "visitorteam" ? (
+                                      <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                        <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                        PEN
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <IndicatorCard count={awayRedCards} variant="red" />
+                                    <IndicatorCard count={awayStreams} variant="stream" />
+                                  </span>
+                                </div>
+                                <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                                  <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                    {fixturesMode === "live" ? (
+                                      <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                    ) : ui.state === "ft" ? (
+                                      game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
+                                    ) : ui.state === "timer" || ui.state === "ht" ? (
+                                      <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                    ) : (
+                                      "-"
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                            <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                            <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
-                              {game.visitorteam.name}
-                              {pen.show && pen.winner === "visitorteam" ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                                  <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                                  PEN
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <IndicatorCard count={awayRedCards} variant="red" />
-                              <IndicatorCard count={awayStreams} variant="stream" />
-                            </span>
-                          </div>
-                          <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                            <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                              {fixturesMode === "live" ? (
-                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                              ) : ui.state === "ft" ? (
-                                  game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
-                                ) : ui.state === "timer" || ui.state === "ht" ? (
-                                  <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                                ) : (
-                                  "-"
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
+                          </Link>
 
-                      <button
-                        type="button"
-                        className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
-                          fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
-                        }`}
-                        onClick={() => {
-                          if (!fixtureIdForPin) return;
-                          togglePinnedFixture(fixtureIdForPin);
-                        }}
-                        aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
-                      >
-                        <span
-                          className={`inline-flex items-center justify-center rounded-md p-1 ${
-                            pinned ? "bg-brand-secondary" : ""
-                          }`}
-                        >
-                          <StarIcon
-                            className={`w-4 h-4 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
-                          />
-                        </span>
-                      </button>
-                    </div>
+                          <button
+                            type="button"
+                            className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                              }`}
+                            onClick={() => {
+                              if (!fixtureIdForPin) return;
+                              togglePinnedFixture(fixtureIdForPin);
+                            }}
+                            aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                          >
+                            <span
+                              className={`inline-flex items-center justify-center rounded-md p-1 ${pinned ? "bg-brand-secondary" : ""
+                                }`}
+                            >
+                              <StarIcon
+                                className={`w-4 h-4 ${pinned ? "text-white fill-current" : "text-neutral-n4 dark:text-snow-200"}`}
+                              />
+                            </span>
+                          </button>
+                        </div>
                       );
                     })()
                   ))}
@@ -1963,125 +1952,122 @@ export const dashboard = () => {
                     const pinned = isPinnedFixtureId(fixtureIdForPin);
 
                     return (
-                  <Link
-                    to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
-                    key={gameIdx}
-                    className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
-                  >
-                    <p
-                      className={`text-xs text-center w-15 px-2 font-bold ${
-                        ui.state === "timer" || ui.state === "ht"
-                          ? "text-brand-secondary animate-pulse"
-                          : "text-neutral-n4 dark:text-snow-200 font-medium"
-                      }`}
-                    >
-                      {statusLabel}
-                    </p>
-                    <div className="flex flex-col flex-1 mx-1 gap-0.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                        <GetTeamLogo teamId={game.localteam.id} alt={game.localteam.name} className="w-5 h-5" />
-                        <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
-                          {game.localteam.name}
-                          {pen.show && pen.winner === "localteam" ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                              PEN
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <IndicatorCard count={homeRedCards} variant="red" />
-                          <IndicatorCard count={homeStreams} variant="stream" />
-                        </span>
-                      </div>
-                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                          <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                        </span>
-                      </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                        <GetTeamLogo teamId={game.visitorteam.id} alt={game.visitorteam.name} className="w-5 h-5" />
-                        <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
-                          {game.visitorteam.name}
-                          {pen.show && pen.winner === "visitorteam" ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
-                              <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
-                              PEN
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <IndicatorCard count={awayRedCards} variant="red" />
-                          <IndicatorCard count={awayStreams} variant="stream" />
-                        </span>
-                      </div>
-                      <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
-                        <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                          <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                        </span>
-                      </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${
-                        fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!fixtureIdForPin) return;
-                        togglePinnedFixture(fixtureIdForPin);
-                      }}
-                      aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
-                    >
-                      <span
-                        className={`inline-flex items-center justify-center rounded-md p-1 ${
-                          pinned ? "bg-brand-secondary" : ""
-                        }`}
+                      <Link
+                        to={`/football/gameinfo/${game.static_id ?? game.fixture_id}?fixtureId=${encodeURIComponent(String(game.fixture_id ?? ""))}`}
+                        key={gameIdx}
+                        className="flex items-center justify-between dark:border-[#1F2937] border-b-1 border-snow-200 px-2 py-1.5 last:border-b-0 bg-neutral-n9"
                       >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill={pinned ? "currentColor" : "none"}
-                          className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
-                          xmlns="http://www.w3.org/2000/svg"
+                        <p
+                          className={`text-xs text-center w-15 px-2 font-bold ${ui.state === "timer" || ui.state === "ht"
+                            ? "text-brand-secondary animate-pulse"
+                            : "text-neutral-n4 dark:text-snow-200 font-medium"
+                            }`}
                         >
-                          <path
-                            d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            fill="none"
-                          />
-                          <path
-                            d="M8 9h8l-1 9H9L8 9Z"
-                            fill={pinned ? "currentColor" : "none"}
-                            opacity="1"
-                          />
-                          <path
-                            d="M8 9h8l-1 9H9L8 9Z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinejoin="round"
-                            fill="none"
-                          />
-                          <path
-                            d="M12 18v3"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            fill="none"
-                          />
-                        </svg>
-                      </span>
-                    </button>
-                  </Link>
+                          {statusLabel}
+                        </p>
+                        <div className="flex flex-col flex-1 mx-1 gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
+                              <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
+                                {game.localteam.name}
+                                {pen.show && pen.winner === "localteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <IndicatorCard count={homeRedCards} variant="red" />
+                                <IndicatorCard count={homeStreams} variant="stream" />
+                              </span>
+                            </div>
+                            <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                              <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
+                              <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
+                                {game.visitorteam.name}
+                                {pen.show && pen.winner === "visitorteam" ? (
+                                  <span className="inline-flex items-center gap-1 rounded bg-snow-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold theme-text whitespace-nowrap">
+                                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                                    PEN
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <IndicatorCard count={awayRedCards} variant="red" />
+                                <IndicatorCard count={awayStreams} variant="stream" />
+                              </span>
+                            </div>
+                            <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
+                              <span className="text-xs font-bold dark:text-white text-neutral-n4">
+                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className={`ml-1 p-1 rounded hover:bg-snow-200 dark:hover:bg-neutral-n3 ${fixtureIdForPin ? "" : "opacity-40 cursor-not-allowed"
+                            }`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!fixtureIdForPin) return;
+                            togglePinnedFixture(fixtureIdForPin);
+                          }}
+                          aria-label={pinned ? "Unpin fixture" : "Pin fixture"}
+                        >
+                          <span
+                            className={`inline-flex items-center justify-center rounded-md p-1 ${pinned ? "bg-brand-secondary" : ""
+                              }`}
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill={pinned ? "currentColor" : "none"}
+                              className={pinned ? "text-white" : "text-neutral-n4 dark:text-snow-200"}
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M14 9V4.5a1.5 1.5 0 0 0-3 0V9"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                fill="none"
+                              />
+                              <path
+                                d="M8 9h8l-1 9H9L8 9Z"
+                                fill={pinned ? "currentColor" : "none"}
+                                opacity="1"
+                              />
+                              <path
+                                d="M8 9h8l-1 9H9L8 9Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinejoin="round"
+                                fill="none"
+                              />
+                              <path
+                                d="M12 18v3"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                fill="none"
+                              />
+                            </svg>
+                          </span>
+                        </button>
+                      </Link>
                     );
                   })()
                 ))}
@@ -2101,7 +2087,7 @@ export const dashboard = () => {
         <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
           <RightBar />
         </div>
-        
+
       </div>
 
       {/* Footer */}
@@ -2111,11 +2097,10 @@ export const dashboard = () => {
         <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
           <button
             type="button"
-            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${
-              isMobile && isReturnToTodayCollapsed
-                ? "w-14 h-14 rounded-full flex items-center justify-center"
-                : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
-            }`}
+            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${isMobile && isReturnToTodayCollapsed
+              ? "w-14 h-14 rounded-full flex items-center justify-center"
+              : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
+              }`}
             onClick={() => {
               setSelectedDate(new Date());
               setFixturesMode("date");

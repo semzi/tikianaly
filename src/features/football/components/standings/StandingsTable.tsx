@@ -4,6 +4,7 @@ import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
+import Image from "@/components/common/Image";
 
 export type StandingsRow = {
   position: number;
@@ -399,13 +400,10 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                     className="w-8 h-8 rounded-full object-contain flex-shrink-0"
                   />
                 ) : (
-                  <img
-                    src={team.logo || "/loading-state/shield.svg"}
+                  <Image
+                    src={team.logo}
                     alt={team.team}
                     className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                    }}
                   />
                 )}
                 {team.teamId ? (
@@ -542,13 +540,10 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                               className="w-7 h-7 rounded-full object-contain flex-shrink-0"
                             />
                           ) : (
-                            <img
-                              src={team.logo || "/loading-state/shield.svg"}
+                            <Image
+                              src={team.logo}
                               alt={team.team}
                               className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                              }}
                             />
                           )}
                         </div>
@@ -650,13 +645,10 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                             className="w-7 h-7 rounded-full object-contain flex-shrink-0"
                           />
                         ) : (
-                          <img
-                            src={team.logo || "/loading-state/shield.svg"}
+                          <Image
+                            src={team.logo}
                             alt={team.team}
                             className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/loading-state/shield.svg";
-                            }}
                           />
                         )}
                         {team.teamId ? (

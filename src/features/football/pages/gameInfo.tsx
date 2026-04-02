@@ -3,6 +3,7 @@ import StaggerChildren from "@/animations/staggerChildren";
 import FooterComp from "@/components/layout/Footer";
 
 import PageHeader from "@/components/layout/PageHeader";
+import Image from "@/components/common/Image";
 
 import {
 
@@ -31,8 +32,6 @@ import { navigate } from "@/lib/router/navigate";
 import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId, getTeamFixtures } from "@/lib/api/endpoints";
 
 import { useLocation, useParams } from "react-router-dom";
-
-import GetTeamLogo from "@/components/common/GetTeamLogo";
 
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 
@@ -2330,7 +2329,7 @@ export const gameInfo = () => {
 
       <div className="relative shrink-0">
 
-        <GetTeamLogo teamId={props.teamId} alt={props.alt} className={props.className} />
+      <Image src={String(props.teamId) === String(displayAwayTeamId) ? fixtureDetails?.awayTeam?.image_url : fixtureDetails?.homeTeam?.image_url} alt={props.alt} className={props.className} />
 
         {props.hasRedCard ? (
 
@@ -5250,7 +5249,7 @@ export const gameInfo = () => {
 
                         <div className="flex items-center gap-2 min-w-0">
 
-                          <GetTeamLogo teamId={fixtureDetails?.localteam?.id} alt={fixtureDetails?.localteam?.name ?? ""} className="w-6 h-6 object-contain" />
+                         <Image src={fixtureDetails?.homeTeam?.image_url} alt={fixtureDetails?.localteam?.name ?? ""} className="w-6 h-6 object-contain" />
 
                           <p className="theme-text font-semibold truncate">{fixtureDetails?.localteam?.name ?? "Home"}</p>
 
@@ -5268,7 +5267,7 @@ export const gameInfo = () => {
 
                         <div className="flex items-center gap-2 min-w-0">
 
-                          <GetTeamLogo teamId={fixtureDetails?.visitorteam?.id} alt={fixtureDetails?.visitorteam?.name ?? ""} className="w-6 h-6 object-contain" />
+                          <Image src={fixtureDetails?.awayTeam?.image_url} alt={fixtureDetails?.visitorteam?.name ?? ""} className="w-6 h-6 object-contain" />
 
                           <p className="theme-text font-semibold truncate">{fixtureDetails?.visitorteam?.name ?? "Away"}</p>
 

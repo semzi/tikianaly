@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getLeagueById } from "@/lib/api/endpoints";
+import Image from "./Image";
 
 interface GetLeagueLogoProps {
   leagueId: string | number;
@@ -49,14 +50,14 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({
 }) => {
   const id = String(leagueId);
   
-  const { data: logoUrl, isLoading: loading, error } = useQuery({
+  const { data: logoUrl, isLoading: loading} = useQuery({
     queryKey: ["league", "logo", id],
     queryFn: async () => {
       const res = await getLeagueById(id) as LeagueApiResponse;
       return extractImageUrl(res);
     },
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days - league logos don't change often
-    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in garbage collection for 7 days
+    staleTime: 7 * 24 * 60 * 60 * 1000, 
+    gcTime: 7 * 24 * 60 * 60 * 1000, 
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -74,22 +75,8 @@ const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({
     );
   }
 
-  if (error || !logoUrl) {
-    return (
-      <img
-        src={"/loading-state/shield.svg"}
-        alt={`${alt} - No Logo`}
-        loading="lazy"
-        decoding="async"
-        width={width}
-        height={height}
-        className={`object-contain ${className ?? ""}`}
-      />
-    );
-  }
-
   return (
-    <img
+    <Image
       src={logoUrl}
       alt={alt}
       loading="lazy"
