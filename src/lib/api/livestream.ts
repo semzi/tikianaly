@@ -31,3 +31,10 @@ export {
 
 // Legacy export for backward compatibility (basketball was using football's function)
 export { subscribeBasketballDashboardLive as subscribeBasketballLiveMatchesStream } from "./basketball/livestream";
+
+// Tennis livestream exports (WebSocket-based)
+export {
+  subscribeTennisLiveMatchesStream,
+  closeTennisLiveStream,
+  type TennisDashboardStreamHandlers,
+} from "./tennis/livestream";
