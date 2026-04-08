@@ -5,7 +5,9 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CalendarIcon,
+  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import {
   addDays,
   subDays,
@@ -34,6 +36,28 @@ import {
   type TennisMatch,
 } from "../data/mockTennis";
 import { TennisLeftBar } from "../components/TennisLeftBar";
+import { navigate } from "@/lib/router/navigate";
+
+const TENNIS_FAVORITES_STORAGE_KEY = "tennis_favorite_matches_v1";
+
+const readFavoritesStore = (): Record<string, boolean> => {
+  try {
+    const raw = localStorage.getItem(TENNIS_FAVORITES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeFavoritesStore = (next: Record<string, boolean>) => {
+  try {
+    localStorage.setItem(TENNIS_FAVORITES_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore storage errors
+  }
+};
 
 type TennisTab = "live" | "fixture";
 
@@ -220,7 +244,13 @@ const Tennis = () => {
   const [activeTab, setActiveTab] = useState<TennisTab>("fixture");
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [favorites, setFavorites] = useState<Record<string, boolean>>(() =>
+    readFavoritesStore(),
+  );
+  const [favoritesOpen, setFavoritesOpen] = useState(true);
+  const [collapsedTournaments, setCollapsedTournaments] = useState<
+    Record<string, boolean>
+  >({});
   const [selectedLeagueName, setSelectedLeagueName] = useState<string | null>(
     null,
   );
@@ -310,9 +340,31 @@ const Tennis = () => {
     [matches],
   );
 
+  const favoriteMatches = useMemo(
+    () => matches.filter((match) => favorites[match.id]),
+    [matches, favorites],
+  );
+
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  const toggleTournament = (tournament: string) => {
+    setCollapsedTournaments((prev) => ({
+      ...prev,
+      [tournament]: !prev[tournament],
+    }));
+  };
+
+  useEffect(() => {
+    writeFavoritesStore(favorites);
+  }, [favorites]);
+
+  useEffect(() => {
+    if (favoriteMatches.length > 0) {
+      setFavoritesOpen(true);
+    }
+  }, [favoriteMatches.length]);
 
   useEffect(() => {
     if (activeTab !== "live") {
@@ -357,7 +409,7 @@ const Tennis = () => {
           />
         </section>
 
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto overflow-x-auto hide-scrollbar pr-2">
           <div className="block-style flex flex-col gap-4">
             <div className="relative flex items-center justify-between dark:text-snow-200">
               <ArrowLeftIcon
@@ -447,36 +499,47 @@ const Tennis = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {groupedMatches.map((group) => (
-                <div
-                  key={group.tournament}
-                  className="block-style !p-0 overflow-hidden"
-                >
-                  <div className="flex gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/20 dark:to-orange-500/20">
-                    <p className="font-[500] text-[#23272A] dark:text-neutral-m6 text-[14px] md:text-base">
-                      {group.tournament}
+              {favoriteMatches.length > 0 ? (
+                <div className="block-style !p-0 overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937]"
+                    onClick={() => setFavoritesOpen((prev) => !prev)}
+                  >
+                    <p className="font-[600] text-[#23272A] dark:text-neutral-m6 text-[14px] md:text-base">
+                      Starred Matches ({favoriteMatches.length})
                     </p>
-                    <ArrowRightIcon className="w-5 h-5 ml-auto text-brand-secondary" />
-                  </div>
+                    <ChevronDownIcon
+                      className={`w-5 h-5 ml-auto text-brand-secondary transition-transform ${
+                        favoritesOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-                  <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
-                    {group.items.map((match) => {
-                      const statusDisplay = getMatchStatusDisplay(match);
-                      const showScores =
-                        match.player1.score !== undefined &&
-                        match.player1.score !== "" &&
-                        match.player2.score !== undefined &&
-                        match.player2.score !== "";
+                  {favoritesOpen ? (
+                    <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                      {favoriteMatches.map((match) => {
+                        const statusDisplay = getMatchStatusDisplay(match);
+                        const showScores =
+                          match.player1.score !== undefined &&
+                          match.player1.score !== "" &&
+                          match.player2.score !== undefined &&
+                          match.player2.score !== "";
 
-                      return (
-                        <div
-                          key={match.id}
-                          className="hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors dark:border-[#1F2937] border-snow-200/70 last:border-b-0"
-                        >
-                          <div className="hidden md:flex items-center gap-4 px-5 py-4">
-                            <div className="w-12 text-center">
+                        return (
+                          <div
+                            key={`fav-${match.id}`}
+                            className="hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors px-5 py-3"
+                            onClick={() =>
+                              navigate(
+                                `/tennis/game/${encodeURIComponent(match.id)}`,
+                                { state: { match } },
+                              )
+                            }
+                          >
+                            <div className="flex items-center gap-4">
                               <p
-                                className={`text-xs font-bold ${
+                                className={`text-xs font-bold w-12 text-center ${
                                   statusDisplay.isLive ||
                                   statusDisplay.text === "FT"
                                     ? "text-brand-secondary"
@@ -485,48 +548,96 @@ const Tennis = () => {
                               >
                                 {statusDisplay.text}
                               </p>
+
+                              <div className="flex-1 flex items-center justify-between gap-3">
+                                <p className="text-sm font-medium theme-text truncate">
+                                  {match.player1.name} vs {match.player2.name}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                    {showScores ? match.player1.score : "-"}
+                                  </span>
+                                  <span className="font-bold text-xs py-0.5 px-2 dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                    {showScores ? match.player2.score : "-"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleFavorite(match.id);
+                                }}
+                                className="p-1.5 rounded-full bg-brand-primary text-white"
+                              >
+                                <StarSolidIcon className="w-4 h-4" />
+                              </button>
                             </div>
-
-                            <div className="flex-1 flex items-center gap-4">
-                              <div className="flex-1 flex items-center justify-end gap-2">
-                                <span className="text-sm font-medium theme-text text-right">
-                                  {match.player1.name}
-                                </span>
-                              </div>
-
-                              <div className="w-20 flex justify-center gap-3">
-                                <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
-                                  {showScores ? match.player1.score : "-"}
-                                </span>
-                                <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
-                                  {showScores ? match.player2.score : "-"}
-                                </span>
-                              </div>
-
-                              <div className="flex-1 flex items-center justify-start gap-2">
-                                <span className="text-sm font-medium theme-text">
-                                  {match.player2.name}
-                                </span>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                toggleFavorite(match.id);
-                              }}
-                              className={`p-1.5 rounded-full transition-all ${
-                                favorites[match.id]
-                                  ? "bg-brand-primary text-white scale-110 shadow-md"
-                                  : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
-                              }`}
-                            >
-                              <StarIcon className="w-4 h-4" />
-                            </button>
                           </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
-                          <div className="flex md:hidden items-center justify-between px-3 py-3">
-                            <div className="flex flex-1 items-center">
+              {groupedMatches.map((group) => (
+                <div
+                  key={group.tournament}
+                  className="block-style !p-0 overflow-hidden"
+                >
+                  <div className="flex gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/20 dark:to-orange-500/20">
+                    <button
+                      type="button"
+                      className="font-[500] text-[#23272A] dark:text-neutral-m6 text-[14px] md:text-base hover:text-brand-primary"
+                      onClick={() =>
+                        navigate(
+                          `/tennis/series/${encodeURIComponent(group.tournament)}`,
+                          { state: { tournament: group.tournament } },
+                        )
+                      }
+                    >
+                      {group.tournament}
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-auto"
+                      onClick={() => toggleTournament(group.tournament)}
+                      aria-label="Toggle tournament matches"
+                    >
+                      <ChevronDownIcon
+                        className={`w-5 h-5 text-brand-secondary transition-transform ${
+                          collapsedTournaments[group.tournament]
+                            ? ""
+                            : "rotate-180"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {!collapsedTournaments[group.tournament] ? (
+                    <div className="divide-y divide-snow-200 dark:divide-[#1F2937] min-w-[680px] md:min-w-0">
+                      {group.items.map((match) => {
+                        const statusDisplay = getMatchStatusDisplay(match);
+                        const showScores =
+                          match.player1.score !== undefined &&
+                          match.player1.score !== "" &&
+                          match.player2.score !== undefined &&
+                          match.player2.score !== "";
+
+                        return (
+                          <div
+                            key={match.id}
+                            className="hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors dark:border-[#1F2937] border-snow-200/70 last:border-b-0 cursor-pointer"
+                            onClick={() =>
+                              navigate(
+                                `/tennis/game/${encodeURIComponent(match.id)}`,
+                                { state: { match } },
+                              )
+                            }
+                          >
+                            <div className="hidden md:flex items-center gap-4 px-5 py-4">
                               <div className="w-12 text-center">
                                 <p
                                   className={`text-xs font-bold ${
@@ -540,45 +651,173 @@ const Tennis = () => {
                                 </p>
                               </div>
 
-                              <div className="flex-1 flex flex-col gap-2 mx-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium theme-text">
+                              <div className="flex-1 flex items-center gap-4">
+                                <div className="flex-1 flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="text-sm font-medium theme-text text-right hover:text-brand-primary"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      navigate(
+                                        `/tennis/player/${encodeURIComponent(String(match.player1.id ?? match.player1.name))}`,
+                                        {
+                                          state: {
+                                            playerName: match.player1.name,
+                                            opponentName: match.player2.name,
+                                            tournament: match.tournament,
+                                          },
+                                        },
+                                      );
+                                    }}
+                                  >
                                     {match.player1.name}
-                                  </span>
-                                  <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
-                                    {showScores ? match.player1.score : "-"}
-                                  </span>
+                                  </button>
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium theme-text">
-                                    {match.player2.name}
+                                <div className="w-20 flex justify-center gap-3">
+                                  <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                    {showScores ? match.player1.score : "-"}
                                   </span>
                                   <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
                                     {showScores ? match.player2.score : "-"}
                                   </span>
                                 </div>
+
+                                <div className="flex-1 flex items-center justify-start gap-2">
+                                  <button
+                                    type="button"
+                                    className="text-sm font-medium theme-text hover:text-brand-primary"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      navigate(
+                                        `/tennis/player/${encodeURIComponent(String(match.player2.id ?? match.player2.name))}`,
+                                        {
+                                          state: {
+                                            playerName: match.player2.name,
+                                            opponentName: match.player1.name,
+                                            tournament: match.tournament,
+                                          },
+                                        },
+                                      );
+                                    }}
+                                  >
+                                    {match.player2.name}
+                                  </button>
+                                </div>
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleFavorite(match.id);
+                                }}
+                                className={`p-1.5 rounded-full transition-all ${
+                                  favorites[match.id]
+                                    ? "bg-brand-primary text-white scale-110 shadow-md"
+                                    : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
+                                }`}
+                              >
+                                {favorites[match.id] ? (
+                                  <StarSolidIcon className="w-4 h-4" />
+                                ) : (
+                                  <StarIcon className="w-4 h-4" />
+                                )}
+                              </button>
                             </div>
 
-                            <button
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                toggleFavorite(match.id);
-                              }}
-                              className={`p-2 rounded transition-all ${
-                                favorites[match.id]
-                                  ? "bg-brand-primary text-white"
-                                  : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
-                              }`}
-                            >
-                              <StarIcon className="w-4 h-4" />
-                            </button>
+                            <div className="flex md:hidden items-center justify-between px-3 py-3">
+                              <div className="flex flex-1 items-center">
+                                <div className="w-12 text-center">
+                                  <p
+                                    className={`text-xs font-bold ${
+                                      statusDisplay.isLive ||
+                                      statusDisplay.text === "FT"
+                                        ? "text-brand-secondary"
+                                        : "theme-text opacity-70"
+                                    }`}
+                                  >
+                                    {statusDisplay.text}
+                                  </p>
+                                </div>
+
+                                <div className="flex-1 flex flex-col gap-2 mx-2">
+                                  <div className="flex items-center justify-between">
+                                    <button
+                                      type="button"
+                                      className="text-sm font-medium theme-text hover:text-brand-primary"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        navigate(
+                                          `/tennis/player/${encodeURIComponent(String(match.player1.id ?? match.player1.name))}`,
+                                          {
+                                            state: {
+                                              playerName: match.player1.name,
+                                              opponentName: match.player2.name,
+                                              tournament: match.tournament,
+                                            },
+                                          },
+                                        );
+                                      }}
+                                    >
+                                      {match.player1.name}
+                                    </button>
+                                    <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                      {showScores ? match.player1.score : "-"}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-between">
+                                    <button
+                                      type="button"
+                                      className="text-sm font-medium theme-text hover:text-brand-primary"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        navigate(
+                                          `/tennis/player/${encodeURIComponent(String(match.player2.id ?? match.player2.name))}`,
+                                          {
+                                            state: {
+                                              playerName: match.player2.name,
+                                              opponentName: match.player1.name,
+                                              tournament: match.tournament,
+                                            },
+                                          },
+                                        );
+                                      }}
+                                    >
+                                      {match.player2.name}
+                                    </button>
+                                    <span className="font-bold text-sm theme-text neutral-n1 whitespace-nowrap text-center py-0.5 px-2 text-xs dark:bg-neutral-500 dark:text-white bg-snow-200 rounded">
+                                      {showScores ? match.player2.score : "-"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleFavorite(match.id);
+                                }}
+                                className={`p-2 rounded transition-all ${
+                                  favorites[match.id]
+                                    ? "bg-brand-primary text-white"
+                                    : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
+                                }`}
+                              >
+                                {favorites[match.id] ? (
+                                  <StarSolidIcon className="w-4 h-4" />
+                                ) : (
+                                  <StarIcon className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

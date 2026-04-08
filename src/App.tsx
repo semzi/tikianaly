@@ -64,6 +64,11 @@ const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
 );
 const TennisPage = lazy(() => import("./features/tennis/pages/Tennis"));
+const TennisGame = lazy(() => import("./features/tennis/pages/TennisGame"));
+const TennisSeries = lazy(() => import("./features/tennis/pages/TennisSeries"));
+const TennisPlayerProfile = lazy(
+  () => import("./features/tennis/pages/TennisPlayerProfile"),
+);
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -294,6 +299,48 @@ function AnimatedRoutes() {
               }
             />
             <Route
+              path="/tennis/game/:matchId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisGame />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis/series/:seriesId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisSeries />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis/player/:playerId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisPlayerProfile />
+                </m.div>
+              }
+            />
+            <Route
               path="/account"
               element={
                 <m.div
@@ -506,12 +553,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         {/* <BackendStatusProvider> */}
-          <BrowserRouter>
-            <ScrollToTop />
-            <Layout>
-              <AnimatedRoutes />
-            </Layout>
-          </BrowserRouter>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Layout>
+            <AnimatedRoutes />
+          </Layout>
+        </BrowserRouter>
         {/* </BackendStatusProvider> */}
       </ThemeProvider>
     </QueryClientProvider>
