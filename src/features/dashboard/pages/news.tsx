@@ -8,6 +8,16 @@ import { ArrowUpRight } from "lucide-react";
 
 import { getAllPosts } from "@/lib/api/news/newsEndpoint";
 import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+
+const getTimeAgo = (date?: string) => {
+  if (!date) return "6 hours ago";
+  try {
+    return formatDistanceToNow(new Date(date), { addSuffix: true });
+  } catch (error) {
+    return "6 hours ago";
+  }
+};
 
 // Shimmer skeleton components
 const SkeletonBlock = ({ className = "" }: { className?: string }) => (
@@ -162,7 +172,7 @@ const News = () => {
                     </div>
                     <p className="text-white text-base sm:text-lg md:text-xl font-bold line-clamp-2">{trendingPost.title}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-white text-xs sm:text-sm">{trendingPost.timeAgo || "6 hours ago"}</span>
+                      <span className="text-white text-xs sm:text-sm">{getTimeAgo(trendingPost.createdAt)}</span>
                       <div className="flex gap-2 ml-auto">
                         <HeartIcon className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-brand-secondary hover:scale-110 transition" />
                         <BookmarkIcon className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-white hover:scale-110 transition" />
@@ -197,7 +207,7 @@ const News = () => {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm dark:text-snow-200 font-medium line-clamp-2">{news.title}</p>
-                        <span className="text-[10px] sm:text-xs dark:text-snow-200/70">{news.timeAgo || "6 hours ago"}</span>
+                        <span className="text-[10px] sm:text-xs dark:text-snow-200/70">{getTimeAgo(news.createdAt)}</span>
                       </div>
                     </Link>
                   ))
@@ -227,7 +237,7 @@ const News = () => {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm dark:text-snow-200 font-medium line-clamp-2">{news.title}</p>
-                    <span className="text-[10px] sm:text-xs dark:text-snow-200/70">{news.timeAgo || "6 hours ago"}</span>
+                    <span className="text-[10px] sm:text-xs dark:text-snow-200/70">{getTimeAgo(news.createdAt)}</span>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {news.tags?.slice(0, 3).map((tag: string, i: number) => (
                         <span
