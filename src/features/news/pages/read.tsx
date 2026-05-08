@@ -24,17 +24,19 @@ const reactionConfig = [
 
 interface Post {
   _id?: string;
+  id?: string;
   title?: string;
   imageUrl?: string;
   content?: string;
   writer?: string;
   createdAt?: string;
   hashtags?: string[];
-  reactions?: {
-    like?: number;
-    love?: number;
-    clap?: number;
-  };
+  reactions?: Array<{
+    id?: string;
+    type?: string;
+    createdAt?: string;
+    blogPostId?: string;
+  }>;
   comments?: Array<{ displayName: string; message: string }>;
 }
 
@@ -57,7 +59,6 @@ export default function BlogPostClient({
   const [post, setPost] = useState<Post | null>(initialPost);
   const [error, setError] = useState<string | null>(initialError);
   const [selected, setSelected] = useState<string | null>(null);
-  const [isReacting, setIsReacting] = useState<boolean>(false);
   const [hasReacted, setHasReacted] = useState<boolean>(false);
   const [comments, setComments] = useState<
     Array<{ displayName: string; message: string }>
@@ -69,12 +70,16 @@ export default function BlogPostClient({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const reactionCounts = useMemo<Record<string, number>>(() => {
-    return {
-      like: post?.reactions?.like ?? 0,
-      love: post?.reactions?.love ?? 0,
-      clap: post?.reactions?.clap ?? 0,
-    };
-  }, [post?.reactions?.clap, post?.reactions?.like, post?.reactions?.love]);
+    const counts: Record<string, number> = { like: 0, love: 0, clap: 0 };
+    if (Array.isArray(post?.reactions)) {
+      post.reactions.forEach((r) => {
+        if (r.type && r.type in counts) {
+          counts[r.type]++;
+        }
+      });
+    }
+    return counts;
+  }, [post?.reactions]);
 
   // determine id from URL params (either ?id=... or last path segment)
   useEffect(() => {
@@ -174,28 +179,47 @@ export default function BlogPostClient({
   };
 
   const handleReact = async (type: ReactionType) => {
-    const postId = post?._id ?? effectiveId;
-    if (!postId || isReacting || hasReacted) return;
-    setIsReacting(true);
+    const postId = post?._id ?? post?.id ?? effectiveId;
+    if (!postId || hasReacted) return;
+    
+    // Optimistic UI updates
     setSelected(type);
+    setHasReacted(true);
+    setPost((prev) => {
+      if (!prev) return prev;
+      const currentReactions = Array.isArray(prev.reactions) ? prev.reactions : [];
+      return {
+        ...prev,
+        reactions: [
+          ...currentReactions,
+          {
+            id: `temp-${Date.now()}`,
+            type,
+            createdAt: new Date().toISOString(),
+            blogPostId: postId,
+          },
+        ],
+      };
+    });
+
     try {
-      await reactToPost(postId, type);
       const key = `post:${effectiveId}:reaction`;
       if (typeof window !== "undefined" && effectiveId)
         localStorage.setItem(key, type);
-      setHasReacted(true);
-      await refreshPost();
+        
+      // Background request
+      reactToPost(postId, type).catch(console.error);
     } catch {
+      // Revert if setting local storage fails
       setSelected(null);
-    } finally {
-      setIsReacting(false);
+      setHasReacted(false);
     }
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    // fallback: try _id property or effectiveId
-    const finalPostId = post?._id ?? effectiveId;
+    // fallback: try _id or id property or effectiveId
+    const finalPostId = post?._id ?? post?.id ?? effectiveId;
     if (!finalPostId || isSubmittingComment) return;
     const trimmedName = displayName.trim() || "Anonymous";
     const trimmedMessage = message.trim();
@@ -367,7 +391,7 @@ export default function BlogPostClient({
                   }`}
                   aria-label={cfg.label}
                   type="button"
-                  disabled={isReacting || hasReacted || isRefreshing}
+                  disabled={hasReacted || isRefreshing}
                   onClick={() => handleReact(cfg.key as ReactionType)}
                 >
                   <span className="flex items-center gap-2 text-neutral-m6">
