@@ -27,18 +27,23 @@ interface LeagueApiResponse {
 
 const extractImageUrl = (data: LeagueApiResponse): string | null => {
   const item = data?.responseObject?.item;
-  const league = Array.isArray(item) ? item[0] : item;
+  const league = (Array.isArray(item) ? item[0] : item) as any;
 
   const rawImage = String(
-    (league as any)?.image ??
-      (league as any)?.logo ??
-      (league as any)?.image_path ??
+    league?.image_url ??
+      league?.image ??
+      league?.logo ??
+      league?.image_path ??
       ""
   ).trim();
 
   if (!rawImage) return null;
   
-  return rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
+  if (rawImage.startsWith("http") || rawImage.startsWith("data:image")) {
+    return rawImage;
+  }
+  
+  return `data:image/png;base64,${rawImage}`;
 };
 
 const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({

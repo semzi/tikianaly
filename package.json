@@ -21,6 +21,7 @@
     "date-fns": "^4.1.0",
     "fast-json-patch": "^3.1.1",
     "framer-motion": "^12.23.12",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.513.0",
     "marked": "^17.0.1",
     "pnpm": "^10.26.1",
@@ -33,7 +34,8 @@
     "react-zoom-pan-pinch": "^3.7.0",
     "recharts": "^3.3.0",
     "tailwindcss": "^4.1.8",
-    "tw-merge": "^0.0.1-alpha.3"
+    "tw-merge": "^0.0.1-alpha.3",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

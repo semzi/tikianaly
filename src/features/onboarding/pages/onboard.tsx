@@ -1,5 +1,21 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import Lottie from "lottie-react";
+
+const LottieAnimation = ({ url }: { url: string }) => {
+  const [animationData, setAnimationData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => setAnimationData(data))
+      .catch((err) => console.error("Failed to load animation:", err));
+  }, [url]);
+
+  if (!animationData) return <div className="animate-pulse bg-white/20 w-64 h-64 rounded-xl"></div>;
+
+  return <Lottie animationData={animationData} loop={true} className="max-w-full max-h-[80%] object-contain" />;
+};
 import Login from "@/features/auth/pages/login";
 import Signup from "@/features/auth/pages/signup";
 import { navigate } from "@/lib/router/navigate";
@@ -30,11 +46,11 @@ function Onboard() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   
   const [currentSlide, setCurrentSlide] = useState(0);
-  const onboardingImages = [
-    "/onboarding/onboarding1.svg",
-    "/onboarding/onboarding2.svg", 
-    "/onboarding/onboarding3.svg",
-    "/onboarding/onboarding4.svg"
+  const onboardingAnimations = [
+    "/onboarding/Robot-screen.json",
+    "/onboarding/Analytics-screen.json", 
+    "/onboarding/Banter-screen.json",
+    "/onboarding/Sports-hub-screen.json"
   ];
 
   const slideContent = [
@@ -75,11 +91,11 @@ function Onboard() {
   // Auto-slide functionality
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % onboardingImages.length);
-    }, 4000); // Change slide every 4 seconds
+      setCurrentSlide((prev) => (prev + 1) % onboardingAnimations.length);
+    }, 6000); // Change slide every 4 seconds
 
     return () => clearInterval(interval);
-  }, [onboardingImages.length]);
+  }, [onboardingAnimations.length]);
 
   useEffect(() => {
     if (isOnboard) navigate("/signup");
@@ -339,18 +355,14 @@ function Onboard() {
           {/* Fixed slide container at top */}
           <div className="flex-1 flex items-center justify-center pt-20">
             <div className="relative w-full h-full flex items-center justify-center">
-              {onboardingImages.map((image, index) => (
+              {onboardingAnimations.map((animUrl, index) => (
                 <div
                   key={index}
                   className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
                     index === currentSlide ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  <img
-                    src={image}
-                    alt={`Onboarding slide ${index + 1}`}
-                    className="max-w-full max-h-[80%] object-contain"
-                  />
+                  <LottieAnimation url={animUrl} />
                 </div>
               ))}
             </div>
@@ -370,7 +382,7 @@ function Onboard() {
 
             {/* Navigation dots */}
             <div className="flex gap-1 justify-center items-center">
-              {onboardingImages.map((_, index) => (
+              {onboardingAnimations.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}

@@ -21,7 +21,8 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ScrollToTop from "./ScrollToTop";
 import Navigation from "./components/layout/Navigation";
 import { setNavigator } from "./lib/router/navigate";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
+import Lottie from "lottie-react";
 // import { BackendStatusProvider } from "@/context/BackendStatusContext";
 // import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -54,6 +55,22 @@ const PrivacyPolicy = lazy(
 const BasketballPage = lazy(
   () => import("./features/basketball/pages/basketBall"),
 );
+
+// Splash screen loading animation component
+const SplashLottie = () => {
+  const [animationData, setAnimationData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/splash-screen/Spalsh-Screen.json")
+      .then((res) => res.json())
+      .then(setAnimationData)
+      .catch((err) => console.error("Failed to load splash animation:", err));
+  }, []);
+
+  if (!animationData) return null;
+  return <Lottie animationData={animationData} loop className="w-48 h-48 mx-auto" />;
+};
+
 const BasketballMatchDetail = lazy(
   () => import("./features/basketball/pages/basketBallMatchDetail"),
 );
@@ -89,10 +106,10 @@ function AnimatedRoutes() {
   return (
     <LazyMotion features={domAnimation}>
       <AnimatePresence mode="sync">
-        <Suspense fallback={<div className="p-6">Loading...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-brand-primary"><SplashLottie /></div>}>
           <Routes location={location} key={location.pathname}>
             {/* No Navigation */}
-            <Route path="/login" element={<Onboard />} />
+            <Route path="/login" element={<Onboard />} /> 
             <Route path="/signup" element={<Onboard />} />
 
             {/* With Navigation */}

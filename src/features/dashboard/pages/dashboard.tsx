@@ -970,7 +970,7 @@ export const dashboard = () => {
                                         </p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -979,7 +979,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p className="inline-flex items-center gap-1">
@@ -1002,7 +1002,7 @@ export const dashboard = () => {
                                         <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -1011,7 +1011,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
@@ -1026,7 +1026,7 @@ export const dashboard = () => {
                                         <p>{game.localteam?.name ?? game?.localteam_name ?? "Home"}</p>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                       </div>
                                       <div className="flex-2/11 flex  justify-between">
@@ -1035,7 +1035,7 @@ export const dashboard = () => {
                                       </div>
                                       <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                          <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <p>{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</p>
@@ -1054,7 +1054,7 @@ export const dashboard = () => {
                                         <span className="text-sm font-medium theme-text">{game.localteam?.name ?? game?.localteam_name ?? "Home"}</span>
                                         <IndicatorCard count={homeStreams} variant="stream" />
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                                          <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                       </div>
                                       {/* Score placeholders */}
@@ -1065,7 +1065,7 @@ export const dashboard = () => {
                                       {/* Away team */}
                                       <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                          <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                                         )}
                                         <IndicatorCard count={awayStreams} variant="stream" />
                                         <span className="text-sm font-medium theme-text">{game.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}</span>
@@ -1104,7 +1104,7 @@ export const dashboard = () => {
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1">
                                         {game?.localteam?.id && game?.localteam?.name && (
-                                          <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
+                                          <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5" />
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.localteam?.name ?? game?.localteam_name ?? "Home"}
@@ -1135,7 +1135,7 @@ export const dashboard = () => {
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1">
                                         {game?.visitorteam?.id && game?.visitorteam?.name && (
-                                          <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
+                                          <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
                                         )}
                                         <span className="text-sm font-medium dark:text-white text-neutral-n4">
                                           {game?.visitorteam?.name ?? game?.visitorteam_name ?? "Away"}
@@ -1357,14 +1357,14 @@ export const dashboard = () => {
                                       ) : null}
                                     </p>
                                     <IndicatorCard count={homeStreams} variant="stream" />
-                                    <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                   </div>
                                   <div className="flex-2/11 flex  justify-between">
                                     <p className="score">{game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? '-'}</p>
                                     <p className="score">{game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? '-'}</p>
                                   </div>
                                   <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                                    <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                     <IndicatorCard count={awayStreams} variant="stream" />
                                     <p className="inline-flex items-center gap-1">
                                       {game.visitorteam.name}
@@ -1385,14 +1385,14 @@ export const dashboard = () => {
                                     <IndicatorCard count={homeRedCards} variant="red" />
                                     <p>{game.localteam.name}</p>
                                     <IndicatorCard count={homeStreams} variant="stream" />
-                                    <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                   </div>
                                   <div className="flex-2/11 flex  justify-between">
                                     <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
                                     <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
                                   </div>
                                   <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                                    <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                     <IndicatorCard count={awayStreams} variant="stream" />
                                     <p>{game.visitorteam.name}</p>
                                     <IndicatorCard count={awayRedCards} variant="red" />
@@ -1405,14 +1405,14 @@ export const dashboard = () => {
                                     <IndicatorCard count={homeRedCards} variant="red" />
                                     <p>{game.localteam.name}</p>
                                     <IndicatorCard count={homeStreams} variant="stream" />
-                                    <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                                   </div>
                                   <div className="flex-2/11 flex  justify-between">
                                     <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
                                     <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
                                   </div>
                                   <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                                    <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                    <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                     <IndicatorCard count={awayStreams} variant="stream" />
                                     <p>{game.visitorteam.name}</p>
                                     <IndicatorCard count={awayRedCards} variant="red" />
@@ -1429,7 +1429,7 @@ export const dashboard = () => {
                                     <IndicatorCard count={homeRedCards} variant="red" />
                                     <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
                                     <IndicatorCard count={homeStreams} variant="stream" />
-                                    <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                                    <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
                                   </div>
                                   {/* Score placeholders */}
                                   <div className="flex justify-center gap-2 flex-shrink-0">
@@ -1438,7 +1438,7 @@ export const dashboard = () => {
                                   </div>
                                   {/* Away team */}
                                   <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
-                                    <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                    <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                                     <IndicatorCard count={awayStreams} variant="stream" />
                                     <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
                                     <IndicatorCard count={awayRedCards} variant="red" />
@@ -1561,14 +1561,14 @@ export const dashboard = () => {
                                 <IndicatorCard count={homeRedCards} variant="red" />
                                 <p>{game.localteam.name}</p>
                                 <IndicatorCard count={homeStreams} variant="stream" />
-                                <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                               </div>
                               <div className="flex-2/11 flex  justify-between">
                                 <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
                                 <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
                               </div>
                               <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                                <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                 <IndicatorCard count={awayStreams} variant="stream" />
                                 <p className="inline-flex items-center gap-1">
                                   {game.visitorteam.name}
@@ -1589,14 +1589,14 @@ export const dashboard = () => {
                                 <IndicatorCard count={homeRedCards} variant="red" />
                                 <p>{game.localteam.name}</p>
                                 <IndicatorCard count={homeStreams} variant="stream" />
-                                <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
+                                <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-fit h-5 mr-1" />
                               </div>
                               <div className="flex-2/11 flex  justify-between">
                                 <AnimatedScore className="score" value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
                                 <AnimatedScore className="score" value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
                               </div>
                               <div className="flex dark:text-white flex-4/11 justify-start items-center gap-3">
-                                <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
+                                <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-fit h-5 mr-1" />
                                 <IndicatorCard count={awayStreams} variant="stream" />
                                 <p className="inline-flex items-center gap-1">
                                   {game.visitorteam.name}
@@ -1621,7 +1621,7 @@ export const dashboard = () => {
                                 <IndicatorCard count={homeRedCards} variant="red" />
                                 <span className="text-sm font-medium theme-text">{game.localteam.name}</span>
                                 <IndicatorCard count={homeStreams} variant="stream" />
-                                <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
+                                <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5 object-contain" />
                               </div>
                               {/* Score placeholders */}
                               <div className="flex justify-center gap-2 flex-shrink-0">
@@ -1630,7 +1630,7 @@ export const dashboard = () => {
                               </div>
                               {/* Away team */}
                               <div className="flex-1 flex items-center justify-start gap-2 dark:text-white">
-                                <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
+                                <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5 object-contain" />
                                 <IndicatorCard count={awayStreams} variant="stream" />
                                 <span className="text-sm font-medium theme-text">{game.visitorteam.name}</span>
                                 <IndicatorCard count={awayRedCards} variant="red" />
@@ -1787,7 +1787,7 @@ export const dashboard = () => {
                             <div className="flex flex-col flex-1 mx-1 gap-0.5">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
+                                  <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5" />
                                   <span className={`text-sm font-medium dark:text-white text-neutral-n4 ${pen.show && pen.winner === "localteam" ? "font-bold text-brand-secondary" : ""
                                     }`}>
                                     {game.localteam.name}
@@ -1813,7 +1813,7 @@ export const dashboard = () => {
                               </div>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
+                                  <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
                                   <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                                     {game.visitorteam.name}
                                     {pen.show && pen.winner === "visitorteam" ? (
@@ -1968,7 +1968,7 @@ export const dashboard = () => {
                         <div className="flex flex-col flex-1 mx-1 gap-0.5">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <Image src={game.homeTeam.image_url} alt={game.localteam.name} className="w-5 h-5" />
+                              <Image src={game.homeTeam?.image_url} alt={game.localteam.name} className="w-5 h-5" />
                               <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                                 {game.localteam.name}
                                 {pen.show && pen.winner === "localteam" ? (
@@ -1991,7 +1991,7 @@ export const dashboard = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <Image src={game.awayTeam.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
+                              <Image src={game.awayTeam?.image_url} alt={game.visitorteam.name} className="w-5 h-5" />
                               <span className="text-sm font-medium dark:text-white text-neutral-n4 inline-flex items-center gap-1">
                                 {game.visitorteam.name}
                                 {pen.show && pen.winner === "visitorteam" ? (
