@@ -63,6 +63,13 @@ const BasketballLeagueProfile = lazy(
 const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
 );
+const AmericanFootballPage = lazy(
+  () => import("./features/american-football/pages/AmericanFootball"),
+);
+const AmericanFootballMatchDetail = lazy(
+  () =>
+    import("./features/american-football/pages/AmericanFootballMatchDetail"),
+);
 const TennisPage = lazy(() => import("./features/tennis/pages/Tennis"));
 const TennisGame = lazy(() => import("./features/tennis/pages/TennisGame"));
 const TennisSeries = lazy(() => import("./features/tennis/pages/TennisSeries"));
@@ -281,6 +288,34 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <BasketballLeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/american-football"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AmericanFootballPage />
+                </m.div>
+              }
+            />
+            <Route
+              path="/american-football/match/:matchId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AmericanFootballMatchDetail />
                 </m.div>
               }
             />
