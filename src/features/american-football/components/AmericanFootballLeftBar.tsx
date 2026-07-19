@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronUpDownIcon,
   MagnifyingGlassIcon,
@@ -7,6 +8,11 @@ import {
   mockAmericanFootballAllLeagues,
   mockAmericanFootballPopularLeagues,
 } from "../data/mockAmericanFootball";
+import {
+  getAmericanFootballCoverage,
+  isAmericanFootballApiEnabled,
+  normalizeAmericanFootballLeagues,
+} from "@/lib/api/american-football";
 
 type AmericanFootballLeftBarProps = {
   selectedLeagueName?: string | null;
@@ -20,17 +26,30 @@ export const AmericanFootballLeftBar = ({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
+  const leaguesQuery = useQuery({
+    queryKey: ["american-football", "coverage"],
+    enabled: isAmericanFootballApiEnabled,
+    queryFn: async () => normalizeAmericanFootballLeagues(await getAmericanFootballCoverage()),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const allLeagues = leaguesQuery.data?.length
+    ? leaguesQuery.data
+    : mockAmericanFootballAllLeagues;
+  const popularLeagues = leaguesQuery.data?.length
+    ? leaguesQuery.data.slice(0, 6)
+    : mockAmericanFootballPopularLeagues;
 
   const leaguesByRegion = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const filtered = query
-      ? mockAmericanFootballAllLeagues.filter((league) =>
+      ? allLeagues.filter((league) =>
           [league.name, league.region, league.tier, league.season]
             .join(" ")
             .toLowerCase()
             .includes(query),
         )
-      : mockAmericanFootballAllLeagues;
+      : allLeagues;
 
     return Object.entries(
       filtered.reduce<Record<string, typeof filtered>>((groups, league) => {
@@ -40,7 +59,7 @@ export const AmericanFootballLeftBar = ({
         return groups;
       }, {}),
     ).sort(([a], [b]) => a.localeCompare(b));
-  }, [searchQuery]);
+  }, [allLeagues, searchQuery]);
 
   return (
     <div className="flex flex-col gap-y-10">
@@ -48,7 +67,7 @@ export const AmericanFootballLeftBar = ({
         <p className="font-[500] text-[#23272A] dark:text-white mb-2">
           Popular Leagues
         </p>
-        {mockAmericanFootballPopularLeagues.map((league) => (
+        {popularLeagues.map((league) => (
           <li
             key={league.id}
             className={`flex mt-5 items-center gap-2 text-sm mb-4 cursor-pointer transition-colors hover:text-brand-primary ${

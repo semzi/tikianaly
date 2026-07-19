@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -14,6 +15,13 @@ import {
   mockAmericanFootballUpcomingMatches,
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
+import {
+  getAmericanFootballMatchDetail,
+  getAmericanFootballPlayByPlay,
+  isAmericanFootballApiEnabled,
+  normalizeAmericanFootballMatchDetail,
+  normalizeAmericanFootballTimeline,
+} from "@/lib/api/american-football";
 
 type MatchTab = "stats" | "timeline" | "info";
 type MatchLocationState = { match?: AmericanFootballMatch };
@@ -37,6 +45,22 @@ const AmericanFootballMatchDetail = () => {
   const [activeTab, setActiveTab] = useState<MatchTab>("stats");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
+  const detailQuery = useQuery({
+    queryKey: ["american-football", "match", matchId],
+    enabled: isAmericanFootballApiEnabled && Boolean(matchId),
+    queryFn: async () => normalizeAmericanFootballMatchDetail(await getAmericanFootballMatchDetail(String(matchId))),
+    staleTime: 20_000,
+    refetchInterval: 20_000,
+  });
+
+  const playByPlayQuery = useQuery({
+    queryKey: ["american-football", "match", matchId, "play-by-play"],
+    enabled: isAmericanFootballApiEnabled && Boolean(matchId) && activeTab === "timeline",
+    queryFn: async () => normalizeAmericanFootballTimeline(await getAmericanFootballPlayByPlay(String(matchId))),
+    staleTime: 20_000,
+    refetchInterval: 20_000,
+  });
+
   const match = useMemo<AmericanFootballMatch>(() => {
     const fromMock = [
       ...mockAmericanFootballLiveMatches,
@@ -44,6 +68,7 @@ const AmericanFootballMatchDetail = () => {
     ].find((item) => item.id === matchId);
 
     return (
+      detailQuery.data ??
       state.match ??
       fromMock ?? {
         id: String(matchId ?? "american-football-game"),
@@ -59,7 +84,7 @@ const AmericanFootballMatchDetail = () => {
         highlight: "Match information will be available soon.",
       }
     );
-  }, [matchId, state.match]);
+  }, [detailQuery.data, matchId, state.match]);
 
   const [homeScore, awayScore] = splitScore(match.score);
   const isLive = match.status.toLowerCase().includes("live");
@@ -69,7 +94,7 @@ const AmericanFootballMatchDetail = () => {
     { id: "info" as MatchTab, label: "Info", icon: InformationCircleIcon },
   ];
 
-  const statsRows = [
+  const statsRows = match.stats?.length ? match.stats : [
     { label: "Total Yards", home: isLive ? 238 : 0, away: isLive ? 261 : 0 },
     { label: "Passing Yards", home: isLive ? 156 : 0, away: isLive ? 184 : 0 },
     { label: "Rushing Yards", home: isLive ? 82 : 0, away: isLive ? 77 : 0 },
@@ -77,7 +102,7 @@ const AmericanFootballMatchDetail = () => {
     { label: "Time of Possession", home: isLive ? 28 : 0, away: isLive ? 32 : 0 },
   ];
 
-  const timelineRows = isLive
+  const fallbackTimelineRows = isLive
     ? [
         { time: "Q1", event: `${match.homeTeam} opened the scoring.`, side: "home" },
         { time: "Q2", event: `${match.awayTeam} answered with a touchdown drive.`, side: "away" },
@@ -87,6 +112,11 @@ const AmericanFootballMatchDetail = () => {
         { time: match.kickoff, event: "Kickoff scheduled.", side: "neutral" },
         { time: "Preview", event: match.highlight, side: "neutral" },
       ];
+  const timelineRows = playByPlayQuery.data?.length
+    ? playByPlayQuery.data
+    : match.timeline?.length
+      ? match.timeline
+      : fallbackTimelineRows;
 
   return (
     <div className="min-h-screen dark:bg-[#0D1117] bg-[#f6f6f6]">
@@ -136,9 +166,11 @@ const AmericanFootballMatchDetail = () => {
           <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5"><p className="font-bold uppercase text-sm theme-text tracking-wide">American Football Match Statistics</p></div>
           <div className="p-5 space-y-6">
             {statsRows.map((row) => {
-              const total = row.home + row.away;
-              const homeWidth = total ? (row.home / total) * 100 : 50;
-              const awayWidth = total ? (row.away / total) * 100 : 50;
+              const homeValue = Number(row.home) || 0;
+              const awayValue = Number(row.away) || 0;
+              const total = homeValue + awayValue;
+              const homeWidth = total ? (homeValue / total) * 100 : 50;
+              const awayWidth = total ? (awayValue / total) * 100 : 50;
               return <div key={row.label} className="space-y-2"><div className="text-center"><span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">{row.label}</span></div><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><div className="space-y-1"><p className="text-sm font-bold theme-text text-right">{row.home}{row.label === "Time of Possession" && isLive ? ":00" : ""}</p><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-400 to-green-500" style={{ width: `${homeWidth}%` }} /></div></div><p className="text-xs uppercase font-semibold text-neutral-n4">vs</p><div className="space-y-1"><p className="text-sm font-bold theme-text">{row.away}{row.label === "Time of Possession" && isLive ? ":00" : ""}</p><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-blue-400 to-blue-500" style={{ width: `${awayWidth}%` }} /></div></div></div></div>;
             })}
             {!isLive ? <p className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-4 text-sm text-neutral-n4">Team statistics will appear when the game begins.</p> : null}

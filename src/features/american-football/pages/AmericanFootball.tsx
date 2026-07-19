@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -20,6 +21,12 @@ import {
   mockAmericanFootballUpcomingMatches,
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
+import {
+  getAmericanFootballFixturesByDate,
+  getAmericanFootballLiveMatches,
+  isAmericanFootballApiEnabled,
+  normalizeAmericanFootballMatches,
+} from "@/lib/api/american-football";
 
 const FAVORITES_STORAGE_KEY = "american_football_favorite_matches_v1";
 
@@ -76,11 +83,31 @@ const AmericanFootballPage = () => {
     },
   ], [selectedDate]);
 
+  const matchesQuery = useQuery({
+    queryKey: [
+      "american-football",
+      activeTab,
+      selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
+    ],
+    enabled: isAmericanFootballApiEnabled,
+    queryFn: async () => {
+      const payload = activeTab === "live"
+        ? await getAmericanFootballLiveMatches()
+        : await getAmericanFootballFixturesByDate(
+            format(selectedDate ?? new Date(), "yyyy-MM-dd"),
+          );
+      return normalizeAmericanFootballMatches(payload);
+    },
+    staleTime: activeTab === "live" ? 20_000 : 60 * 60 * 1000,
+    refetchInterval: activeTab === "live" ? 20_000 : false,
+  });
+
   const allMatches = useMemo(() => {
-    if (activeTab === "live") return mockAmericanFootballLiveMatches;
-    // Mock fixtures currently represent the selected day; this keeps the same date UI ready for API integration.
-    return mockAmericanFootballUpcomingMatches;
-  }, [activeTab, selectedDate]);
+    const fallback = activeTab === "live"
+      ? mockAmericanFootballLiveMatches
+      : mockAmericanFootballUpcomingMatches;
+    return matchesQuery.data?.length ? matchesQuery.data : fallback;
+  }, [activeTab, matchesQuery.data]);
 
   const matches = useMemo(() => {
     if (!selectedLeagueName) return allMatches;

@@ -10,6 +10,20 @@ export type AmericanFootballMatch = {
   venue: string;
   score: string;
   highlight: string;
+  stats?: AmericanFootballStat[];
+  timeline?: AmericanFootballTimelineEvent[];
+};
+
+export type AmericanFootballStat = {
+  label: string;
+  home: string | number;
+  away: string | number;
+};
+
+export type AmericanFootballTimelineEvent = {
+  time: string;
+  event: string;
+  side: "home" | "away" | "neutral";
 };
 
 export type AmericanFootballLeague = {
