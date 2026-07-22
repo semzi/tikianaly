@@ -1,6 +1,6 @@
+// Original StandingsTable.tsx restored to previous version
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import GetTeamLogo from "@/components/common/GetTeamLogo";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
 import { navigate } from "@/lib/router/navigate";
 import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
@@ -10,7 +10,7 @@ export type StandingsRow = {
   position: number;
   team: string;
   teamId?: number;
-  logo?: string;
+  imageUrl?: string;
   recentForm?: string;
   description?: string;
   played: number;
@@ -57,6 +57,7 @@ type StandingsViewMode = "short" | "long" | "recent";
 type LeagueStandingRow = {
   team_id?: number;
   team_name?: string;
+  image_url?: string;
   position?: number;
   overall?: {
     played?: number;
@@ -87,19 +88,20 @@ type Props = {
   rows?: StandingsRow[];
   standingsData?: GoalServeStandingsResponse;
   leagueId?: string | number;
+  season?: string;
   localteamId?: string | number;
   visitorteamId?: string | number;
 };
 
-export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) => {
+export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }: Props) => {
   const {
     data: apiData,
     error: apiError,
     isLoading,
   } = useQuery<StandingsByLeagueResponse>({
-    queryKey: ["leagueStandings", leagueId],
+    queryKey: ["leagueStandings", leagueId, season],
     queryFn: async () =>
-      (await getStandingsByLeagueId(String(leagueId ?? ""))) as StandingsByLeagueResponse,
+      (await getStandingsByLeagueId(String(leagueId ?? ""), season)) as StandingsByLeagueResponse,
     enabled: !!leagueId,
     staleTime: 60_000,
   });
@@ -179,7 +181,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
 
   const StandingsSkeletonMobile = () => (
     <div className="block lg:hidden">
-      <div className="block-style">
+      <div>
         <div className="flex">
           <div className="w-[220px] shrink-0">
             <div className="grid grid-cols-[40px_1fr] gap-3 px-4 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
@@ -262,6 +264,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
             position: toNum(t.position),
             team: String(t.team_name ?? ""),
             teamId: Number.isFinite(Number(t.team_id)) ? Number(t.team_id) : undefined,
+            imageUrl: typeof t.image_url === "string" ? t.image_url : undefined,
             recentForm: typeof t.recent_form === "string" ? t.recent_form : undefined,
             description: typeof t.description === "string" ? t.description : undefined,
             played: toNum(overall.played),
@@ -272,7 +275,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
             goalsAgainst,
             goalDiff,
             points: toNum(t.points),
-          } satisfies StandingsRow;
+          };
         })
         .filter((r) => r.team.trim())
         .sort((a, b) => a.position - b.position);
@@ -304,37 +307,37 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
     });
 
     const count = labels.length;
-    if (count === 0) return [] as Array<{ label: string; borderClass: string }>;
+    if (count === 0) return [] as Array<{ label: string; pillClass: string }>;
 
     const extraPalette = [
-      "border-purple-500",
-      "border-orange-500",
-      "border-pink-500",
-      "border-teal-500",
-      "border-indigo-500",
-      "border-lime-500",
+      "bg-purple-500",
+      "bg-orange-500",
+      "bg-pink-500",
+      "bg-teal-500",
+      "bg-indigo-500",
+      "bg-lime-500",
     ];
 
     const colorForIndex = (idx: number) => {
-      if (idx === 0) return "border-ui-success";
-      if (idx === 1) return "border-blue-500";
-      if (idx === 2) return "border-yellow-500";
-      if (count >= 4 && idx === count - 1) return "border-ui-negative";
+      if (idx === 0) return "bg-[#FFC82C]";
+      if (idx === 1) return "bg-[#E5E5EA]";
+      if (idx === 2) return "bg-[#CD7F32]";
+      if (count >= 4 && idx === count - 1) return "bg-ui-negative";
       const offset = Math.max(0, idx - 3);
       return extraPalette[offset % extraPalette.length];
     };
 
     return labels.map((label, idx) => ({
       label,
-      borderClass: `border-l-[3px] ${colorForIndex(idx)}`,
+      pillClass: colorForIndex(idx),
     }));
   }, [data]);
 
-  const getZoneBorderClass = (description?: string) => {
+  const getZonePillClass = (description?: string) => {
     const label = String(description ?? "").trim();
     if (!label) return "";
     const found = zoneLegend.find((x) => x.label.toLowerCase() === label.toLowerCase());
-    return found?.borderClass ?? "";
+    return found?.pillClass ?? "";
   };
 
   const legendItems = zoneLegend;
@@ -372,8 +375,8 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
       mode === "long"
         ? "grid-cols-[40px_1fr_40px_40px_40px_40px_50px_50px_50px_50px_90px]"
         : mode === "recent"
-          ? "grid-cols-[40px_1fr_40px_50px_50px_90px]"
-          : "grid-cols-[40px_1fr_40px_50px_50px]";
+        ? "grid-cols-[40px_1fr_40px_50px_50px_90px]"
+        : "grid-cols-[40px_1fr_40px_50px_50px]";
 
     const showLong = mode === "long";
     const showForm = mode === "long" || mode === "recent";
@@ -381,31 +384,26 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
     return (
       <div className="flex flex-col gap-2">
         {rowItems.map((team) => {
-          const borderClass = getZoneBorderClass(team.description);
+          const pillClass = getZonePillClass(team.description);
           const highlightBg = getHighlightBgClass(team.teamId);
 
           return (
             <div
               key={`${team.position}-${team.team}`}
-              className={`grid ${gridClass} gap-3 ${paddingX} items-center relative whitespace-nowrap ${borderClass} ${highlightBg}`}
+              className={`grid ${gridClass} gap-3 ${paddingX} items-center relative whitespace-nowrap ${highlightBg}`}
             >
+              {pillClass && (
+                <div className={`absolute left-0 top-[15%] bottom-[15%] w-1 rounded-r-md ${pillClass}`} />
+              )}
               <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
                 {team.position}
               </div>
               <div className="flex items-center gap-3 min-w-0">
-                {team.teamId ? (
-                  <GetTeamLogo
-                    teamId={team.teamId}
-                    alt={team.team}
-                    className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-                  />
-                ) : (
-                  <Image
-                    src={team.logo}
-                    alt={team.team}
-                    className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-                  />
-                )}
+                <Image
+                  src={team.imageUrl || ""}
+                  alt={team.team}
+                  className="w-8 h-8 rounded-full object-contain flex-shrink-0"
+                />
                 {team.teamId ? (
                   <button
                     type="button"
@@ -506,7 +504,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                   <div className="text-center">Form</div>
                 </div>
               ) : (
-                <div className="grid grid-cols-[40px_1fr_40px_50px_50px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                <div className="grid grid-cols-[40px_1rf_40px_50px_50px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
                   <div className="text-center">#</div>
                   <div>Team</div>
                   <div className="text-center">P</div>
@@ -520,34 +518,32 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
 
           <div className="block lg:hidden">
             {viewMode === "long" ? (
-              <div className="block-style">
+              <div>
                 <div className="flex">
                   <div className="w-[88px] shrink-0">
                     <div className="px-2 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap flex items-center justify-center" />
                     <div className="flex flex-col gap-0">
-                      {data.map((team) => (
+                      {data.map((team) => {
+                        const pillClass = getZonePillClass(team.description);
+                        return (
                         <div
                           key={`mobile-logo-${team.position}-${team.team}`}
-                          className={`px-2 h-10 flex items-center gap-2 whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
+                          className={`px-2 h-10 flex relative items-center gap-2 whitespace-nowrap ${getHighlightBgClass(team.teamId)}`}
                         >
+                          {pillClass && (
+                            <div className={`absolute left-0 top-[15%] bottom-[15%] w-1 rounded-r-md ${pillClass}`} />
+                          )}
                           <div className="w-6 text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">
                             {team.position}
                           </div>
-                          {team.teamId ? (
-                            <GetTeamLogo
-                              teamId={team.teamId}
-                              alt={team.team}
-                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                            />
-                          ) : (
-                            <Image
-                              src={team.logo}
-                              alt={team.team}
-                              className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                            />
-                          )}
+                          <Image
+                            src={team.imageUrl || ""}
+                            alt={team.team}
+                            className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                          />
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -606,7 +602,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                 </div>
               </div>
             ) : (
-              <div className="block-style overflow-x-hidden">
+              <div className="overflow-x-hidden">
                 {viewMode === "recent" ? (
                   <div className="grid grid-cols-[32px_1fr_36px_44px_44px_70px] gap-2 px-3 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
                     <div className="text-center">#</div>
@@ -617,7 +613,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                     <div className="text-center">Form</div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-[32px_1fr_36px_44px_44px] gap-2 px-3 py-2 mb-2 h-10 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
+                  <div className="grid grid-cols-[32px_1fr_36px_44px_44px] gap-2 px-3 py-3 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap items-center">
                     <div className="text-center">#</div>
                     <div>Team</div>
                     <div className="text-center">P</div>
@@ -625,32 +621,28 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                     <div className="text-center">PTS</div>
                   </div>
                 )}
-
-                <div className="flex flex-col gap-0">
-                  {data.map((team) => (
+                <div className="flex flex-col">
+                  {data.map((team) => {
+                    const pillClass = getZonePillClass(team.description);
+                    return (
                     <div
                       key={`mobile-compact-${team.position}-${team.team}`}
                       className={`grid ${
                         viewMode === "recent"
                           ? "grid-cols-[32px_1fr_36px_44px_44px_70px]"
                           : "grid-cols-[32px_1fr_36px_44px_44px]"
-                      } gap-2 px-3 h-10 items-center whitespace-nowrap ${getZoneBorderClass(team.description)} ${getHighlightBgClass(team.teamId)}`}
+                      } gap-2 px-3 h-12 relative items-center whitespace-nowrap ${getHighlightBgClass(team.teamId)}`}
                     >
+                      {pillClass && (
+                        <div className={`absolute left-0 top-[15%] bottom-[15%] w-1 rounded-r-md ${pillClass}`} />
+                      )}
                       <div className="text-center font-medium text-sm text-neutral-n4 dark:text-snow-200">{team.position}</div>
                       <div className="flex items-center gap-2 min-w-0">
-                        {team.teamId ? (
-                          <GetTeamLogo
-                            teamId={team.teamId}
-                            alt={team.team}
-                            className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                          />
-                        ) : (
-                          <Image
-                            src={team.logo}
-                            alt={team.team}
-                            className="w-7 h-7 rounded-full object-contain flex-shrink-0"
-                          />
-                        )}
+                        <Image
+                          src={team.imageUrl || ""}
+                          alt={team.team}
+                          className="w-7 h-7 rounded-full object-contain flex-shrink-0"
+                        />
                         {team.teamId ? (
                           <button
                             type="button"
@@ -667,13 +659,12 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
                         )}
                       </div>
                       <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.played}</div>
-                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">
-                        {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
-                      </div>
-                      <div className="text-center font-semibold text-sm text-neutral-n4 dark:text-snow-200">{team.points}</div>
+                      <div className="text-center text-sm text-neutral-n4 dark:text-snow-200">{team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}</div>
+                      <div className="text-center font-bold text-sm text-brand-primary">{team.points}</div>
                       {viewMode === "recent" ? <div className="text-center">{renderRecentForm(team.recentForm)}</div> : null}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -681,7 +672,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
         </>
       ) : null}
 
-      <div className="mt-6 block-style p-4 md:p-6">
+      <div className="mt-6 lg:block-style p-4 md:p-6">
         <div className="mb-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 text-sm">
             <div>
@@ -732,7 +723,7 @@ export const StandingsTable = ({ leagueId, localteamId, visitorteamId }: Props) 
             {legendItems.map((item) => {
               return (
                 <div key={item.label} className="flex items-center gap-3">
-                  <div className={`h-6 w-0 ${item.borderClass}`} />
+                  <div className={`h-4 w-1 rounded-sm ${item.pillClass}`} />
                   <span className="text-sm text-neutral-n4 dark:text-snow-200">{item.label}</span>
                 </div>
               );

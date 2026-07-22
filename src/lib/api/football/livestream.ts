@@ -7,6 +7,7 @@ export type LiveStreamTeam = {
   id: string;
   name: string;
   goals: string;
+  teamImageUrl?: string;
 };
 
 export type LiveStreamEvent = {

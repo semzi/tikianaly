@@ -27,6 +27,7 @@ export {
   getLeagueByName,
   getLeagueById,
   getStandingsByLeagueId,
+  getStandingSeasonsByLeagueId,
   getFixturesByLeague,
   getFixtureDetails,
   getMatchInfo,

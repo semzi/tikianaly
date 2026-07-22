@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
 
 type Mode = "total" | "h1" | "h2";
 
@@ -178,27 +179,21 @@ export default function MatchStatisticsPanel({
     [home, away, mode]
   );
 
-  const ToggleBtn = ({ id, label }: { id: Mode; label: string }) => (
-    <button
-      type="button"
-      onClick={() => setMode(id)}
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-        mode === id ? "bg-brand-secondary text-white" : "bg-snow-200/60 dark:bg-white/10 theme-text"
-      }`}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div className="block my-8">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="sz-3 theme-text">Match Statistics</p>
-        <div className="flex items-center gap-2">
-          <ToggleBtn id="total" label="Total" />
-          <ToggleBtn id="h1" label="1st Half" />
-          <ToggleBtn id="h2" label="2nd Half" />
-        </div>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="sz-3 theme-text w-full md:w-auto">Match Statistics</p>
+        <SegmentedSelector
+          value={mode}
+          onChange={(val) => setMode(val as Mode)}
+          size="lg"
+          className="w-full md:w-[320px]"
+          options={[
+            { value: "total", label: "Total" },
+            { value: "h1", label: "1st Half" },
+            { value: "h2", label: "2nd Half" },
+          ]}
+        />
       </div>
 
       <div className="w-full flex text-sm bg-brand-p4 mb-7 py-2 px-5 justify-between mt-4">

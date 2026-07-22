@@ -63,7 +63,7 @@ export const searchBasketballFixturesByStatus = async (
 export const getBasketballFixturesByDate = async (
   date: string,
   page: number = 1,
-  limit: number = 4000,
+  limit: number = 100,
 ) => {
   const endpoint = `/api/v1/basketball/fixtures/date`;
   const params = { date, page, limit };

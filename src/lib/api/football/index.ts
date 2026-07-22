@@ -77,10 +77,11 @@ export type FootballLeagueLeadersResponse = {
   statusCode?: number;
 };
 
-export const getFootballLeagueLeaders = async (leagueId: string | number) => {
-  const response = await apiClient.get(
-    `/api/v1/football/players/league-leaders?leagueId=${encodeURIComponent(String(leagueId))}`,
-  );
+export const getFootballLeagueLeaders = async (leagueId: string | number, season?: string) => {
+  const url = season
+    ? `/api/v1/football/players/league-leaders?leagueId=${encodeURIComponent(String(leagueId))}&season=${encodeURIComponent(season)}`
+    : `/api/v1/football/players/league-leaders?leagueId=${encodeURIComponent(String(leagueId))}`;
+  const response = await apiClient.get(url);
   return response.data as FootballLeagueLeadersResponse;
 };
 
@@ -189,9 +190,17 @@ export const getLeagueById = async (leagueId: string | number) => {
   return response.data;
 };
 
-export const getStandingsByLeagueId = async (leagueId: string | number) => {
+export const getStandingsByLeagueId = async (leagueId: string | number, season?: string) => {
+  const url = season 
+    ? `/api/v1/football/standing/league?leagueId=${leagueId}&season=${encodeURIComponent(season)}`
+    : `/api/v1/football/standing/league?leagueId=${leagueId}`;
+  const response = await apiClient.get(url);
+  return response.data;
+};
+
+export const getStandingSeasonsByLeagueId = async (leagueId: string | number) => {
   const response = await apiClient.get(
-    `/api/v1/football/standing/league?leagueId=${leagueId}`,
+    `/api/v1/football/standing/seasons?leagueId=${leagueId}`,
   );
   return response.data;
 };

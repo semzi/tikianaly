@@ -1,6 +1,7 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import Image from "@/components/common/Image";
 import TeamFixturesSidebar from "@/features/football/components/TeamFixturesSidebar";
 import { getPlayerById, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
 import { closeLiveStream, subscribeDashboardLiveFixtures, type DashboardLiveFixture } from "@/lib/api/livestream";
@@ -58,6 +59,7 @@ type TeamVenue = {
   venue_city?: string;
   venue_capacity?: number;
   venue_image?: string;
+  venue_image_url?: string;
 };
 
 type TeamCoach = {
@@ -108,6 +110,7 @@ type TeamApiItem = {
   country?: string;
   founded?: number;
   image?: string;
+  image_url?: string;
   coach?: TeamCoach;
   venue?: TeamVenue;
   trophies?: TeamTrophyRow[];
@@ -489,10 +492,12 @@ const TeamProfile = () => {
   // }, [team]);
 
   const venueImageUrl = useMemo(() => {
+    const fromUrl = team?.venue?.venue_image_url;
+    if (fromUrl) return fromUrl;
     const raw = team?.venue?.venue_image;
     if (!raw) return undefined;
     const s = String(raw);
-    if (s.startsWith("data:image")) return s;
+    if (s.startsWith("data:image") || s.startsWith("http")) return s;
     return `data:image/jpeg;base64,${s}`;
   }, [team]);
 
@@ -910,26 +915,27 @@ const TeamProfile = () => {
       {/* Header */}
       <div className="bg-brand-secondary relative z-0">
         <div className="overflow-hidden h-auto md:h-80 bg-cover bg-center w-full relative z-0 bg-[#0B0F14]">
-          {venueImageUrl ? (
-            <img
-              src={venueImageUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover blur-[1px] scale-110 opacity-90"
-              loading="lazy"
-            />
-          ) : null}
+          <img
+            src={venueImageUrl || "/pitch/stadium.png"}
+            alt="Stadium"
+            className="absolute inset-0 w-full h-full object-cover opacity-60"
+            loading="lazy"
+          />
+          {/* Gradient overlay to fade the image from left (solid) to right (transparent) */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F14] from-[25%] via-[#0B0F14]/80 via-[50%] to-transparent to-[100%] z-0 pointer-events-none" />
+          
           {/* subtle stripe overlay like PageHeader */}
           <div
-            className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-40"
+            className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-20"
             style={{
               backgroundImage:
                 "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
             }}
           />
 
-          <div className="absolute left-0 top-0 h-full w-2 bg-brand-primary" />
 
-          <div className="w-full bg-black/40 backdrop-blur-2xl h-full min-h-[260px] md:min-h-0 page-padding-x pb-4 md:pb-0 relative z-[1]">
+
+          <div className="w-full h-full min-h-[260px] md:min-h-[300px] page-padding-x pt-6 md:pt-10 pb-16 md:pb-20 relative z-[1]">
             <div className="justify-between flex py-3 md:py-5">
               <div onClick={() => navigate(-1)} className="relative cursor-pointer px-3 z-10 grid grid-cols-3 items-center">
                 <div className="flex gap-4">
@@ -958,8 +964,8 @@ const TeamProfile = () => {
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
-                    {team?.team_id ? (
-                      <GetTeamLogo teamId={team.team_id} alt={teamName} className="w-20 h-20 object-contain" />
+                    {team?.image_url ? (
+                      <Image src={team.image_url} alt={teamName} className="w-20 h-20 object-contain" />
                     ) : (
                       <img src="/loading-state/shield.svg" alt="" className="w-20 h-20" />
                     )}
@@ -999,8 +1005,8 @@ const TeamProfile = () => {
             {/* Mobile header */}
             <div className="md:hidden flex flex-col gap-3 pt-2 pb-4">
               <div className="flex items-center gap-4">
-                {team?.team_id ? (
-                  <GetTeamLogo teamId={team.team_id} alt={teamName} className="w-14 h-14 flex-shrink-0 object-contain" />
+                {team?.image_url ? (
+                  <Image src={team.image_url} alt={teamName} className="w-14 h-14 flex-shrink-0 object-contain" />
                 ) : (
                   <img src="/loading-state/shield.svg" alt="" className="w-14 h-14 flex-shrink-0" />
                 )}
@@ -1053,7 +1059,7 @@ const TeamProfile = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex z-3 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
+      <div className="flex z-10 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => (
             <button
@@ -1062,7 +1068,7 @@ const TeamProfile = () => {
               className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
                 activeTab === tab.id
                   ? "text-orange-500 font-medium"
-                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  : "text-gray-600 dark:text-snow-200 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
               }`}
             >
               {tab.label}

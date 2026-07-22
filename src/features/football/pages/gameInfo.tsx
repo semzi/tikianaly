@@ -2329,7 +2329,7 @@ export const gameInfo = () => {
 
       <div className="relative shrink-0">
 
-      <Image src={String(props.teamId) === String(displayAwayTeamId) ? fixtureDetails?.awayTeam?.image_url : fixtureDetails?.homeTeam?.image_url} alt={props.alt} className={props.className} />
+      <Image src={String(props.teamId) === String(displayAwayTeamId) ? (liveFixture?.visitorteam?.teamImageUrl ?? fixtureDetails?.awayTeam?.image_url) : (liveFixture?.localteam?.teamImageUrl ?? fixtureDetails?.homeTeam?.image_url)} alt={props.alt} className={props.className} />
 
         {props.hasRedCard ? (
 
@@ -3681,27 +3681,53 @@ export const gameInfo = () => {
 
       {!isGameInfoLoading && !isGameNotFound ? (
 
-        <>
+        (() => {
 
-          <div className="relative isolate overflow-hidden page-padding-x bg-brand-primary py-1 w-full">
+          const isSpecialLeague = Number(displayLeagueId) === 1005 || Number(displayLeagueId) === 1056;
 
-            <div
+          const specialLeagueBg = (() => {
+            const id = Number(displayLeagueId);
+            if (id === 1005) {
+              return {
+                backgroundImage: `url("/tournament/ucl.png")`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              };
+            }
+            if (id === 1056) {
+              return {
+                backgroundImage: `url("/tournament/worldcup.png")`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              };
+            }
+            return undefined;
+          })();
 
-              className= "absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
+          return (
+            <>
+              <div className="grid">
+              {/* Background Layer */}
+              <div className={`col-start-1 row-start-1 w-full h-full ${isSpecialLeague ? "secondary-gradient" : "bg-brand-primary"}`} style={specialLeagueBg}>
+                <div className="h-full w-full bg-cover bg-center relative">
+                  {isSpecialLeague && (
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] z-[1] pointer-events-none" />
+                  )}
+                  {!isSpecialLeague && (
+                    <div
+                      className="absolute blur-sm inset-0 pointer-events-none z-[1] opacity-50"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
 
-              style={{
-
-                backgroundImage:
-
-                  "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
-
-              }}
-
-            />
-
-            {/* Foreground content */}
-
-            <div className="relative px-3 z-[2] grid grid-cols-3 items-center">
+              {/* Content Layer */}
+              <div className="col-start-1 row-start-1 w-full relative z-[2] page-padding-x pt-10 pb-16 md:pt-14 md:pb-20">
+                <div className="relative px-3 grid grid-cols-3 items-center">
 
               <button type="button" onClick={() => navigate(-1)} className="flex gap-4 items-center w-fit cursor-pointer text-left">
 
@@ -4366,12 +4392,12 @@ export const gameInfo = () => {
           </div>
 
         )}
-
+        </div>
       </div>
 
 
 
-      <div className="flex z-3 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
+      <div className="flex z-10 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
 
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
 
@@ -4393,7 +4419,7 @@ export const gameInfo = () => {
 
                   ? "text-orange-500 font-medium"
 
-                  : "text-gray-600 dark:text-neutral-n3 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
+                  : "text-gray-600 dark:text-snow-200 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
 
               }`}
 
@@ -5243,13 +5269,11 @@ export const gameInfo = () => {
 
                   <div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-
-                      <div className="flex items-center justify-between gap-3 rounded-lg border border-snow-200/60 dark:border-snow-100/10 p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">                      <div className="flex items-center justify-between gap-3 rounded-lg border border-snow-200/60 dark:border-snow-100/10 p-3">
 
                         <div className="flex items-center gap-2 min-w-0">
 
-                         <Image src={fixtureDetails?.homeTeam?.image_url} alt={fixtureDetails?.localteam?.name ?? ""} className="w-6 h-6 object-contain" />
+                          <Image src={liveFixture?.localteam?.teamImageUrl ?? fixtureDetails?.homeTeam?.image_url} alt={fixtureDetails?.localteam?.name ?? ""} className="w-6 h-6 object-contain" />
 
                           <p className="theme-text font-semibold truncate">{fixtureDetails?.localteam?.name ?? "Home"}</p>
 
@@ -5267,7 +5291,7 @@ export const gameInfo = () => {
 
                         <div className="flex items-center gap-2 min-w-0">
 
-                          <Image src={fixtureDetails?.awayTeam?.image_url} alt={fixtureDetails?.visitorteam?.name ?? ""} className="w-6 h-6 object-contain" />
+                          <Image src={liveFixture?.visitorteam?.teamImageUrl ?? fixtureDetails?.awayTeam?.image_url} alt={fixtureDetails?.visitorteam?.name ?? ""} className="w-6 h-6 object-contain" />
 
                           <p className="theme-text font-semibold truncate">{fixtureDetails?.visitorteam?.name ?? "Away"}</p>
 
@@ -5620,8 +5644,9 @@ export const gameInfo = () => {
           <FooterComp />
 
         </>
-
-      ) : null}
+      );
+    })()
+  ) : null}
 
     </div>
 

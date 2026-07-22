@@ -78,7 +78,7 @@ export const DropdownSelector = <T extends string>({
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`w-full rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-snow-100/60 dark:bg-white/5 pr-10 font-semibold text-neutral-n5 dark:text-snow-200 focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 ${sizeCls.btn}`}
+        className={`w-full rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-white/5 pr-10 font-semibold text-neutral-n5 dark:text-snow-200 focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 ${sizeCls.btn}`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -108,7 +108,7 @@ export const DropdownSelector = <T extends string>({
 
       {open ? (
         <div
-          className="absolute right-0 mt-2 w-full overflow-hidden rounded-2xl border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#0B1220] shadow-lg"
+          className="absolute z-50 right-0 mt-2 w-full overflow-hidden rounded-2xl border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#0B1220] shadow-lg"
           role="listbox"
           aria-label="Options"
         >

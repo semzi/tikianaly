@@ -1013,7 +1013,7 @@ export const PageHeader = () => {
   return (
     <header
       className={`bg-brand-primary text-white m-page-padding-x relative isolate overflow-visible ${
-        searchShow ? "z-[10000]" : "z-10"
+        searchShow || openMenu ? "z-[10000]" : "z-50"
       } ${isMobile ? "py-1" : "py-3"}`}
     >
       <div

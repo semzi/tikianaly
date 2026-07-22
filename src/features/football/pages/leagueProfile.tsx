@@ -1,14 +1,14 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
-import GetPlayerImage from "@/components/common/GetPlayerImage";
-import GetTeamLogo from "@/components/common/GetTeamLogo";
+import Image from "@/components/common/Image";
 import {
   getFootballLeagueLeaders,
   getLeagueById,
-  getPlayerById,
+  getStandingSeasonsByLeagueId,
   type FootballLeagueLeadersResponse,
 } from "@/lib/api/endpoints";
+import { DropdownSelector } from "@/components/ui/DropdownSelector";
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
@@ -49,6 +49,9 @@ type LeaderboardPlayer = {
   name: string;
   value: number;
   extra?: string;
+  playerImageUrl?: string;
+  teamImageUrl?: string;
+  teamName?: string;
 };
 
 type LeagueLeadersState = {
@@ -56,57 +59,6 @@ type LeagueLeadersState = {
   goals: LeaderboardPlayer[];
   assists: LeaderboardPlayer[];
   duels: LeaderboardPlayer[];
-};
-
-type PlayerTeamInfo = { teamId?: number; teamName?: string };
-const playerTeamInfoCache = new Map<string, PlayerTeamInfo>();
-
-const PlayerTeamLine = ({ playerId }: { playerId: number }) => {
-  const [info, setInfo] = useState<PlayerTeamInfo | null>(null);
-
-  useEffect(() => {
-    const id = String(playerId);
-    const cached = playerTeamInfoCache.get(id);
-    if (cached) {
-      setInfo(cached);
-      return;
-    }
-
-    let cancelled = false;
-    const run = async () => {
-      try {
-        const res: any = await getPlayerById(id);
-        const item = res?.responseObject?.item;
-        const player = Array.isArray(item) ? item[0] : item;
-        const teamId = typeof player?.team_id === "number" ? player.team_id : undefined;
-        const teamName = String(player?.team ?? "").trim() || undefined;
-        const next: PlayerTeamInfo = { teamId, teamName };
-        playerTeamInfoCache.set(id, next);
-        if (!cancelled) setInfo(next);
-      } catch {
-        const next: PlayerTeamInfo = {};
-        playerTeamInfoCache.set(id, next);
-        if (!cancelled) setInfo(next);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [playerId]);
-
-  const teamName = info?.teamName ?? "-";
-  return (
-    <span className="flex items-center gap-2 min-w-0">
-      {info?.teamId ? (
-        <GetTeamLogo teamId={info.teamId} alt={teamName} className="w-4 h-4 rounded-full object-contain" />
-      ) : (
-        <img src="/loading-state/shield.svg" alt="" className="w-4 h-4" />
-      )}
-      <span className="truncate">{teamName}</span>
-    </span>
-  );
 };
 
 const Leaderboard = ({
@@ -156,12 +108,13 @@ const Leaderboard = ({
                 </div>
 
                 <div className="h-10 w-10 rounded-2xl overflow-hidden bg-snow-100 dark:bg-white/10 flex items-center justify-center shrink-0">
-                  <GetPlayerImage
-                    playerId={p.playerId}
+                  <Image
+                    src={p.playerImageUrl}
                     alt={p.name}
                     width={40}
                     height={40}
                     className="w-10 h-10 object-cover"
+                    fallback="/loading-state/player.svg"
                   />
                 </div>
 
@@ -175,7 +128,14 @@ const Leaderboard = ({
                     {p.name}
                   </button>
                   <div className="text-neutral-m6 text-xs mt-1 min-w-0 truncate">
-                    <PlayerTeamLine playerId={p.playerId} />
+                    <span className="flex items-center gap-2 min-w-0">
+                      {p.teamImageUrl ? (
+                        <Image src={p.teamImageUrl} alt={p.teamName ?? ""} className="w-4 h-4 rounded-full object-contain" fallback="/loading-state/shield.svg" />
+                      ) : (
+                        <img src="/loading-state/shield.svg" alt="" className="w-4 h-4" />
+                      )}
+                      <span className="truncate">{p.teamName ?? "-"}</span>
+                    </span>
                   </div>
                 </div>
 
@@ -216,6 +176,25 @@ const LeagueProfile = () => {
   const [searchParams] = useSearchParams();
   const leagueIdFromQuery = searchParams.get("id") ?? undefined;
   const leagueId = leagueIdParam ?? leagueIdFromQuery;
+
+  const [season, setSeason] = useState<string>("");
+
+  const {
+    data: seasonsData,
+  } = useQuery({
+    queryKey: ["standingSeasons", leagueId],
+    queryFn: async () => await getStandingSeasonsByLeagueId(String(leagueId ?? "")),
+    enabled: !!leagueId,
+    staleTime: 60_000,
+  });
+
+  const availableSeasons = useMemo(() => {
+    const items = seasonsData?.responseObject?.item;
+    if (Array.isArray(items)) {
+      return items.map((s: string) => ({ value: s, label: s }));
+    }
+    return [];
+  }, [seasonsData]);
 
   const {
     data: leagueResponse,
@@ -301,6 +280,9 @@ const LeagueProfile = () => {
         name,
         value: Number(item?.[valueKey] ?? 0),
         extra: undefined,
+        playerImageUrl: item?.playerImageUrl,
+        teamImageUrl: item?.teamImageUrl,
+        teamName: item?.teamName,
       };
     };
 
@@ -326,7 +308,7 @@ const LeagueProfile = () => {
       setLeadersLoading(true);
       setLeadersError(null);
       try {
-        const res = await getFootballLeagueLeaders(id);
+        const res = await getFootballLeagueLeaders(id, season);
         if (cancelled) return;
         setLeaders(mapLeaders(res));
       } catch (e: any) {
@@ -342,7 +324,7 @@ const LeagueProfile = () => {
     return () => {
       cancelled = true;
     };
-  }, [resolvedLeagueId]);
+  }, [resolvedLeagueId, season]);
 
   const canonicalUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}${window.location.search}`
@@ -375,6 +357,27 @@ const LeagueProfile = () => {
       toast.show({ variant: "error", message: "Could not copy link. Please copy it manually." });
     }
   };
+
+  const isSpecialLeague = Number(resolvedLeagueId) === 1005 || Number(resolvedLeagueId) === 1056;
+
+  const specialLeagueBg = useMemo(() => {
+    const id = Number(resolvedLeagueId);
+    if (id === 1005) {
+      return {
+        backgroundImage: `url("/tournament/ucl.png")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+    if (id === 1056) {
+      return {
+        backgroundImage: `url("/tournament/worldcup.png")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+    return undefined;
+  }, [resolvedLeagueId]);
 
   const pageTitle = useMemo(() => `${leagueName} | League Profile | TikiAnaly`, [leagueName]);
   const pageDescription = useMemo(() => `Standings and league details for ${leagueName}.`, [leagueName]);
@@ -444,11 +447,21 @@ const LeagueProfile = () => {
       </Helmet>
       <PageHeader />
 
-      <div className="secondary-gradient relative z-0">
-        <div className="overflow-hidden h-auto md:h-80 bg-cover bg-center w-full relative z-0">
-          <div className="absolute left-0 top-0 h-full w-2 bg-brand-primary" />
-          <div className="w-full backdrop-blur-3xl h-full min-h-[220px] md:min-h-0 page-padding-x pb-4 md:pb-0 relative z-0">
-            <div className="justify-between flex py-3 md:py-5">
+      <div className="grid">
+        {/* Background Layer */}
+        <div className="col-start-1 row-start-1 w-full h-full secondary-gradient z-0" style={specialLeagueBg}>
+          <div className="h-full w-full bg-cover bg-center relative">
+            {isSpecialLeague && (
+              <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] z-[1] pointer-events-none" />
+            )}
+            {!isSpecialLeague && <div className="absolute left-0 top-0 h-full w-2 bg-brand-primary z-[2]" />}
+          </div>
+        </div>
+
+        {/* Content Layer */}
+        <div className="col-start-1 row-start-1 w-full h-auto md:h-80 relative z-20 pointer-events-none">
+          <div className={`flex flex-col w-full h-full min-h-[280px] md:min-h-0 page-padding-x pb-16 md:pb-12 ${isSpecialLeague ? "" : "backdrop-blur-3xl"}`}>
+            <div className="justify-between flex py-3 md:py-5 pointer-events-auto">
               <div
                 onClick={() => navigate(-1)}
                 className="relative cursor-pointer px-3 z-10 grid grid-cols-3 items-center"
@@ -474,44 +487,47 @@ const LeagueProfile = () => {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-2">
-              <div className="flex items-center gap-4">
-                {resolvedLeagueId ? (
-                  <div className="bg-white p-4   rounded-2xl">
-                    <GetLeagueLogo
-                      leagueId={resolvedLeagueId}
-                      alt={leagueName}
-                      className="w-20 h-20 md:w-28 md:h-28"
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-white p-2 rounded-2xl">
-                    <img
-                      src="/loading-state/shield.svg"
-                      alt=""
-                      className="w-20 h-20 md:w-28 md:h-28"
-                    />
-                  </div>
-                )}
-
-                <div className="min-w-0">
-                  <p className="font-extrabold text-2xl md:text-3xl text-white whitespace-normal break-words">{leagueName}</p>
-                  <p className="text-snow-200 text-sm md:text-base whitespace-normal break-words">
-                    {leagueCategory}{leagueCountry !== "-" ? ` / ${leagueCountry}` : ""}
-                  </p>
+            <div className="my-auto flex items-center gap-4 md:gap-5 z-[100] pointer-events-auto">
+              {resolvedLeagueId ? (
+                <div className="bg-white p-4 rounded-3xl shadow-xl shrink-0">
+                  <GetLeagueLogo
+                    leagueId={resolvedLeagueId}
+                    alt={leagueName}
+                    className="w-20 h-20 md:w-28 md:h-28 object-contain"
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white p-2 rounded-3xl shadow-xl shrink-0">
+                  <img
+                    src="/loading-state/shield.svg"
+                    alt=""
+                    className="w-20 h-20 md:w-28 md:h-28 object-contain"
+                  />
+                </div>
+              )}
 
-              <div className="text-white text-sm">
-                {isLeagueLoading ? "Loading…" : null}
-                {leagueErrorMessage ? <span className="text-ui-negative">{leagueErrorMessage}</span> : null}
+              <div className="min-w-0 flex flex-col justify-center gap-1.5">
+                <p className="font-semibold text-[22px] md:text-3xl text-white whitespace-normal break-words leading-tight">{leagueName}</p>
+                <p className="text-snow-100 text-[13px] md:text-sm whitespace-normal break-words font-medium opacity-90">
+                  {leagueCategory}{leagueCountry !== "-" ? ` / ${leagueCountry}` : ""}
+                </p>
+                <div className="mt-1 w-[160px] md:w-[180px] [&>button]:!bg-transparent [&>button]:!border-white/30 [&>button]:!text-white dark:[&>button]:!bg-transparent dark:[&>button]:!border-white/30 dark:[&>button]:!text-white [&>button]:rounded-[24px] [&>button]:backdrop-blur-sm [&>button]:py-1.5 [&>button]:!h-auto [&>button]:text-sm">
+                  <DropdownSelector
+                    value={season}
+                    onChange={setSeason}
+                    options={availableSeasons}
+                    placeholder="Current Season"
+                  />
+                </div>
+                {isLeagueLoading ? <span className="text-white text-xs mt-1">Loading…</span> : null}
+                {leagueErrorMessage ? <span className="text-ui-negative text-xs mt-1">{leagueErrorMessage}</span> : null}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex z-3 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-snow-200 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center">
+      <div className="flex z-10 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => (
             <button
@@ -539,7 +555,7 @@ const LeagueProfile = () => {
 
         {activeTab === "standings" ? (
           <div className="my-8">
-            <StandingsTable leagueId={resolvedLeagueId} />
+            <StandingsTable leagueId={resolvedLeagueId} season={season} />
           </div>
         ) : null}
 
