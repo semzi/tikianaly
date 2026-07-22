@@ -80,7 +80,19 @@ const BasketballLeagueProfile = lazy(
 const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
 );
+const AmericanFootballPage = lazy(
+  () => import("./features/american-football/pages/AmericanFootball"),
+);
+const AmericanFootballMatchDetail = lazy(
+  () =>
+    import("./features/american-football/pages/AmericanFootballMatchDetail"),
+);
 const TennisPage = lazy(() => import("./features/tennis/pages/Tennis"));
+const TennisGame = lazy(() => import("./features/tennis/pages/TennisGame"));
+const TennisSeries = lazy(() => import("./features/tennis/pages/TennisSeries"));
+const TennisPlayerProfile = lazy(
+  () => import("./features/tennis/pages/TennisPlayerProfile"),
+);
 // Animation variants (can tweak)
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -297,6 +309,34 @@ function AnimatedRoutes() {
               }
             />
             <Route
+              path="/american-football"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AmericanFootballPage />
+                </m.div>
+              }
+            />
+            <Route
+              path="/american-football/match/:matchId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AmericanFootballMatchDetail />
+                </m.div>
+              }
+            />
+            <Route
               path="/tennis"
               element={
                 <m.div
@@ -307,6 +347,48 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <TennisPage />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis/game/:matchId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisGame />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis/series/:seriesId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisSeries />
+                </m.div>
+              }
+            />
+            <Route
+              path="/tennis/player/:playerId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TennisPlayerProfile />
                 </m.div>
               }
             />
@@ -523,12 +605,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         {/* <BackendStatusProvider> */}
-          <BrowserRouter>
-            <ScrollToTop />
-            <Layout>
-              <AnimatedRoutes />
-            </Layout>
-          </BrowserRouter>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Layout>
+            <AnimatedRoutes />
+          </Layout>
+        </BrowserRouter>
         {/* </BackendStatusProvider> */}
       </ThemeProvider>
     </QueryClientProvider>
