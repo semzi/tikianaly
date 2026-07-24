@@ -68,8 +68,8 @@ function Login({ onForgotPassword }: LoginProps) {
       const response = await login(payload);
       
       // Extract token and user from response structure
-      const token = response?.token;
-      const userData = response?.user;
+      const token = response?.data?.accessToken;
+      const userData = response?.data?.user;
       
       // Validate that we received both token and user data
       if (!token) {

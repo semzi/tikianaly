@@ -29,7 +29,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { navigate } from "@/lib/router/navigate";
 
-import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId, getTeamFixtures } from "@/lib/api/endpoints";
+import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
 
 import { useLocation, useParams } from "react-router-dom";
 
@@ -282,6 +282,8 @@ export const gameInfo = () => {
   const [isLoadingFixtureDetails, setIsLoadingFixtureDetails] = useState(false);
 
   const [isLoadingCommentary, setIsLoadingCommentary] = useState(false);
+
+  const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
 
   const [matchLoadError, setMatchLoadError] = useState<string>("");
 
@@ -1605,7 +1607,17 @@ export const gameInfo = () => {
 
     }
 
+    const squadImage = playerImages[id];
 
+    if (squadImage) {
+
+      setTopRatedPlayerImage(squadImage);
+
+      if (topRatedPlayer?.number) setTopRatedPlayerNumber("");
+
+      return;
+
+    }
 
     const cached = getCachedPlayerAvatar(id);
 
@@ -1691,7 +1703,7 @@ export const gameInfo = () => {
 
     };
 
-  }, [topRatedPlayer?.id, topRatedPlayer?.number]);
+  }, [topRatedPlayer?.id, topRatedPlayer?.number, playerImages]);
 
 
 
@@ -1884,10 +1896,14 @@ export const gameInfo = () => {
       setPlayerSheetImage("");
 
       return;
-
     }
 
-
+    // Use squad image URL from team data if available (avoids per-player API call)
+    const squadImage = playerImages[id];
+    if (squadImage) {
+      setPlayerSheetImage(squadImage);
+      return;
+    }
 
     const cached = getCachedPlayerAvatar(id);
 
@@ -1898,8 +1914,6 @@ export const gameInfo = () => {
       return;
 
     }
-
-
 
     try {
 
@@ -3463,7 +3477,37 @@ export const gameInfo = () => {
 
   }, [tabs]);
 
+  // Fetch team squad data to get player images (avoids per-player API calls)
+  useEffect(() => {
+    if (!displayHomeTeamId && !displayAwayTeamId) return;
+    const homeId = String(displayHomeTeamId ?? "").trim();
+    const awayId = String(displayAwayTeamId ?? "").trim();
+    const controller = new AbortController();
 
+    const fetchTeamSquads = async () => {
+      const ids = [homeId, awayId].filter(Boolean);
+      if (!ids.length) return;
+      try {
+        const results = await Promise.all(ids.map((id) => getTeamById(id)));
+        const map: Record<string, string> = {};
+        for (const res of results) {
+          const squad = (res as any)?.responseObject?.item?.squad;
+          if (!Array.isArray(squad)) continue;
+          for (const p of squad) {
+            const pid = String(p?.id ?? "").trim();
+            const url = String(p?.playerImageUrl ?? "").trim();
+            if (pid && url) map[pid] = url;
+          }
+        }
+        if (!controller.signal.aborted) setPlayerImages(map);
+      } catch {
+        // silently fail; player images will fall back to placeholders
+      }
+    };
+
+    fetchTeamSquads();
+    return () => controller.abort();
+  }, [displayHomeTeamId, displayAwayTeamId]);
 
   // Update URL hash when tab changes (without navigation)
 
@@ -5321,6 +5365,8 @@ export const gameInfo = () => {
 
                       awayTeamName={awayRecentLineup?.teamName ?? fixtureDetails?.visitorteam?.name}
 
+                      playerImages={playerImages}
+
                       onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
 
                     />
@@ -5502,6 +5548,8 @@ export const gameInfo = () => {
                   localteam={localLineup}
 
                   visitorteam={visitorLineup}
+
+                  playerImages={playerImages}
 
                   onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
 

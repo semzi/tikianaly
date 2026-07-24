@@ -698,10 +698,19 @@ const BasketballMatchDetail = () => {
       <PageHeader />
 
       {/* Match Header */}
-      <div className="relative isolate overflow-hidden bg-gradient-to-r from-orange-500 to-red-500 text-white">
-        {/* Themed strip background */}
+      <div 
+        className="relative isolate overflow-hidden text-white bg-gray-900"
+        style={{
+          backgroundImage: "url('/pitch/basketball.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Dark overlay and blur */}
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-0 pointer-events-none" />
+        {/* Themed strip background overlay */}
         <div
-          className="absolute blur-sm inset-0 pointer-events-none z-0 opacity-50"
+          className="absolute inset-0 pointer-events-none z-0 opacity-50 mix-blend-overlay"
           style={{
             backgroundImage:
               "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
@@ -710,7 +719,7 @@ const BasketballMatchDetail = () => {
 
        
 
-        <div className="page-padding-x py-6 relative z-[2]">
+        <div className="page-padding-x pt-8 pb-16 md:pb-20 relative z-[2]">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 mb-4 hover:opacity-80 transition"
@@ -719,145 +728,102 @@ const BasketballMatchDetail = () => {
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          {/* Mobile Layout - 3 column grid like football */}
-          <div className="md:hidden">
-            <div className="grid grid-cols-3 items-start gap-2">
+          {/* Unified Layout */}
+          <div className="flex flex-col items-center">
+            {/* Top Status Pill */}
+            <div className="flex items-center gap-2 mb-4 md:mb-6 bg-[#0a1929]/50 rounded-full pr-4 pl-1 py-1 border border-white/5 shadow-sm">
+              <span className={`text-black text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full uppercase tracking-wider ${!hasScores ? 'bg-white' : 'bg-orange-500'}`}>
+                {!hasScores ? (matchData?.time || "Scheduled") : (matchData?.status === "LIVE" ? "LIVE" : matchData?.status || "LIVE")}
+              </span>
+              <span className="text-white text-[10px] md:text-sm font-semibold">
+                {!hasScores ? matchDateTime?.date : `${matchData?.period || "Q3"} • ${matchData?.timer || "00:00"}`}
+              </span>
+            </div>
+
+            {/* Main Content Row */}
+            <div className="flex items-center justify-center w-full max-w-4xl mx-auto gap-4 md:gap-8 lg:gap-12 px-2 md:px-0">
+              
               {/* Home Team */}
-              <div className="min-w-0 flex flex-col items-center">
-                <div className="h-12 w-12 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <div className="flex flex-col items-center flex-1 min-w-0">
+                <div className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28  flex items-center justify-center mb-2 md:mb-3 overflow-hidden shrink-0">
                   <GetBasketballTeamLogo
                     teamId={matchData?.localteam?.team_id || matchData?.localteam?.id}
                     alt={matchData?.localteam.name}
-                    className="h-8 w-8 object-contain"
-                    width={32}
-                    height={32}
+                    className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain"
+                    width={80}
+                    height={80}
                   />
                 </div>
-                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                <p className="font-bold text-[11px] md:text-lg lg:text-xl text-white text-center w-full truncate px-1">
                   {matchData?.localteam.name || "Home Team"}
                 </p>
               </div>
 
-              {/* Center Status */}
-              <div className="flex justify-center">
-                <span className="shrink-0 text-[11px] font-bold  bg-snow-100 text-brand-secondary px-2 py-0.5 rounded">
-                  {hasScores ? (matchData?.period || matchData?.status || "VS") : (matchData?.time || matchData?.status || "Scheduled")}
-                </span>
+              {/* Home Score */}
+              <div className="text-4xl md:text-5xl lg:text-7xl font-bold text-white tabular-nums tracking-tight">
+                {hasScores ? homeScore : "-"}
+              </div>
+
+              {/* Center QTR Box (Desktop) / Dash (Mobile) */}
+              <div className="hidden md:block bg-[#0f172a]/80 backdrop-blur-md rounded-2xl p-4 min-w-[220px] border border-white/5 shadow-2xl">
+                <div className="text-center mb-3">
+                  <span className="text-[10px] text-[#38bdf8] font-bold tracking-widest uppercase">Qtr Score</span>
+                </div>
+                <table className="w-full text-xs font-medium">
+                  <thead>
+                    <tr className="text-gray-400">
+                      <th className="font-normal pb-2 text-left w-12"></th>
+                      <th className="font-normal pb-2 text-center w-8">Q1</th>
+                      <th className="font-normal pb-2 text-center w-8">Q2</th>
+                      <th className="font-normal pb-2 text-center w-8">Q3</th>
+                      <th className="font-normal pb-2 text-center w-8">Q4</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-white">
+                    <tr>
+                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-1">Home</td>
+                      <td className="text-center tabular-nums">{matchData?.localteam?.q1 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.localteam?.q2 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.localteam?.q3 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.localteam?.q4 || "-"}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-1">Away</td>
+                      <td className="text-center tabular-nums">{matchData?.awayteam?.q1 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.awayteam?.q2 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.awayteam?.q3 || "-"}</td>
+                      <td className="text-center tabular-nums">{matchData?.awayteam?.q4 || "-"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Dash */}
+              <div className="md:hidden text-2xl font-bold text-white tabular-nums tracking-tight opacity-50 px-1">
+                -
+              </div>
+
+              {/* Away Score */}
+              <div className="text-4xl md:text-5xl lg:text-7xl font-bold text-white tabular-nums tracking-tight">
+                {hasScores ? awayScore : "-"}
               </div>
 
               {/* Away Team */}
-              <div className="min-w-0 flex flex-col items-center">
-                <div className="h-12 w-12 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-white/20">
+              <div className="flex flex-col items-center flex-1 min-w-0">
+                <div className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28  flex items-center justify-center mb-2 md:mb-3 overflow-hidden shrink-0">
                   <GetBasketballTeamLogo
                     teamId={matchData?.awayteam?.team_id || matchData?.awayteam?.id}
                     alt={matchData?.awayteam.name}
-                    className="h-8 w-8 object-contain"
-                    width={32}
-                    height={32}
+                    className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain"
+                    width={80}
+                    height={80}
                   />
                 </div>
-                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                <p className="font-bold text-[11px] md:text-lg lg:text-xl text-white text-center w-full truncate px-1">
                   {matchData?.awayteam.name || "Away Team"}
                 </p>
               </div>
-            </div>
 
-            {/* Mobile Score or Scheduled Time */}
-            <div className="mt-2 flex flex-col items-center">
-              {!hasScores ? (
-                <div className="flex flex-col items-center">
-                  {matchDateTime ? (
-                    <>
-                      <div className="flex items-center gap-2 text-white/90">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm font-semibold">{matchDateTime.date}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-sm font-semibold">Match Scheduled</span>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-center items-center gap-3 font-bold leading-none tabular-nums text-[46px]">
-                    <p className="leading-none">{homeScore}</p>
-                    <p className="text-[32px] leading-none">-</p>
-                    <p className="leading-none">{awayScore}</p>
-                  </div>
-                  {matchData?.timer && (
-                    <p className="mt-1 text-[11px] opacity-90">{matchData.timer}'</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="hidden md:flex items-center justify-between">
-            <div className="flex-1 text-center flex flex-col items-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
-                <GetBasketballTeamLogo
-                  teamId={matchData?.localteam?.team_id || matchData?.localteam?.id}
-                  alt={matchData?.localteam.name}
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                  width={64}
-                  height={64}
-                />
-              </div>
-              <p className="font-semibold text-lg md:text-xl mb-1">
-                {matchData?.localteam.name || "Home Team"}
-              </p>
-              {!!hasScores && (
-                <p className="text-3xl md:text-5xl font-bold">{homeScore}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center px-6">
-              <span className="text-xs mb-1 font-bold uppercase tracking-widest bg-snow-100 text-brand-secondary px-3 py-1 rounded-full">
-                {!hasScores ? (matchData?.time || "Scheduled") : (matchData?.period || matchData?.status || "VS")}
-              </span>
-              {!hasScores ? (
-                <div className="flex flex-col items-center mt-2">
-                  {matchDateTime ? (
-                    <>
-                      <div className="flex items-center gap-2 text-white/90">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm font-semibold">{matchDateTime.date}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-sm font-semibold">Match Scheduled</span>
-                  )}
-                </div>
-              ) : (
-                matchData?.timer && (
-                  <span className="text-sm font-bold mt-2">
-                    {matchData.timer}'
-                  </span>
-                )
-              )}
-            </div>
-
-            <div className="flex-1 text-center flex flex-col items-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border border-white/20">
-                <GetBasketballTeamLogo
-                  teamId={matchData?.awayteam?.team_id || matchData?.awayteam?.id}
-                  alt={matchData?.awayteam.name}
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                  width={64}
-                  height={64}
-                />
-              </div>
-              <p className="font-semibold text-lg md:text-xl mb-1">
-                {matchData?.awayteam.name || "Away Team"}
-              </p>
-              {!!hasScores && (
-                <p className="text-3xl md:text-5xl font-bold">{awayScore}</p>
-              )}
             </div>
           </div>
 
@@ -895,25 +861,21 @@ const BasketballMatchDetail = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex z-10 h-12 w-full overflow-y-hidden overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 hide-scrollbar">
-        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex items-center gap-2 flex-shrink-0 ${
-                  activeTab === tab.id
-                    ? "text-orange-500 font-medium border-b-2 border-orange-500"
-                    : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+      <div className="flex z-10 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
+        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-2 cursor-pointer px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 ${
+                activeTab === tab.id
+                  ? "text-orange-500 font-medium"
+                  : "text-gray-600 dark:text-snow-200 hover:text-gray-800 dark:text-gray-400 dark:hover:text-brand-secondary"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 

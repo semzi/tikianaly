@@ -1,6 +1,5 @@
-import { useEffect, useState, type CSSProperties } from "react";
-import { getPlayerById } from "@/lib/api/endpoints";
-import GetPlayerImage from "@/components/common/GetPlayerImage";
+import { useState, type CSSProperties } from "react";
+import Image from "@/components/common/Image";
 
 type TeamApi = {
   player: Array<{ id: string; name: string; number: string; booking?: string }>;
@@ -61,6 +60,7 @@ export default function LineupBuilder({
   onPlayerClick,
   homeTeamName,
   awayTeamName,
+  playerImages,
 }: {
   home?: TeamApi;
   away?: TeamApi;
@@ -76,6 +76,7 @@ export default function LineupBuilder({
   onPlayerClick?: (player: { playerId: string; playerName?: string }) => void;
   homeTeamName?: string;
   awayTeamName?: string;
+  playerImages?: Record<string, string>;
 }) {
   // prefer explicit home/away props, fall back to localteam/visitorteam
   const propHome = home ?? localteam;
@@ -166,7 +167,7 @@ export default function LineupBuilder({
                             onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
                             className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center shrink-0"
                           >
-                            <GetPlayerImage playerId={p.player_id} alt={p.name} className="h-full w-full object-cover" />
+                            <Image src={p.image_url ?? (playerImages ? playerImages[p.player_id] : undefined) ?? null} alt={p.name} className="h-full w-full object-cover" fallback="/loading-state/player.svg" />
                           </button>
                           <div className="min-w-0 flex-1">
                             <p className="theme-text font-semibold truncate text-sm">{p.name}</p>
@@ -219,7 +220,7 @@ export default function LineupBuilder({
                             onClick={() => onPlayerClick?.({ playerId: String(p.player_id), playerName: p.name })}
                             className="h-10 w-10 rounded-full overflow-hidden bg-snow-200 dark:bg-white/10 flex items-center justify-center shrink-0"
                           >
-                            <GetPlayerImage playerId={p.player_id} alt={p.name} className="h-full w-full object-cover" />
+                            <Image src={p.image_url ?? (playerImages ? playerImages[p.player_id] : undefined) ?? null} alt={p.name} className="h-full w-full object-cover" fallback="/loading-state/player.svg" />
                           </button>
                           <div className="min-w-0 flex-1">
                             <p className="theme-text font-semibold truncate text-sm">{p.name}</p>
@@ -353,7 +354,7 @@ export default function LineupBuilder({
         shirt_number: Number(String(p.number ?? "0")) || 0,
         formation_pos: toNumber((p as any).formation_pos) ?? undefined,
         pos: String((p as any).pos ?? ""),
-        image_url: String((p as any).image ?? "").trim() || undefined,
+        image_url: String((p as any).image ?? "").trim() || (playerImages ? playerImages[String(p.id ?? "")] : undefined) || undefined,
       }))
       .filter((p) => p.player_id && p.name);
 
@@ -379,7 +380,7 @@ export default function LineupBuilder({
         shirt_number: Number(String(p.number ?? "0")) || 0,
         formation_pos: toNumber((p as any).formation_pos) ?? undefined,
         pos: String((p as any).pos ?? ""),
-        image_url: String((p as any).image ?? "").trim() || undefined,
+        image_url: String((p as any).image ?? "").trim() || (playerImages ? playerImages[String(p.id ?? "")] : undefined) || undefined,
       }))
       .filter((p) => p.player_id && p.name);
   };
@@ -669,65 +670,16 @@ export default function LineupBuilder({
   };
 
   const PlayerAvatar = ({
-    playerId,
+    imageUrl,
     shirtNumber,
     alt,
     className = "",
   }: {
-    playerId: string | number;
+    imageUrl?: string | null;
     shirtNumber?: number;
     alt: string;
     className?: string;
   }) => {
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const controller = new AbortController();
-
-      const run = async () => {
-        try {
-          setLoading(true);
-          const res: any = await getPlayerById(String(playerId));
-          if (controller.signal.aborted) return;
-
-          const item = res?.responseObject?.item;
-          const player = Array.isArray(item) ? item[0] : item;
-          const rawImage = player?.image ? String(player.image).trim() : "";
-
-          if (rawImage) {
-            const dataUri = rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
-            setImageUrl(dataUri);
-          } else {
-            setImageUrl(null);
-          }
-        } catch {
-          if (controller.signal.aborted) return;
-          setImageUrl(null);
-        } finally {
-          if (!controller.signal.aborted) setLoading(false);
-        }
-      };
-
-      if (playerId === null || playerId === undefined || String(playerId).trim() === "") {
-        setImageUrl(null);
-        setLoading(false);
-        return () => {
-          controller.abort();
-        };
-      }
-
-      run();
-
-      return () => {
-        controller.abort();
-      };
-    }, [playerId]);
-
-    if (loading) {
-      return <div className={`animate-pulse bg-gray-300 rounded-full ${className}`} />;
-    }
-
     if (!imageUrl) {
       return (
         <div className={`bg-white/90 text-black rounded-full flex items-center justify-center ${className}`}>
@@ -776,7 +728,7 @@ export default function LineupBuilder({
             }`}
           >
             <PlayerAvatar
-              playerId={player.player_id}
+              imageUrl={player.image_url ?? (playerImages ? playerImages[player.player_id] : undefined)}
               shirtNumber={player.shirt_number}
               alt={player.name}
               className="w-full h-full"

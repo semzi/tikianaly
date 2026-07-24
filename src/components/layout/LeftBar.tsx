@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ChevronUpDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { getAllLeagues } from "@/lib/api/endpoints";
-import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import Image from "@/components/common/Image";
 import { navigate } from "@/lib/router/navigate";
 
 // Shimmer skeleton loader component
@@ -20,6 +20,7 @@ interface LeagueItem {
   icon: string;
   id: number;
   category?: string;
+  image_url?: string | null;
 }
 
 interface LeagueListProps {
@@ -116,10 +117,11 @@ const LeagueList: React.FC<LeagueListProps> = ({
                   className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1 cursor-pointer"
                   onClick={() => openLeagueProfile(league.id)}
                 >
-                  <GetLeagueLogo
-                    leagueId={league.id}
+                  <Image
+                    src={league.image_url ?? null}
                     alt={league.name}
-                    className="w-6 h-6 object-contain"
+                    className="w-6 h-6 object-contain shrink-0"
+                    fallback="/loading-state/shield.svg"
                   />
                   <span className="flex-1">{league.name}</span>
                 </li>
@@ -140,6 +142,7 @@ const mapLeague = (league: any): LeagueItem | null => {
     icon: league.logo || league.image_path || "/assets/icons/league-placeholder.png",
     id,
     category: league.category,
+    image_url: league?.image_url ?? null,
   };
 };
 
@@ -205,7 +208,7 @@ export const Leftbar = () => {
   const popularLeagueIds = useMemo(
     () => [
       1204, 1399, 1005, 1007, 1205, 1229, 1269, 1368, 1221,
-      1141,
+      1440,
     ],
     [],
   );
@@ -218,6 +221,7 @@ export const Leftbar = () => {
       return {
         id,
         name: found?.name ?? "",
+        image_url: found?.image_url ?? null,
         resolved: Boolean(found?.name),
       };
     });
@@ -254,10 +258,11 @@ export const Leftbar = () => {
                     className="flex mt-5 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm mb-4 cursor-pointer"
                     onClick={() => openLeagueProfile(league.id)}
                   >
-                    <GetLeagueLogo
-                      leagueId={league.id}
+                    <Image
+                      src={league.image_url ?? null}
                       alt={league.name || "League"}
-                      className="w-6 h-6 object-contain"
+                      className="w-6 h-6 object-contain shrink-0"
+                      fallback="/loading-state/shield.svg"
                     />
                     {league.resolved ? (
                       <span>{league.name}</span>

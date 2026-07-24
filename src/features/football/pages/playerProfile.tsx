@@ -250,6 +250,7 @@ const playerProfile = () => {
     preferredFoot?: string;
     position?: string;
     image?: string;
+    image_url?: string;
     sidelined?: any[];
     transfers?: Array<{
       date?: string;
@@ -703,10 +704,8 @@ const playerProfile = () => {
   };
 
   const playerImageUrl = useMemo(() => {
-    if (!player?.image) return undefined;
-    const raw = String(player.image);
-    if (raw.startsWith("data:image")) return raw;
-    return `data:image/png;base64,${raw}`;
+    if (!player?.image_url) return undefined;
+    return String(player.image_url);
   }, [player]);
 
   const radarData = useMemo(() => {

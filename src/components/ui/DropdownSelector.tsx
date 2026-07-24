@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Option<T extends string> = {
   value: T;
@@ -26,6 +27,7 @@ export const DropdownSelector = <T extends string>({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const selectedLabel = useMemo(() => {
     const found = options.find((o) => o.value === value);
@@ -48,6 +50,24 @@ export const DropdownSelector = <T extends string>({
           item: "py-2.5 text-sm",
         };
 
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    setMenuStyle({
+      position: "fixed",
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -58,17 +78,35 @@ export const DropdownSelector = <T extends string>({
     };
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       const root = rootRef.current;
-      if (!root) return;
-      if (e.target && root.contains(e.target as Node)) return;
+      const menu = menuRef.current;
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (root?.contains(target)) return;
+      if (menu?.contains(target)) return;
       setOpen(false);
+    };
+    const onScrollOrResize = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      setMenuStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("mousedown", onPointerDown);
     window.addEventListener("touchstart", onPointerDown);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("mousedown", onPointerDown);
       window.removeEventListener("touchstart", onPointerDown);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
     };
   }, [open]);
 
@@ -106,9 +144,11 @@ export const DropdownSelector = <T extends string>({
         </span>
       </button>
 
-      {open ? (
+      {open && menuStyle ? createPortal(
         <div
-          className="absolute z-50 right-0 mt-2 w-full overflow-hidden rounded-2xl border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#0B1220] shadow-lg"
+          ref={menuRef}
+          style={menuStyle}
+          className="z-50 overflow-hidden rounded-2xl border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#0B1220] shadow-lg"
           role="listbox"
           aria-label="Options"
         >
@@ -141,7 +181,8 @@ export const DropdownSelector = <T extends string>({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </div>
   );

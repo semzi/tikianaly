@@ -9,9 +9,8 @@ import {
   type DashboardLiveFixture,
 } from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { addDays, subDays, isToday, format } from "date-fns";
+import { CustomDatePicker } from "@/components/ui/CustomDatePicker";
+import { addDays, subDays, isToday, isYesterday, isTomorrow, format } from "date-fns";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -24,7 +23,7 @@ import {
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import Leftbar from "@/components/layout/LeftBar";
 import { RightBar } from "@/components/layout/RightBar";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import Image from "@/components/common/Image";
@@ -97,6 +96,7 @@ const AnimatedScore = ({
 
 export const dashboard = () => {
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [fixtures, setFixtures] = useState<any[]>([]);
   const [sseRevision, setSseRevision] = useState(0);
@@ -206,18 +206,81 @@ export const dashboard = () => {
     }
     return "date";
   });
-  const DASHBOARD_SELECTED_DATE_KEY = "dashboard_selected_date_v1";
-  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+  const [selectedDate, _setSelectedDate] = useState<Date | null>(() => {
     try {
-      const raw = localStorage.getItem(DASHBOARD_SELECTED_DATE_KEY);
-      if (!raw) return new Date();
-      const d = new Date(raw);
-      return Number.isNaN(d.getTime()) ? new Date() : d;
+      const dateParam = searchParams.get("date");
+      if (dateParam) {
+        const d = new Date(dateParam);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+      return new Date();
     } catch {
       return new Date();
     }
   });
+
+  const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
+    _setSelectedDate(prev => {
+      const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
+      
+      setSearchParams(prevParams => {
+        if (newDate && !isToday(newDate)) {
+          prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
+        } else {
+          prevParams.delete("date");
+        }
+        return prevParams;
+      }, { replace: true });
+      
+      return newDate;
+    });
+  }, [setSearchParams]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const COLLAPSED_LEAGUES_KEY = "dashboard_collapsed_leagues_v2";
+  const [userToggledLeagues, setUserToggledLeagues] = useState<Record<string, Record<number, boolean>>>(() => {
+    try {
+      if (typeof window === "undefined") return {};
+      const raw = localStorage.getItem(COLLAPSED_LEAGUES_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(COLLAPSED_LEAGUES_KEY, JSON.stringify(userToggledLeagues));
+    } catch {
+      // ignore storage errors
+    }
+  }, [userToggledLeagues]);
+
+  const dateKey = useMemo(() => format(selectedDate || new Date(), 'yyyy-MM-dd'), [selectedDate]);
+
+  const isLeagueCollapsed = useCallback((leagueId: number, fixtureCount: number) => {
+    const dayToggles = userToggledLeagues[dateKey] || {};
+    if (dayToggles[leagueId] !== undefined) {
+      return dayToggles[leagueId];
+    }
+    return fixtureCount >= 10;
+  }, [userToggledLeagues, dateKey]);
+
+  const toggleLeagueCollapse = useCallback((leagueId: number, fixtureCount: number) => {
+    setUserToggledLeagues(prev => {
+      const dayToggles = prev[dateKey] || {};
+      return {
+        ...prev,
+        [dateKey]: {
+          ...dayToggles,
+          [leagueId]: !isLeagueCollapsed(leagueId, fixtureCount)
+        }
+      };
+    });
+  }, [isLeagueCollapsed, dateKey]);
 
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false
@@ -492,7 +555,7 @@ export const dashboard = () => {
   }, [toast]);
 
   const topLeagueIds = useMemo(
-    () => [1056, 1534, 1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1206, 1197, 2129, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
+    () => [ 1204, 1059, 1399, 1198, 1005, 1056, 1007, 1205, 1534, 1326, 1229, 1440, 1269, 1368, 1221, 1141, 1322, 1206, 1197, 2129, 1352, 1081, 1308, 1457, 1271, 1282, 1370, 1169, 1191, 1338, 1342, 1441, 1447, 1258, 1193, 1082, 1194, 1253, 1276, 1284, 2457, 1097, 2453, 1171, 1306, 2476, 2030],
     []
   );
   // const topLeagueIds = [1399, 1204, 1269 1352];
@@ -566,7 +629,7 @@ export const dashboard = () => {
   useEffect(() => {
     try {
       if (selectedDate) {
-        localStorage.setItem(DASHBOARD_SELECTED_DATE_KEY, selectedDate.toISOString());
+        localStorage.setItem("dashboard_selected_date", selectedDate.toISOString());
       }
     } catch {
       // ignore storage errors
@@ -842,22 +905,29 @@ export const dashboard = () => {
                 <div className="relative flex items-center mb-3 justify-between">
                   <ArrowLeftIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))} />
                   <div className="flex gap-3  items-center cursor-pointer" onClick={() => setShowDatePicker(!showDatePicker)}>
-                    <p>{selectedDate && isToday(selectedDate) ? "Today" : (selectedDate ? selectedDate.toDateString() : new Date().toDateString())}</p>
+                    <p>
+                      {selectedDate 
+                        ? isToday(selectedDate) 
+                          ? "Today" 
+                          : isYesterday(selectedDate)
+                            ? "Yesterday"
+                            : isTomorrow(selectedDate)
+                              ? "Tomorrow"
+                              : selectedDate.toDateString() 
+                        : new Date().toDateString()}
+                    </p>
                     <CalendarIcon className="text-neutral-n4 h-5" />
                   </div>
                   <ArrowRightIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))} />
                   {showDatePicker && (
-                    <div className="absolute z-10 top-full right-0 mt-2">
-                      <DatePicker
-                        selected={selectedDate}
-                        calendarClassName="bg-black"
-                        onChange={(date: Date | null) => {
+                    <div className="absolute z-50 top-full mt-2 lg:left-1/2 lg:-translate-x-1/2 right-0 lg:right-auto">
+                      <CustomDatePicker
+                        selectedDate={selectedDate}
+                        onChange={(date: Date) => {
                           setSelectedDate(date);
                           setFixturesMode("date");
-                          setShowDatePicker(false); // Close date picker after selection
+                          setShowDatePicker(false);
                         }}
-                        dateFormat="yyyy-MM-dd"
-                        inline
                       />
                     </div>
                   )}
@@ -1224,9 +1294,15 @@ export const dashboard = () => {
                   );
                 }
 
+                const fixtureCount = leagueFixture.fixtures.length;
+                const collapsed = isLeagueCollapsed(leagueId, fixtureCount);
+
                 return (
                   <div key={leagueFixture.leagueId + "-" + leagueIdx} className="block-style !p-0">
-                    <div className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20">
+                    <div 
+                      className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20 cursor-pointer select-none"
+                      onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
+                    >
                       {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                         <GetLeagueLogo
                           leagueId={leagueFixture.leagueId}
@@ -1234,19 +1310,34 @@ export const dashboard = () => {
                           className="w-6 h-6 object-contain"
                         />
                       )}
-                      <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
-                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
+                          {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
+                        </p>
+                        {fixtureCount >= 10 ? (
+                          <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                            <span className="text-xs font-medium">{fixtureCount}</span>
+                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                          </div>
+                        ) : (
+                          <ChevronDownIcon
+                            className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
+                          />
+                        )}
+                      </div>
                       <button
                         type="button"
                         className="ml-auto text-brand-secondary hover:opacity-80"
-                        onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`);
+                        }}
                         aria-label="Open league profile"
                       >
                         <ArrowRightIcon className="w-5 h-5" />
                       </button>
                     </div>
-                    {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                    {!collapsed && leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                       (() => {
                         const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                         const events = Array.isArray(game?.events) ? game.events : [];
@@ -1393,7 +1484,10 @@ export const dashboard = () => {
 
               {fixturesMode === "date" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
                 <div key={`extra-live-${leagueFixture.leagueId}-${leagueIdx}`} className="block-style">
-                  <div className="flex gap-3 border-b-1 px-5 py-3  border-snow-200 dark:border-[#1F2937]">
+                  <div 
+                    className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] cursor-pointer select-none"
+                    onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
+                  >
                     {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                       <GetLeagueLogo
                         leagueId={leagueFixture.leagueId}
@@ -1401,21 +1495,36 @@ export const dashboard = () => {
                         className="w-6 h-6 object-contain"
                       />
                     )}
-                    <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
-                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
-                        ? leagueFixture.fixtures[0].league_name
-                        : `League ${leagueFixture.leagueId}`}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
+                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
+                          ? leagueFixture.fixtures[0].league_name
+                          : `League ${leagueFixture.leagueId}`}
+                      </p>
+                      {leagueFixture.fixtures.length >= 10 ? (
+                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                          <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
+                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                        </div>
+                      ) : (
+                        <ChevronDownIcon
+                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
+                        />
+                      )}
+                    </div>
                     <button
                       type="button"
                       className="ml-auto text-brand-secondary hover:opacity-80"
-                      onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`);
+                      }}
                       aria-label="Open league profile"
                     >
                       <ArrowRightIcon className="w-5 h-5" />
                     </button>
                   </div>
-                  {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                  {!isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) && leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                       const events = Array.isArray(game?.events) ? game.events : [];
@@ -1579,12 +1688,18 @@ export const dashboard = () => {
                 );
               }
 
+              const fixtureCount = leagueFixture.fixtures.length;
+              const collapsed = isLeagueCollapsed(leagueId, fixtureCount);
+
               return (
                 <div
                   key={leagueFixture.leagueId + "-" + leagueIdx}
                   className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded overflow-hidden"
                 >
-                  <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20">
+                  <div 
+                    className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
+                    onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
+                  >
                     {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                       <GetLeagueLogo
                         leagueId={leagueFixture.leagueId}
@@ -1592,19 +1707,34 @@ export const dashboard = () => {
                         className="w-6 h-6 object-contain"
                       />
                     )}
-                    <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
-                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
+                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
+                      </p>
+                      {fixtureCount >= 10 ? (
+                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                          <span className="text-xs font-medium">{fixtureCount}</span>
+                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                        </div>
+                      ) : (
+                        <ChevronDownIcon
+                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
+                        />
+                      )}
+                    </div>
                     <button
                       type="button"
                       className="ml-auto text-brand-secondary hover:opacity-80"
-                      onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`);
+                      }}
                       aria-label="Open league profile"
                     >
                       <ArrowRightIcon className="w-5 h-5" />
                     </button>
                   </div>
-                  {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                  {!collapsed && leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                     (() => {
                       const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                       const events = Array.isArray(game?.events) ? game.events : [];
@@ -1763,7 +1893,10 @@ export const dashboard = () => {
                 key={`extra-live-mobile-${leagueFixture.leagueId}-${leagueIdx}`}
                 className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
               >
-                <div className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200">
+                <div 
+                  className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 cursor-pointer select-none"
+                  onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
+                >
                   {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
                     <GetLeagueLogo
                       leagueId={leagueFixture.leagueId}
@@ -1771,21 +1904,36 @@ export const dashboard = () => {
                       className="w-6 h-6 object-contain"
                     />
                   )}
-                  <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
-                    {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
-                      ? leagueFixture.fixtures[0].league_name
-                      : `League ${leagueFixture.leagueId}`}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
+                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
+                        ? leagueFixture.fixtures[0].league_name
+                        : `League ${leagueFixture.leagueId}`}
+                    </p>
+                    {leagueFixture.fixtures.length >= 10 ? (
+                      <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                        <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
+                        <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                      </div>
+                    ) : (
+                      <ChevronDownIcon
+                        className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
+                      />
+                    )}
+                  </div>
                   <button
                     type="button"
                     className="ml-auto text-brand-secondary hover:opacity-80"
-                    onClick={() => navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/league/profile/${encodeURIComponent(String(leagueFixture.leagueId))}`);
+                    }}
                     aria-label="Open league profile"
                   >
                     <ArrowRightIcon className="w-5 h-5" />
                   </button>
                 </div>
-                {leagueFixture.fixtures.map((game: any, gameIdx: number) => (
+                {!isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) && leagueFixture.fixtures.map((game: any, gameIdx: number) => (
                   (() => {
                     const ui = getMatchUiInfo({ status: game?.status, timer: game?.timer });
                     const events = Array.isArray(game?.events) ? game.events : [];

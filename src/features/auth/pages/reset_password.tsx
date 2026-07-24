@@ -5,7 +5,7 @@ import FormInput from "@/components/ui/Form/FormInput";
 import FormButton from "@/components/ui/Form/FormButton";
 import Logo from "@/components/common/Logo";
 import { clearResetToken, getResetToken } from "@/lib/api/axios";
-import { forgotPasswordResetPassword } from "@/lib/api/endpoints";
+import { forgotPasswordVerifyOtp } from "@/lib/api/endpoints";
 
 /**
  * Login Component
@@ -29,20 +29,37 @@ function Reset() {
     e.preventDefault();
     setStatus({ type: null, message: "" });
 
-    const resetToken = getResetToken();
-    if (!resetToken) {
+    const resetDataRaw = getResetToken();
+    if (!resetDataRaw) {
       setStatus({ type: "error", message: "Reset session expired. Please request OTP again." });
+      return;
+    }
+    
+    let resetId = "";
+    let otp = "";
+    try {
+      const parsed = typeof resetDataRaw === "string" ? JSON.parse(resetDataRaw) : resetDataRaw;
+      resetId = parsed.resetId;
+      otp = parsed.otp;
+    } catch {
+      setStatus({ type: "error", message: "Invalid reset session. Please request OTP again." });
+      return;
+    }
+
+    if (!resetId || !otp) {
+      setStatus({ type: "error", message: "Missing reset data. Please request OTP again." });
       return;
     }
 
     setIsSubmitting(true);
     try {
       const payload = {
+        resetId,
+        resetOtp: otp,
         newPassword: password,
-        confirmPassword: password,
       };
 
-      await forgotPasswordResetPassword(payload, resetToken);
+      await forgotPasswordVerifyOtp(payload);
       clearResetToken();
 
       setStatus({ type: "success", message: "Password reset successful. Please sign in." });

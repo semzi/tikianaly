@@ -34,6 +34,7 @@ export const PageHeader = () => {
       name: string;
       country: string;
       image?: string;
+      position?: string;
       kind: "player" | "team" | "league";
     }>
   >([]);
@@ -327,21 +328,14 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
             const items = normalizeItemsToArray(data?.responseObject?.item);
             const players = items.slice(0, 5).map((p: any) => {
-              const rawImage = p?.image;
-              const image =
-                typeof rawImage === "string" && rawImage.length
-                  ? rawImage.startsWith("data:image")
-                    ? rawImage
-                    : `data:image/png;base64,${rawImage}`
-                  : undefined;
-
               const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || "Unknown";
 
               return {
                 id: p?.id ?? p?.player_id ?? p?.pid,
                 name: String(name),
                 country: String(p?.nationality ?? ""),
-                image,
+                image: p?.image_url ?? undefined,
+                position: String(p?.position ?? ""),
                 kind: "player" as const,
               };
             });
@@ -362,19 +356,11 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
             const items = normalizeItemsToArray(data?.responseObject?.item);
             const teams = items.slice(0, 5).map((t: any) => {
-              const rawImage = t?.image;
-              const image =
-                typeof rawImage === "string" && rawImage.length
-                  ? rawImage.startsWith("data:image")
-                    ? rawImage
-                    : `data:image/png;base64,${rawImage}`
-                  : undefined;
-
               return {
                 id: t?.id ?? t?.team_id ?? t?.tid,
                 name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
                 country: String(t?.country ?? ""),
-                image,
+                image: t?.image_url ?? undefined,
                 kind: "team" as const,
               };
             });
@@ -399,6 +385,7 @@ export const PageHeader = () => {
                 id: l?.id ?? l?.league_id ?? l?.gid,
                 name: String(l?.name ?? "Unknown"),
                 country: String(l?.category ?? ""),
+                image: l?.image_url ?? l?.image ?? undefined,
                 kind: "league" as const,
               };
             });
@@ -425,17 +412,9 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
 
             const items = normalizeItemsToArray(data?.responseObject?.item);
-            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "player" }> =
+            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; position?: string; kind: "player" }> =
               items.length
                 ? items.slice(0, 10).map((p: any) => {
-                    const rawImage = p?.image;
-                    const image =
-                      typeof rawImage === "string" && rawImage.length
-                        ? rawImage.startsWith("data:image")
-                          ? rawImage
-                          : `data:image/png;base64,${rawImage}`
-                        : undefined;
-
                     const name =
                       [p?.firstname, p?.lastname].filter(Boolean).join(" ") || "Unknown";
 
@@ -443,7 +422,8 @@ export const PageHeader = () => {
                       id: p?.id ?? p?.player_id ?? p?.pid,
                       name: String(name),
                       country: String(p?.nationality ?? ""),
-                      image,
+                      image: p?.image_url ?? undefined,
+                      position: String(p?.position ?? ""),
                       kind: "player",
                     };
                   })
@@ -473,19 +453,11 @@ export const PageHeader = () => {
             const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "team" }> =
               items.length
                 ? items.slice(0, 10).map((t: any) => {
-                    const rawImage = t?.image;
-                    const image =
-                      typeof rawImage === "string" && rawImage.length
-                        ? rawImage.startsWith("data:image")
-                          ? rawImage
-                          : `data:image/png;base64,${rawImage}`
-                        : undefined;
-
                     return {
                       id: t?.id ?? t?.team_id ?? t?.tid,
                       name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
                       country: String(t?.country ?? ""),
-                      image,
+                      image: t?.image_url ?? undefined,
                       kind: "team",
                     };
                   })
@@ -519,6 +491,7 @@ export const PageHeader = () => {
                       id: l?.id ?? l?.league_id ?? l?.gid,
                       name: String(l?.name ?? "Unknown"),
                       country: String(l?.category ?? ""),
+                      image: l?.image_url ?? l?.image ?? undefined,
                       kind: "league",
                     };
                   })
@@ -906,6 +879,11 @@ export const PageHeader = () => {
                     >
                       {r.name}
                     </span>
+                    {r.kind === "player" && r.position ? (
+                      <span className={`truncate text-xs ${isDark ? "text-white/70" : "text-neutral-n4"}`}>
+                        {r.position}
+                      </span>
+                    ) : null}
                     <span className={`truncate text-xs ${isDark ? "text-white/60" : "text-neutral-n5"}`}>
                       {r.country}
                     </span>

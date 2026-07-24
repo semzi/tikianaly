@@ -6,6 +6,7 @@ import {
   getFootballLeagueLeaders,
   getLeagueById,
   getStandingSeasonsByLeagueId,
+  getLeagueFixtures,
   type FootballLeagueLeadersResponse,
 } from "@/lib/api/endpoints";
 import { DropdownSelector } from "@/components/ui/DropdownSelector";
@@ -16,8 +17,8 @@ import {
   ShareIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
@@ -157,6 +158,7 @@ const LeagueProfile = () => {
   const tabs = useMemo(
     () => [
       { id: "standings", label: "Standings" },
+      { id: "matches", label: "Matches" },
       { id: "top-scorers", label: "Top Scorers" },
       { id: "top-assists", label: "Top Assists" },
       { id: "top-duels", label: "Top Duels" },
@@ -195,6 +197,12 @@ const LeagueProfile = () => {
     }
     return [];
   }, [seasonsData]);
+
+  useEffect(() => {
+    if (!season && availableSeasons.length > 0) {
+      setSeason(availableSeasons[0].value);
+    }
+  }, [availableSeasons, season]);
 
   const {
     data: leagueResponse,
@@ -325,6 +333,106 @@ const LeagueProfile = () => {
       cancelled = true;
     };
   }, [resolvedLeagueId, season]);
+
+  const [matchesMode, setMatchesMode] = useState<"played" | "upcoming" | "all">("all");
+
+  const [fixturesData, setFixturesData] = useState<any>(null);
+  const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [fixturesError, setFixturesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = resolvedLeagueId;
+    if (id == null || String(id).trim() === "" || !season) {
+      setFixturesData(null);
+      setFixturesError(null);
+      setFixturesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setFixturesLoading(true);
+      setFixturesError(null);
+      try {
+        const data = await getLeagueFixtures(id, season);
+        if (cancelled) return;
+        setFixturesData(data);
+      } catch (e: any) {
+        if (cancelled) return;
+        setFixturesData(null);
+        setFixturesError(String(e?.message ?? "Failed to load matches"));
+      } finally {
+        if (!cancelled) setFixturesLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedLeagueId, season]);
+
+  const allItems = useMemo(() => {
+    const items = (fixturesData as any)?.responseObject?.items;
+    if (!Array.isArray(items)) return [];
+    return items;
+  }, [fixturesData]);
+
+  const getDate = (m: any) => new Date(String(m?.date ?? "")).getTime();
+
+  const playedMatches = useMemo(() => {
+    return allItems
+      .filter((m: any) => String(m?.status ?? "").toUpperCase() === "FT")
+      .sort((a: any, b: any) => getDate(b) - getDate(a));
+  }, [allItems]);
+
+  const upcomingMatches = useMemo(() => {
+    return allItems
+      .filter((m: any) => String(m?.status ?? "").toUpperCase() !== "FT")
+      .sort((a: any, b: any) => getDate(a) - getDate(b));
+  }, [allItems]);
+
+  const displayedMatches = useMemo(() => {
+    if (matchesMode === "played") return playedMatches;
+    if (matchesMode === "upcoming") return upcomingMatches;
+    return [...upcomingMatches, ...playedMatches];
+  }, [playedMatches, upcomingMatches, allItems, matchesMode]);
+
+  const upcomingFixtureIdSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of upcomingMatches) {
+      const id = m?.fixture_id ?? m?.id;
+      const key = String(id ?? "").trim();
+      if (key) set.add(key);
+    }
+    return set;
+  }, [upcomingMatches]);
+
+  const matchesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (matchesMode !== "all") return;
+    const el = matchesContainerRef.current;
+    if (!el) return;
+    const firstUpcoming = el.querySelector("[data-upcoming='true']") as HTMLElement | null;
+    if (firstUpcoming) {
+      firstUpcoming.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [matchesMode, displayedMatches]);
+
+  const getRedCount = (fx: any, side: "localteam" | "visitorteam") => {
+    const direct = Number((fx?.[side]?.redcards ?? fx?.[side]?.red_cards ?? fx?.[side]?.redCards) ?? 0);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const events = Array.isArray(fx?.events) ? fx.events : [];
+    if (!events.length) return 0;
+    return events.reduce((acc: number, e: any) => {
+      const t = String(e?.type ?? e?.event ?? "").toLowerCase();
+      const teamKey = String(e?.team ?? e?.team_type ?? e?.side ?? "").toLowerCase();
+      const matchesSide = teamKey === side || (side === "localteam" && teamKey === "home") || (side === "visitorteam" && teamKey === "away");
+      if (matchesSide && t.includes("red")) return acc + 1;
+      return acc;
+    }, 0);
+  };
 
   const canonicalUrl = typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}${window.location.search}`
@@ -527,7 +635,7 @@ const LeagueProfile = () => {
         </div>
       </div>
 
-      <div className="flex z-10 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
+      <div className="flex z-30 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => (
             <button
@@ -556,6 +664,113 @@ const LeagueProfile = () => {
         {activeTab === "standings" ? (
           <div className="my-8">
             <StandingsTable leagueId={resolvedLeagueId} season={season} />
+          </div>
+        ) : null}
+
+        {activeTab === "matches" ? (
+          <div className="my-4">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="font-bold text-base theme-text">Matches</p>
+              <DropdownSelector
+                value={matchesMode}
+                onChange={setMatchesMode}
+                size="lg"
+                className="max-w-[180px]"
+                options={[
+                  { value: "played", label: "Played" },
+                  { value: "upcoming", label: "Upcoming" },
+                  { value: "all", label: "All" },
+                ]}
+              />
+            </div>
+
+            {fixturesLoading ? (
+              <div className="block-style p-4 rounded theme-text text-sm">Loading matches…</div>
+            ) : fixturesError ? (
+              <div className="block-style p-4 rounded text-ui-negative text-sm">{fixturesError}</div>
+            ) : displayedMatches.length === 0 ? (
+              <div className="block-style p-4 rounded theme-text text-sm">
+                {matchesMode === "played" ? "No played matches" : matchesMode === "upcoming" ? "No upcoming matches" : "No matches"}
+              </div>
+            ) : (
+              <div className="block-style overflow-hidden">
+                <div className="divide-y divide-snow-200/60 dark:divide-snow-100/10" ref={matchesContainerRef}>
+                  {displayedMatches.map((m: any, idx: number) => {
+                    const fixtureId = m?.fixture_id ?? m?.id;
+                    const isUpcoming = upcomingFixtureIdSet.has(String(fixtureId ?? "").trim());
+                    const homeName = m?.localteam?.name ?? "Home";
+                    const awayName = m?.visitorteam?.name ?? "Away";
+                    const homeScore = isUpcoming ? "-" : (m?.localteam?.score ?? "-");
+                    const awayScore = isUpcoming ? "-" : (m?.visitorteam?.score ?? "-");
+                    const leagueName = m?.league_name ?? "";
+                    const dateLabel = (() => {
+                      const d = String(m?.date ?? "");
+                      if (!d) return "";
+                      const dt = new Date(d);
+                      return Number.isFinite(dt.getTime())
+                        ? dt.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        : "";
+                    })();
+
+                    const homeRed = getRedCount(m, "localteam");
+                    const awayRed = getRedCount(m, "visitorteam");
+
+                    return (
+                      <Link
+                        key={String(fixtureId ?? idx)}
+                        data-upcoming={isUpcoming ? "true" : undefined}
+                        to={`/football/gameinfo/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
+                        className="block px-2 py-1.5 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[11px] text-neutral-n5 dark:text-snow-200 truncate leading-tight">
+                            {dateLabel}{dateLabel && leagueName ? " • " : ""}{leagueName}
+                          </p>
+
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Image src={m?.homeTeam?.image_url ?? null} alt={homeName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
+                                <span className="text-xs font-medium dark:text-white text-neutral-n4 truncate">{homeName}</span>
+                                {homeRed > 0 ? (
+                                  <span
+                                    className="inline-flex items-center justify-center h-2.5 w-2 bg-red-600 text-white text-[9px] font-bold leading-none"
+                                    title="Red cards"
+                                  >
+                                    {homeRed > 1 ? homeRed : null}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 rounded px-1 py-0.5 min-w-[20px] text-center shrink-0">
+                                <span className="text-xs font-bold dark:text-white text-neutral-n4">{homeScore}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Image src={m?.awayTeam?.image_url ?? null} alt={awayName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
+                                <span className="text-xs font-medium dark:text-white text-neutral-n4 truncate">{awayName}</span>
+                                {awayRed > 0 ? (
+                                  <span
+                                    className="inline-flex items-center justify-center h-2.5 w-2 bg-red-600 text-white text-[9px] font-bold leading-none"
+                                    title="Red cards"
+                                  >
+                                    {awayRed > 1 ? awayRed : null}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 rounded px-1 py-0.5 min-w-[20px] text-center shrink-0">
+                                <span className="text-xs font-bold dark:text-white text-neutral-n4">{awayScore}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
 

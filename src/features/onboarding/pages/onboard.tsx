@@ -24,7 +24,7 @@ import FormInput from "@/components/ui/Form/FormInput";
 import FormButton from "@/components/ui/Form/FormButton";
 import VerifyOtp from "@/components/auth/VerifyOtp";
 import { clearResetToken, setResetToken } from "@/lib/api/axios";
-import { forgotPasswordRequestOtp, forgotPasswordVerifyOtp } from "@/lib/api/endpoints";
+import { forgotPasswordRequestOtp } from "@/lib/api/endpoints";
 
 /**
  * Auth Component
@@ -127,9 +127,9 @@ function Onboard() {
     setAuthStatus({ type: null, message: "" });
     try {
       const response = await forgotPasswordRequestOtp({ email });
-      const nextOtpToken = response?.responseObject?.otpToken;
+      const nextOtpToken = response?.data?.resetId;
       if (!nextOtpToken) {
-        throw new Error("OTP request failed: no otpToken returned.");
+        throw new Error("OTP request failed: no resetId returned.");
       }
 
       setOtpToken(nextOtpToken);
@@ -178,13 +178,9 @@ function Onboard() {
     setAuthStatus({ type: null, message: "" });
     try {
       setLastVerifiedOtp(otp);
-      const response = await forgotPasswordVerifyOtp({ otp }, otpToken);
-      const resetToken = response?.responseObject?.token;
-      if (!resetToken) {
-        throw new Error("OTP verification failed: no reset token returned.");
-      }
-
-      setResetToken(resetToken);
+      
+      // Instead of verifying immediately, pass the resetId and OTP to the reset password page
+      setResetToken(JSON.stringify({ resetId: otpToken, otp }));
       setAuthStatus({ type: "success", message: "OTP Verified. Please reset your password." });
       navigate("/reset-password");
     } catch (error: any) {

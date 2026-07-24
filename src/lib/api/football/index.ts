@@ -484,6 +484,11 @@ export const clearAllCache = () => {
   apiCache.clearAll();
 };
 
+export const getPlayerRatings = async () => {
+  const response = await apiClient.get("/api/v1/football/match/player-ratings");
+  return response.data;
+};
+
 // Image/Logo Endpoints
 
 /**
@@ -533,6 +538,28 @@ export const getTeamFixtures = async (teamId: string | number, season: string = 
   const response = await apiClient.get(endpoint, { params });
   const data = response.data;
   
+  apiCache.set(endpoint, data, params, 30 * 60 * 1000);
+  return data;
+};
+
+// League Fixtures by Season Endpoint
+export const getLeagueFixtures = async (
+  leagueId: string | number,
+  season: string,
+  page: number = 1,
+  limit: number = 100,
+) => {
+  const endpoint = "/api/v1/football/fixture/season";
+  const params = { leagueId, season, page, limit };
+
+  const cached = apiCache.get(endpoint, params);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const response = await apiClient.get(endpoint, { params });
+  const data = response.data;
+
   apiCache.set(endpoint, data, params, 30 * 60 * 1000);
   return data;
 };

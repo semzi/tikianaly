@@ -37,6 +37,7 @@ type PlayerApiItem = {
   marketValueEUR?: number;
   position?: string;
   image?: string;
+  image_url?: string;
   transfers?: Array<{
     date?: string;
     from?: string;
@@ -136,11 +137,7 @@ const playerDisplayName = (p?: PlayerApiItem | null) => {
 };
 
 const playerImageUrl = (p?: PlayerApiItem | null) => {
-  const raw = p?.image;
-  if (typeof raw === "string" && raw.length) {
-    return raw.startsWith("data:image") ? raw : `data:image/png;base64,${raw}`;
-  }
-  return "/loading-state/player.svg";
+  return p?.image_url ?? "/loading-state/player.svg";
 };
 
 const formatCurrencyEUR = (value?: number): string => {

@@ -504,7 +504,7 @@ export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }:
                   <div className="text-center">Form</div>
                 </div>
               ) : (
-                <div className="grid grid-cols-[40px_1rf_40px_50px_50px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
+                <div className="grid grid-cols-[40px_1fr_40px_50px_50px] gap-3 px-6 py-4 mb-2 border-b border-snow-200 dark:border-[#1F2937] font-semibold text-sm text-brand-primary whitespace-nowrap">
                   <div className="text-center">#</div>
                   <div>Team</div>
                   <div className="text-center">P</div>

@@ -3,13 +3,14 @@
 
 // Auth exports
 export {
-  requestOTP,
-  verifyUser,
   forgotPasswordRequestOtp,
   forgotPasswordVerifyOtp,
-  forgotPasswordResetPassword,
   addUser,
   login,
+  getCurrentUser,
+  changePassword,
+  logout,
+  refreshTokens,
 } from "./auth";
 
 // Football exports
@@ -43,6 +44,8 @@ export {
   clearPlayersCache,
   clearAllCache,
   getTeamFixtures,
+  getLeagueFixtures,
+  getPlayerRatings,
   // Image/Logo endpoints
   getLeagueLogoById,
   getTeamLogoById,

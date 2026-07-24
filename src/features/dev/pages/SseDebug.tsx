@@ -11,7 +11,7 @@ type LogItem = {
 };
 
 const DEFAULT_URL =
-  "https://api.tikianaly.com/api/v1/football/live/live-stream";
+  "https://api.tikianaly.com/api/v1/football/sse/stream-match-info?matchId=4357403";
 
 export const SseDebug = () => {
   const [searchParams] = useSearchParams();
