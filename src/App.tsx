@@ -68,7 +68,9 @@ const SplashLottie = () => {
   }, []);
 
   if (!animationData) return null;
-  return <Lottie animationData={animationData} loop className="w-48 h-48 mx-auto" />;
+  return (
+    <Lottie animationData={animationData} loop className="w-48 h-48 mx-auto" />
+  );
 };
 
 const BasketballMatchDetail = lazy(
@@ -86,6 +88,11 @@ const AmericanFootballPage = lazy(
 const AmericanFootballMatchDetail = lazy(
   () =>
     import("./features/american-football/pages/AmericanFootballMatchDetail"),
+);
+
+const AmericanFootballLeagueProfile = lazy(
+  () =>
+    import("./features/american-football/pages/AmericanFootballLeagueProfile"),
 );
 const TennisPage = lazy(() => import("./features/tennis/pages/Tennis"));
 const TennisGame = lazy(() => import("./features/tennis/pages/TennisGame"));
@@ -118,10 +125,16 @@ function AnimatedRoutes() {
   return (
     <LazyMotion features={domAnimation}>
       <AnimatePresence mode="sync">
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-brand-primary"><SplashLottie /></div>}>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-screen bg-brand-primary">
+              <SplashLottie />
+            </div>
+          }
+        >
           <Routes location={location} key={location.pathname}>
             {/* No Navigation */}
-            <Route path="/login" element={<Onboard />} /> 
+            <Route path="/login" element={<Onboard />} />
             <Route path="/signup" element={<Onboard />} />
 
             {/* With Navigation */}
@@ -333,6 +346,20 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <AmericanFootballMatchDetail />
+                </m.div>
+              }
+            />
+            <Route
+              path="/american-football/league/:leagueId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <AmericanFootballLeagueProfile />
                 </m.div>
               }
             />

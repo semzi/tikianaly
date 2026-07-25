@@ -39,6 +39,65 @@ const teamInitials = (team: string) =>
     .slice(0, 2)
     .toUpperCase();
 
+const quarterTotal = (values: (string | number)[]) =>
+  values.reduce<number>((sum, v) => {
+    const n = typeof v === "number" ? v : parseInt(String(v), 10);
+    return Number.isFinite(n) ? sum + n : sum;
+  }, 0);
+
+const QuarterScoreBox = ({ match }: { match: AmericanFootballMatch }) => {
+  const placeholder: [string, string, string, string] = ["-", "-", "-", "-"];
+  const home = match.quarters?.home ?? placeholder;
+  const away = match.quarters?.away ?? placeholder;
+  const hasData = Boolean(match.quarters);
+
+  return (
+    <div className="bg-black/30 rounded-xl px-3 py-2.5 backdrop-blur-sm">
+      <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1.5">
+        Qtr Score
+      </p>
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="text-white/60">
+            <th className="font-medium w-6"></th>
+            <th className="font-medium px-1.5">Q1</th>
+            <th className="font-medium px-1.5">Q2</th>
+            <th className="font-medium px-1.5">Q3</th>
+            <th className="font-medium px-1.5">Q4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="text-white">
+            <td className="text-[9px] uppercase font-semibold text-white/60">
+              Home
+            </td>
+            {home.map((q, i) => (
+              <td key={i} className="text-center font-bold px-1.5 py-0.5">
+                {q}
+              </td>
+            ))}
+          </tr>
+          <tr className="text-white">
+            <td className="text-[9px] uppercase font-semibold text-white/60">
+              Away
+            </td>
+            {away.map((q, i) => (
+              <td key={i} className="text-center font-bold px-1.5 py-0.5">
+                {q}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+      {hasData ? (
+        <p className="text-center text-[10px] font-bold text-white/80 mt-1">
+          Tot {quarterTotal(home)} - {quarterTotal(away)}
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
 const AmericanFootballMatchDetail = () => {
   const { matchId } = useParams();
   const location = useLocation();
@@ -48,15 +107,24 @@ const AmericanFootballMatchDetail = () => {
   const detailQuery = useQuery({
     queryKey: ["american-football", "match", matchId],
     enabled: isAmericanFootballApiEnabled && Boolean(matchId),
-    queryFn: async () => normalizeAmericanFootballMatchDetail(await getAmericanFootballMatchDetail(String(matchId))),
+    queryFn: async () =>
+      normalizeAmericanFootballMatchDetail(
+        await getAmericanFootballMatchDetail(String(matchId)),
+      ),
     staleTime: 20_000,
     refetchInterval: 20_000,
   });
 
   const playByPlayQuery = useQuery({
     queryKey: ["american-football", "match", matchId, "play-by-play"],
-    enabled: isAmericanFootballApiEnabled && Boolean(matchId) && activeTab === "timeline",
-    queryFn: async () => normalizeAmericanFootballTimeline(await getAmericanFootballPlayByPlay(String(matchId))),
+    enabled:
+      isAmericanFootballApiEnabled &&
+      Boolean(matchId) &&
+      activeTab === "timeline",
+    queryFn: async () =>
+      normalizeAmericanFootballTimeline(
+        await getAmericanFootballPlayByPlay(String(matchId)),
+      ),
     staleTime: 20_000,
     refetchInterval: 20_000,
   });
@@ -94,19 +162,49 @@ const AmericanFootballMatchDetail = () => {
     { id: "info" as MatchTab, label: "Info", icon: InformationCircleIcon },
   ];
 
-  const statsRows = match.stats?.length ? match.stats : [
-    { label: "Total Yards", home: isLive ? 238 : 0, away: isLive ? 261 : 0 },
-    { label: "Passing Yards", home: isLive ? 156 : 0, away: isLive ? 184 : 0 },
-    { label: "Rushing Yards", home: isLive ? 82 : 0, away: isLive ? 77 : 0 },
-    { label: "First Downs", home: isLive ? 14 : 0, away: isLive ? 16 : 0 },
-    { label: "Time of Possession", home: isLive ? 28 : 0, away: isLive ? 32 : 0 },
-  ];
+  const statsRows = match.stats?.length
+    ? match.stats
+    : [
+        {
+          label: "Total Yards",
+          home: isLive ? 238 : 0,
+          away: isLive ? 261 : 0,
+        },
+        {
+          label: "Passing Yards",
+          home: isLive ? 156 : 0,
+          away: isLive ? 184 : 0,
+        },
+        {
+          label: "Rushing Yards",
+          home: isLive ? 82 : 0,
+          away: isLive ? 77 : 0,
+        },
+        { label: "First Downs", home: isLive ? 14 : 0, away: isLive ? 16 : 0 },
+        {
+          label: "Time of Possession",
+          home: isLive ? 28 : 0,
+          away: isLive ? 32 : 0,
+        },
+      ];
 
   const fallbackTimelineRows = isLive
     ? [
-        { time: "Q1", event: `${match.homeTeam} opened the scoring.`, side: "home" },
-        { time: "Q2", event: `${match.awayTeam} answered with a touchdown drive.`, side: "away" },
-        { time: match.clock, event: `${match.period} — ${match.highlight}`, side: "neutral" },
+        {
+          time: "Q1",
+          event: `${match.homeTeam} opened the scoring.`,
+          side: "home",
+        },
+        {
+          time: "Q2",
+          event: `${match.awayTeam} answered with a touchdown drive.`,
+          side: "away",
+        },
+        {
+          time: match.clock,
+          event: `${match.period} — ${match.highlight}`,
+          side: "neutral",
+        },
       ]
     : [
         { time: match.kickoff, event: "Kickoff scheduled.", side: "neutral" },
@@ -131,22 +229,42 @@ const AmericanFootballMatchDetail = () => {
           }}
         />
         <div className="page-padding-x relative z-10 py-4 md:py-6">
-          <button type="button" onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm text-white/95 hover:text-white">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mb-4 flex items-center gap-2 text-sm text-white/95 hover:text-white"
+          >
             <ArrowLeftIcon className="h-4 w-4" /> Back
           </button>
           <div className="grid grid-cols-3 items-center gap-3 md:gap-8">
             <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">{teamInitials(match.homeTeam)}</div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">{match.homeTeam}</p>
+              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
+                {teamInitials(match.homeTeam)}
+              </div>
+              <p className="mt-2 text-sm md:text-3xl font-semibold">
+                {match.homeTeam}
+              </p>
+            </div>
+            <div className="flex flex-col items-center text-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-white text-orange-600 text-xs md:text-sm font-bold uppercase tracking-wide">
+                {isLive ? "Live" : match.status}
+              </span>
+              <p className="text-xl md:text-5xl font-black tracking-wide">
+                {homeScore} - {awayScore}
+              </p>
+              <p className="text-xs md:text-base text-white/90">
+                {match.league}
+                {isLive ? ` • ${match.period}` : ""}
+              </p>
+              <QuarterScoreBox match={match} />
             </div>
             <div className="flex flex-col items-center text-center">
-              <span className="px-3 py-1 rounded-full bg-white text-orange-600 text-xs md:text-sm font-bold uppercase tracking-wide">{isLive ? "Live" : match.status}</span>
-              <p className="mt-2 text-xl md:text-5xl font-black tracking-wide">{homeScore} - {awayScore}</p>
-              <p className="mt-1 text-xs md:text-base text-white/90">{match.league}{isLive ? ` • ${match.period}` : ""}</p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">{teamInitials(match.awayTeam)}</div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">{match.awayTeam}</p>
+              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
+                {teamInitials(match.awayTeam)}
+              </div>
+              <p className="mt-2 text-sm md:text-3xl font-semibold">
+                {match.awayTeam}
+              </p>
             </div>
           </div>
         </div>
@@ -156,30 +274,162 @@ const AmericanFootballMatchDetail = () => {
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`py-2 px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 flex items-center gap-1 ${activeTab === tab.id ? "text-orange-500 font-medium border-b-2 border-orange-500" : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}><Icon className="h-4 w-4" />{tab.label}</button>;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-2 px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 flex items-center gap-1 ${activeTab === tab.id ? "text-orange-500 font-medium border-b-2 border-orange-500" : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
           })}
         </div>
       </div>
 
       <div className="page-padding-x my-8">
-        {activeTab === "stats" ? <div className="block-style !p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5"><p className="font-bold uppercase text-sm theme-text tracking-wide">American Football Match Statistics</p></div>
-          <div className="p-5 space-y-6">
-            {statsRows.map((row) => {
-              const homeValue = Number(row.home) || 0;
-              const awayValue = Number(row.away) || 0;
-              const total = homeValue + awayValue;
-              const homeWidth = total ? (homeValue / total) * 100 : 50;
-              const awayWidth = total ? (awayValue / total) * 100 : 50;
-              return <div key={row.label} className="space-y-2"><div className="text-center"><span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">{row.label}</span></div><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><div className="space-y-1"><p className="text-sm font-bold theme-text text-right">{row.home}{row.label === "Time of Possession" && isLive ? ":00" : ""}</p><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-400 to-green-500" style={{ width: `${homeWidth}%` }} /></div></div><p className="text-xs uppercase font-semibold text-neutral-n4">vs</p><div className="space-y-1"><p className="text-sm font-bold theme-text">{row.away}{row.label === "Time of Possession" && isLive ? ":00" : ""}</p><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-blue-400 to-blue-500" style={{ width: `${awayWidth}%` }} /></div></div></div></div>;
-            })}
-            {!isLive ? <p className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-4 text-sm text-neutral-n4">Team statistics will appear when the game begins.</p> : null}
+        {activeTab === "stats" ? (
+          <div className="block-style !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+              <p className="font-bold uppercase text-sm theme-text tracking-wide">
+                American Football Match Statistics
+              </p>
+            </div>
+            <div className="p-5 space-y-6">
+              {statsRows.map((row) => {
+                const homeValue = Number(row.home) || 0;
+                const awayValue = Number(row.away) || 0;
+                const total = homeValue + awayValue;
+                const homeWidth = total ? (homeValue / total) * 100 : 50;
+                const awayWidth = total ? (awayValue / total) * 100 : 50;
+                return (
+                  <div key={row.label} className="space-y-2">
+                    <div className="text-center">
+                      <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">
+                        {row.label}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold theme-text text-right">
+                          {row.home}
+                          {row.label === "Time of Possession" && isLive
+                            ? ":00"
+                            : ""}
+                        </p>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-400 to-green-500"
+                            style={{ width: `${homeWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs uppercase font-semibold text-neutral-n4">
+                        vs
+                      </p>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold theme-text">
+                          {row.away}
+                          {row.label === "Time of Possession" && isLive
+                            ? ":00"
+                            : ""}
+                        </p>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-l from-blue-400 to-blue-500"
+                            style={{ width: `${awayWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!isLive ? (
+                <p className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-4 text-sm text-neutral-n4">
+                  Team statistics will appear when the game begins.
+                </p>
+              ) : null}
+            </div>
           </div>
-        </div> : null}
+        ) : null}
 
-        {activeTab === "timeline" ? <div className="block-style !p-0 overflow-hidden"><div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5"><p className="font-bold uppercase text-sm theme-text tracking-wide">Game Timeline</p></div><div className="p-5 space-y-3">{timelineRows.map((row, index) => <div key={`${row.time}-${index}`} className="flex items-start gap-3 rounded-lg border border-snow-200 dark:border-[#1F2937] p-3"><div className="w-16 text-xs font-bold text-neutral-n4">{row.time}</div><div className={`mt-1 h-2.5 w-2.5 rounded-full ${row.side === "home" ? "bg-green-500" : row.side === "away" ? "bg-blue-500" : "bg-brand-secondary"}`} /><p className="text-sm theme-text">{row.event}</p></div>)}</div></div> : null}
+        {activeTab === "timeline" ? (
+          <div className="block-style !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+              <p className="font-bold uppercase text-sm theme-text tracking-wide">
+                Game Timeline
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+              {timelineRows.map((row, index) => (
+                <div
+                  key={`${row.time}-${index}`}
+                  className="flex items-start gap-3 rounded-lg border border-snow-200 dark:border-[#1F2937] p-3"
+                >
+                  <div className="w-16 text-xs font-bold text-neutral-n4">
+                    {row.time}
+                  </div>
+                  <div
+                    className={`mt-1 h-2.5 w-2.5 rounded-full ${row.side === "home" ? "bg-green-500" : row.side === "away" ? "bg-blue-500" : "bg-brand-secondary"}`}
+                  />
+                  <p className="text-sm theme-text">{row.event}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
-        {activeTab === "info" ? <div className="grid gap-4 md:grid-cols-2"><div className="block-style"><p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">League</p><p className="text-lg font-semibold theme-text">{match.league}</p><p className="text-sm text-neutral-n4 mt-1">Status: {match.status} {isLive ? `• ${match.period}, ${match.clock}` : ""}</p></div><div className="block-style"><p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">Game Details</p><p className="text-sm theme-text">Venue: {match.venue}</p><p className="text-sm theme-text">Kickoff: {match.kickoff}</p><p className="text-sm theme-text">Game ID: {match.id}</p></div><div className="block-style md:col-span-2"><p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">Preview</p><p className="text-sm theme-text">{match.highlight}</p></div></div> : null}
+        {activeTab === "info" ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="block-style">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+                League
+              </p>
+              <p className="text-lg font-semibold theme-text">{match.league}</p>
+              <p className="text-sm text-neutral-n4 mt-1">
+                Status: {match.status}{" "}
+                {isLive ? `• ${match.period}, ${match.clock}` : ""}
+              </p>
+            </div>
+            <div className="block-style">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+                Game Details
+              </p>
+              <p className="text-sm theme-text">Venue: {match.venue}</p>
+              <p className="text-sm theme-text">Kickoff: {match.kickoff}</p>
+              {match.matchInfo?.referee ? (
+                <p className="text-sm theme-text">
+                  Referee: {match.matchInfo.referee}
+                </p>
+              ) : null}
+              {match.matchInfo?.attendance ? (
+                <p className="text-sm theme-text">
+                  Attendance: {match.matchInfo.attendance}
+                </p>
+              ) : null}
+              {match.matchInfo?.weather ? (
+                <p className="text-sm theme-text">
+                  Weather: {match.matchInfo.weather}
+                </p>
+              ) : null}
+              {match.matchInfo?.surface ? (
+                <p className="text-sm theme-text">
+                  Surface: {match.matchInfo.surface}
+                </p>
+              ) : null}
+              <p className="text-sm theme-text">Game ID: {match.id}</p>
+            </div>
+            <div className="block-style md:col-span-2">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+                Preview
+              </p>
+              <p className="text-sm theme-text">{match.highlight}</p>
+            </div>
+          </div>
+        ) : null}
       </div>
       <FooterComp />
     </div>
