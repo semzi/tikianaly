@@ -14,6 +14,7 @@ const sportIcons: Record<string, React.ReactNode> = {
   Football: <Goal className="h-3.5 w-3.5" />,
   Basketball: <ShoppingBasket className="h-3.5 w-3.5" />,
   "American Football": <Shield className="h-3.5 w-3.5" />,
+  Cricket: <img src="/icons/cricket-1.svg" alt="" className="h-3.5 w-3.5" />,
 };
 
 const posLabel: Record<string, string> = {
@@ -137,3 +138,4 @@ export const Category = () => {
 };
 
 export default Category;
+

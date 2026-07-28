@@ -899,13 +899,65 @@ export const dashboard = () => {
           {/* Date and Filter Controls */}
           <div className="flex-col">
             {/* <AfconBanner /> */}
-            <div className="block-style ">
-              <div className="flex dark:text-snow-200 justify-center flex-col">
-                {/* Date Navigation */}
-                <div className="relative flex items-center mb-3 justify-between">
-                  <ArrowLeftIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))} />
-                  <div className="flex gap-3  items-center cursor-pointer" onClick={() => setShowDatePicker(!showDatePicker)}>
-                    <p>
+            <div className="block-style !p-0 overflow-visible z-10">
+              <div className="flex flex-wrap items-center gap-3 px-5 py-4 dark:text-snow-200">
+                <div className="flex rounded-full bg-snow-100 p-1 dark:bg-white/5">
+                  <button
+                    type="button"
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                      fixturesMode === "live"
+                        ? "bg-brand-secondary text-white"
+                        : "text-[#586069] dark:text-snow-200"
+                    }`}
+                    onClick={() => setFixturesMode("live")}
+                  >
+                    Live
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                      fixturesMode === "date"
+                        ? "bg-brand-secondary text-white"
+                        : "text-[#586069] dark:text-snow-200"
+                    }`}
+                    onClick={() => setFixturesMode("date")}
+                  >
+                    {selectedDate && isToday(selectedDate)
+                      ? "Today"
+                      : selectedDate
+                        ? isYesterday(selectedDate)
+                          ? "Yesterday"
+                          : isTomorrow(selectedDate)
+                            ? "Tomorrow"
+                            : format(selectedDate, "MMM d")
+                        : "Fixtures"}
+                  </button>
+                </div>
+
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
+                    onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))}
+                    aria-label="Previous day"
+                  >
+                    <ArrowLeftIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
+                    onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))}
+                    aria-label="Next day"
+                  >
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-full border border-snow-200 px-4 py-2 text-sm text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
+                      onClick={() => setShowDatePicker((value) => !value)}
+                    >
+                      <CalendarIcon className="h-4 w-4" />
                       {selectedDate 
                         ? isToday(selectedDate) 
                           ? "Today" 
@@ -913,36 +965,22 @@ export const dashboard = () => {
                             ? "Yesterday"
                             : isTomorrow(selectedDate)
                               ? "Tomorrow"
-                              : selectedDate.toDateString() 
-                        : new Date().toDateString()}
-                    </p>
-                    <CalendarIcon className="text-neutral-n4 h-5" />
+                              : format(selectedDate, "MMM d") 
+                        : "Pick date"}
+                    </button>
+                    {showDatePicker && (
+                      <div className="absolute right-0 top-full z-[100] mt-2 rounded-2xl border border-snow-200 bg-white p-0 shadow-xl dark:border-white/10 dark:bg-[#111827]">
+                        <CustomDatePicker
+                          selectedDate={selectedDate}
+                          onChange={(date: Date) => {
+                            setSelectedDate(date);
+                            setFixturesMode("date");
+                            setShowDatePicker(false);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <ArrowRightIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))} />
-                  {showDatePicker && (
-                    <div className="absolute z-50 top-full mt-2 lg:left-1/2 lg:-translate-x-1/2 right-0 lg:right-auto">
-                      <CustomDatePicker
-                        selectedDate={selectedDate}
-                        onChange={(date: Date) => {
-                          setSelectedDate(date);
-                          setFixturesMode("date");
-                          setShowDatePicker(false);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {/* Filter Segmented Selector */}
-                <div className="mt-3">
-                  <SegmentedSelector
-                    value={fixturesMode}
-                    options={[
-                      { value: "live", label: "Live" },
-                      { value: "date", label: "Fixture" },
-                    ]}
-                    onChange={(value) => setFixturesMode(value as "live" | "date")}
-                    size="md"
-                  />
                 </div>
               </div>
             </div>
