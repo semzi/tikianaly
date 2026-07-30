@@ -125,11 +125,11 @@ export const Category = () => {
 
   return (
     <>
-      <div style={{
+      <div className="relative" style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}>
-        <div className="flex hide-scrollbar dark:bg-[#0D1117] w-full gap-2 overflow-x-auto overflow-y-hidden page-padding-x py-2 items-center">
+        <div className="flex hide-scrollbar dark:bg-[#0D1117] w-full gap-2 overflow-x-auto overflow-y-hidden page-padding-x py-2 pb-4 items-center">
           {categories.map((cat: CategoryItem) => {
             const isActive =
               location.pathname.startsWith(cat.href) ||
@@ -201,6 +201,8 @@ export const Category = () => {
             </>
           )}
         </div>
+        {/* Bottom fade to transparent */}
+        <div className="absolute bottom-0 left-0 right-0 h-4 pointer-events-none bg-gradient-to-b from-transparent to-white dark:to-[#0D1117]" />
       </div>
 
       {/* ── Top Rated Players Modal ── */}

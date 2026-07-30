@@ -2,19 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { Category } from "@/features/dashboard/components/Category";
-import { getFixtureDetails, getFixturesByLeague } from "@/lib/api/endpoints";
+import { getFixtureDetails, getFootballFixturesByDate } from "@/lib/api/endpoints";
 import {
   closeLiveStream,
   subscribeDashboardLiveFixtures,
   type DashboardLiveFixture,
 } from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
-import { CustomDatePicker } from "@/components/ui/CustomDatePicker";
-import { addDays, subDays, isToday, isYesterday, isTomorrow, format } from "date-fns";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import { isToday, format } from "date-fns";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
-  CalendarIcon,
   InboxIcon,
   ArrowUturnLeftIcon,
   ChevronDownIcon,
@@ -235,7 +233,7 @@ export const dashboard = () => {
       return newDate;
     });
   }, [setSearchParams]);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+
 
   const COLLAPSED_LEAGUES_KEY = "dashboard_collapsed_leagues_v2";
   const [userToggledLeagues, setUserToggledLeagues] = useState<Record<string, Record<number, boolean>>>(() => {
@@ -821,43 +819,42 @@ export const dashboard = () => {
           return;
         }
 
-        const fetchLeague = async (leagueId: number) => {
+        if (fixturesMode === "date") {
           try {
-            const response = await queryClient.ensureQueryData<any>({
-              queryKey: ["leagueFixturesByDate", { leagueId, date: formattedDate }],
-              queryFn: () => getFixturesByLeague(leagueId, formattedDate, 1, 100),
-              staleTime: 3 * 60 * 60 * 1000, // cache per league+date for 3 hrs
-            });
-            if (
-              response?.success &&
-              response?.responseObject?.items &&
-              Array.isArray(response.responseObject.items) &&
-              response.responseObject.items.length > 0
-            ) {
-              upsertLeagueFixtures(leagueId, response.responseObject.items);
-            } else if (
-              response?.message === "Error fetching fixtures By LeagueId" &&
-              response?.error === "Fixture list is empty."
-            ) {
-              // Silently ignore empty fixture lists for specific league IDs
+            // 1. Stale-while-revalidate: Load from cache immediately if available
+            const cachedResponse = queryClient.getQueryData<any>(["footballFixturesByDate", formattedDate]);
+            if (cachedResponse?.success && cachedResponse?.responseObject?.leagues) {
+              const leagues = cachedResponse.responseObject.leagues;
+              leagues.forEach((leagueBlock: any) => {
+                const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
+                if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
+                }
+              });
             }
+
+            // 2. Fetch fresh data in the background and update UI seamlessly
+            const response = await queryClient.fetchQuery<any>({
+              queryKey: ["footballFixturesByDate", formattedDate],
+              queryFn: () => getFootballFixturesByDate(formattedDate, 1, 100),
+              staleTime: 0, // Always fetch to ensure we check for updates
+            });
+
+            if (response?.success && response?.responseObject?.leagues) {
+              const leagues = response.responseObject.leagues;
+              leagues.forEach((leagueBlock: any) => {
+                const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
+                if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
+                }
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching grouped date fixtures:", error);
           } finally {
-            markLeagueDone(leagueId);
+            topLeagueIds.forEach((id) => markLeagueDone(id));
           }
-        };
-
-        // Limited concurrency to keep the page responsive.
-        const concurrency = 4;
-        let idx = 0;
-        const workers = Array.from({ length: concurrency }).map(async () => {
-          while (idx < topLeagueIds.length) {
-            const current = topLeagueIds[idx];
-            idx += 1;
-            await fetchLeague(current);
-          }
-        });
-
-        await Promise.all(workers);
+        }
 
         // ensure last partial batch is flushed
         if (flushFixturesTimeoutRef.current !== null) {
@@ -897,94 +894,12 @@ export const dashboard = () => {
         <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
 
           {/* Date and Filter Controls */}
-          <div className="flex-col">
-            {/* <AfconBanner /> */}
-            <div className="block-style !p-0 overflow-visible z-10">
-              <div className="flex flex-wrap items-center gap-3 px-5 py-4 dark:text-snow-200">
-                <div className="flex rounded-full bg-snow-100 p-1 dark:bg-white/5">
-                  <button
-                    type="button"
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      fixturesMode === "live"
-                        ? "bg-brand-secondary text-white"
-                        : "text-[#586069] dark:text-snow-200"
-                    }`}
-                    onClick={() => setFixturesMode("live")}
-                  >
-                    Live
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      fixturesMode === "date"
-                        ? "bg-brand-secondary text-white"
-                        : "text-[#586069] dark:text-snow-200"
-                    }`}
-                    onClick={() => setFixturesMode("date")}
-                  >
-                    {selectedDate && isToday(selectedDate)
-                      ? "Today"
-                      : selectedDate
-                        ? isYesterday(selectedDate)
-                          ? "Yesterday"
-                          : isTomorrow(selectedDate)
-                            ? "Tomorrow"
-                            : format(selectedDate, "MMM d")
-                        : "Fixtures"}
-                  </button>
-                </div>
-
-                <div className="ml-auto flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
-                    onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))}
-                    aria-label="Previous day"
-                  >
-                    <ArrowLeftIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
-                    onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))}
-                    aria-label="Next day"
-                  >
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 rounded-full border border-snow-200 px-4 py-2 text-sm text-[#586069] dark:border-white/10 dark:text-snow-200 hover:bg-snow-100 dark:hover:bg-white/5 transition"
-                      onClick={() => setShowDatePicker((value) => !value)}
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                      {selectedDate 
-                        ? isToday(selectedDate) 
-                          ? "Today" 
-                          : isYesterday(selectedDate)
-                            ? "Yesterday"
-                            : isTomorrow(selectedDate)
-                              ? "Tomorrow"
-                              : format(selectedDate, "MMM d") 
-                        : "Pick date"}
-                    </button>
-                    {showDatePicker && (
-                      <div className="absolute right-0 top-full z-[100] mt-2 rounded-2xl border border-snow-200 bg-white p-0 shadow-xl dark:border-white/10 dark:bg-[#111827]">
-                        <CustomDatePicker
-                          selectedDate={selectedDate}
-                          onChange={(date: Date) => {
-                            setSelectedDate(date);
-                            setFixturesMode("date");
-                            setShowDatePicker(false);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            <FixturesDateToggle
+              fixturesMode={fixturesMode}
+              onModeChange={setFixturesMode}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+            />
 
 
 
@@ -2176,7 +2091,7 @@ export const dashboard = () => {
             onClick={() => {
               setSelectedDate(new Date());
               setFixturesMode("date");
-              setShowDatePicker(false);
+
               try {
                 window.scrollTo({ top: 0, behavior: "smooth" });
               } catch {

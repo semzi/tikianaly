@@ -46,6 +46,7 @@ export {
   getTeamFixtures,
   getLeagueFixtures,
   getPlayerRatings,
+  getFootballFixturesByDate,
   // Image/Logo endpoints
   getLeagueLogoById,
   getTeamLogoById,

@@ -579,15 +579,6 @@ export const getFootballFixturesByDate = async (
   const endpoint = "/api/v1/football/fixture/date";
   const params = { date, page, limit };
 
-  const cached = apiCache.get(endpoint, params);
-  if (cached !== null) {
-    return cached;
-  }
-
   const response = await apiClient.get(endpoint, { params });
-  const data = response.data;
-
-  // Cache for 5 minutes
-  apiCache.set(endpoint, data, params, 5 * 60 * 1000);
-  return data;
+  return response.data;
 };

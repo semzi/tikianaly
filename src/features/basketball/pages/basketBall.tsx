@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+﻿import { useEffect, useState, useMemo } from "react";
 import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
@@ -6,9 +6,6 @@ import {
   StarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CalendarIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
   ArrowUturnLeftIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -17,16 +14,16 @@ import {
 } from "@/lib/api/endpoints";
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
 import Category from "@/features/dashboard/components/Category";
-import { subDays, addDays, isToday, format } from "date-fns";
+import { isToday, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
   subscribeBasketballLiveMatchesStream,
   closeBasketballLiveStream,
 } from "@/lib/api/basketball/livestream";
-import DatePicker from "react-datepicker";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
 import RightBar from "@/components/layout/RightBar";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
@@ -191,7 +188,6 @@ const BasketballPage = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
 
@@ -204,21 +200,7 @@ const BasketballPage = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
-  const tabs = useMemo(() => {
-    let dateLabel = "Fixture";
-    if (selectedDate) {
-      if (isToday(selectedDate)) {
-        dateLabel = "Today";
-      } else {
-        dateLabel = format(selectedDate, "MMM d");
-      }
-    }
-    return [
-      { id: "live", label: "Live" },
-      { id: "fixture", label: dateLabel },
-    ];
-  }, [selectedDate]);
-
+  const fixturesMode = activeTab === "live" ? "live" : "date";
   // Fetch data with React Query
   const fetchMatchesData = async () => {
     if (activeTab === "live") {
@@ -548,75 +530,15 @@ const BasketballPage = () => {
         <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
           {/* Controls */}
           <div className="block-style flex flex-col gap-4">
-            {/* Date Navigation */}
-            <div className="relative flex items-center justify-between dark:text-snow-200">
-              <ArrowLeftIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() => {
-                  setSelectedDate((prev) => subDays(prev || new Date(), 1));
-                }}
-              />
-              <div
-                className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-              >
-                <p className="font-semibold theme-text">
-                  {selectedDate && isToday(selectedDate)
-                    ? "Today"
-                    : selectedDate
-                      ? format(selectedDate, "EEE, MMM d, yyyy")
-                      : "Select Date"}
-                </p>
-                <CalendarIcon className="h-5 w-5 text-neutral-n4" />
-              </div>
-              <ArrowRightIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() => {
-                  setSelectedDate((prev) => addDays(prev || new Date(), 1));
-                }}
-              />
-              {showDatePicker && (
-                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
-                  <DatePicker
-                    selected={selectedDate}
-                    onChange={(date: Date | null) => {
-                      setSelectedDate(date);
-                      setShowDatePicker(false);
-                    }}
-                    inline
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Pill Tabs */}
-            <div className="relative flex w-full bg-snow-200 dark:bg-[#1F2937] rounded-full p-1">
-              {/* Sliding indicator */}
-              <div
-                className="absolute top-1 bottom-1 rounded-full bg-brand-secondary transition-all duration-300 ease-in-out"
-                style={{
-                  width: `calc(${100 / tabs.length}% - 4px)`,
-                  left: `calc(${tabs.findIndex((t) => t.id === activeTab) * (100 / tabs.length)}% + 2px)`,
-                }}
-              />
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${
-                    activeTab === tab.id
-                      ? "text-white"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <FixturesDateToggle
+              fixturesMode={fixturesMode}
+              onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixture")}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              liveLabel="Live"
+            />
           </div>
 
-          {/* Matches */}
           <div className="flex flex-col gap-y-4">
             {loading ? (
               <BasketballDashboardSkeleton />
@@ -835,7 +757,7 @@ const BasketballPage = () => {
               ))
             ) : (
               <div className="block-style text-center py-12">
-                <div className="text-4xl mb-4">🏀</div>
+                <div className="text-4xl mb-4">ðŸ€</div>
                 <p className="text-lg font-semibold theme-text mb-2">
                   No {activeTab} matches
                 </p>
@@ -909,7 +831,6 @@ const BasketballPage = () => {
             onClick={() => {
               setSelectedDate(new Date());
               setActiveTab("fixture");
-              setShowDatePicker(false);
               try {
                 window.scrollTo({ top: 0, behavior: "smooth" });
               } catch {
@@ -941,3 +862,4 @@ const BasketballPage = () => {
 };
 
 export default BasketballPage;
+
