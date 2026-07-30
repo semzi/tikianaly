@@ -61,10 +61,6 @@ export const CricketStandingsTable = ({ seriesId, localteamId, visitorteamId }: 
     staleTime: 60_000,
   });
 
-  const openTeamProfile = (teamId?: number) => {
-    if (!teamId) return;
-    // navigate(`/team/profile/${encodeURIComponent(String(teamId))}`); // adjust if there is a cricket team profile
-  };
 
   const SkeletonBlock = ({ className }: { className: string }) => (
     <div className={`animate-pulse rounded bg-snow-200/80 dark:bg-white/10 ${className}`} />
