@@ -142,7 +142,7 @@ const CricketLeagueProfile = () => {
                       <DatePicker
                         inline
                         selected={selectedDate}
-                        onChange={(date) => {
+                        onChange={(date: any) => {
                           setSelectedDate(date);
                           setShowDatePicker(false);
                         }}

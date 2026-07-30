@@ -56,6 +56,31 @@ export {
   type FootballLiveFixture,
 } from "./football";
 
+// Cricket exports
+export {
+  CRICKET_SCOREBOARD_SSE_URL,
+  getCricketMatchSseUrl,
+  getCricketHome,
+  getCricketLive,
+  getLiveCricketFixtures,
+  getUpcomingCricketFixtures,
+  getCricketSeriesList,
+  getCricketSeriesById,
+  getCricketFixturesBySeriesId,
+  getCricketStandingsBySeriesId,
+  getCricketMatchById,
+  getCricketMatchCenter,
+  getCricketVenue,
+  getCricketInnings,
+  getCricketManOfMatch,
+  getCricketLineups,
+  getCricketCommentary,
+  getCricketWickets,
+  getCricketLocalTeam,
+  getCricketVisitorTeam,
+  getCricketPlayerById,
+} from "./cricket";
+
 // Basketball exports
 export {
   getBasketballLeagues,

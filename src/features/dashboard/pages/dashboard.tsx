@@ -30,7 +30,7 @@ import Image from "@/components/common/Image";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
-import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
+
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (

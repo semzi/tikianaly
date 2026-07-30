@@ -7,7 +7,7 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
+
   StarIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
@@ -16,9 +16,9 @@ import { FooterComp } from "@/components/layout/Footer";
 import Category from "@/features/dashboard/components/Category";
 import { RightBar } from "@/components/layout/RightBar";
 import { CricketLeftBar } from "../components/CricketLeftBar";
-import { navigate } from "@/lib/router/navigate";
+
 import {
-  cricketSummaryCards,
+
 } from "../data/mockCricket";
 import { useQuery } from "@tanstack/react-query";
 import { getCricketLive, getUpcomingCricketFixtures } from "@/lib/api/cricket";
@@ -263,7 +263,7 @@ const CricketPage = () => {
                         <DatePicker
                           inline
                           selected={selectedDate}
-                          onChange={(date) => {
+                          onChange={(date: any) => {
                             setSelectedDate(date);
                             setShowDatePicker(false);
                           }}

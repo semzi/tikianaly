@@ -1,5 +1,5 @@
 import apiClient from "../axios";
-import { apiCache } from "../cache";
+
 
 export const CRICKET_SCOREBOARD_SSE_URL = "https://api.tikianaly.com/api/v1/cricket/sse/scoreboard";
 export const getCricketMatchSseUrl = (matchId: string | number) => `https://api.tikianaly.com/api/v1/cricket/sse/match/${encodeURIComponent(String(matchId))}`;
