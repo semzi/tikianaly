@@ -10,11 +10,11 @@ import {
 } from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import ReturnToToday from "@/components/ui/ReturnToToday";
 import { isToday, format } from "date-fns";
 import {
   ArrowRightIcon,
   InboxIcon,
-  ArrowUturnLeftIcon,
   ChevronDownIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
@@ -280,18 +280,6 @@ export const dashboard = () => {
     });
   }, [isLeagueCollapsed, dateKey]);
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
-  const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const shouldShowReturnToToday = useMemo(() => {
     if (fixturesMode !== "date") return false;
     try {
@@ -311,18 +299,6 @@ export const dashboard = () => {
       // ignore date comparison errors
     }
   }, [selectedDate]);
-
-  useEffect(() => {
-    if (!shouldShowReturnToToday) return;
-    if (!isMobile) {
-      setIsReturnToTodayCollapsed(false);
-      return;
-    }
-
-    setIsReturnToTodayCollapsed(false);
-    const t = window.setTimeout(() => setIsReturnToTodayCollapsed(true), 5000);
-    return () => window.clearTimeout(t);
-  }, [shouldShowReturnToToday, isMobile]);
 
   const selectedDateKey = useMemo(() => {
     try {
@@ -2080,44 +2056,18 @@ export const dashboard = () => {
       {/* Footer */}
       <FooterComp />
 
-      {shouldShowReturnToToday && (
-        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
-          <button
-            type="button"
-            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${isMobile && isReturnToTodayCollapsed
-              ? "w-14 h-14 rounded-full flex items-center justify-center"
-              : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
-              }`}
-            onClick={() => {
-              setSelectedDate(new Date());
-              setFixturesMode("date");
-
-              try {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              } catch {
-                // ignore
-              }
-            }}
-          >
-            {isMobile && isReturnToTodayCollapsed ? (
-              <ArrowUturnLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
-                  <ArrowUturnLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Return to Today</p>
-                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">Go back to today's fixtures</p>
-                </div>
-                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
-                  Open
-                </div>
-              </div>
-            )}
-          </button>
-        </div>
-      )}
+      <ReturnToToday
+        show={shouldShowReturnToToday}
+        onReturnToToday={() => {
+          setSelectedDate(new Date());
+          setFixturesMode("date");
+          try {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } catch {
+            // ignore
+          }
+        }}
+      />
     </div>
   );
 };

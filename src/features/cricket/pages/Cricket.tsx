@@ -1,25 +1,19 @@
-import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { format, isToday } from "date-fns";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CalendarIcon,
   ChevronDownIcon,
-
   StarIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import Category from "@/features/dashboard/components/Category";
 import { RightBar } from "@/components/layout/RightBar";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import ReturnToToday from "@/components/ui/ReturnToToday";
 import { CricketLeftBar } from "../components/CricketLeftBar";
-
-import {
-
-} from "../data/mockCricket";
+import { navigate } from "@/lib/router/navigate";
 import { useQuery } from "@tanstack/react-query";
 import { getCricketLive, getUpcomingCricketFixtures } from "@/lib/api/cricket";
 import { mapCricketMatch, type CricketMappedMatch } from "../utils/mappers";
@@ -40,30 +34,20 @@ const readFavorites = (): Record<string, boolean> => {
 const CricketPage = () => {
   const [activeTab, setActiveTab] = useState<CricketTab>("live");
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>(readFavorites);
   const [favoritesOpen, setFavoritesOpen] = useState(true);
   const [collapsedLeagues, setCollapsedLeagues] = useState<Record<string, boolean>>({});
 
-  const tabs = useMemo(
-    () => [
-      { id: "live" as CricketTab, label: "Live" },
-      {
-        id: "fixtures" as CricketTab,
-        label:
-          selectedDate && isToday(selectedDate)
-            ? "Today"
-            : selectedDate
-              ? format(selectedDate, "MMM d")
-              : "Fixtures",
-      },
-    ],
-    [selectedDate],
-  );
-
-  // Fetch API data
+  const fixturesMode = activeTab === "live" ? "live" : "date";
+  const shouldShowReturnToToday = useMemo(() => {
+    if (activeTab !== "fixtures") return false;
+    try {
+      return !isToday(selectedDate ?? new Date());
+    } catch {
+      return false;
+    }
+  }, [activeTab, selectedDate]);
   const dateString = selectedDate ? format(selectedDate, "dd.MM.yyyy") : undefined;
-  
   const liveQuery = useQuery({
     queryKey: ["cricketLive"],
     queryFn: () => getCricketLive(),
@@ -76,6 +60,12 @@ const CricketPage = () => {
     queryFn: () => getUpcomingCricketFixtures(1, 100, dateString),
     enabled: activeTab === "fixtures",
   });
+
+  useEffect(() => {
+    if (!isToday(selectedDate ?? new Date())) {
+      setActiveTab("fixtures");
+    }
+  }, [selectedDate]);
 
   const matches = useMemo(() => {
     let rawItems: any[] = [];
@@ -123,7 +113,7 @@ const CricketPage = () => {
         className={`relative flex flex-col px-3 py-2 transition rounded-xl mb-1.5 cursor-pointer hover:brightness-95 dark:hover:brightness-110 ${
           pinned ? "bg-amber-50/50 dark:bg-amber-500/10" : "bg-white dark:bg-[#1C1F26]"
         }`}
-        onClick={() => window.open(`/cricket/match/${match.id}`, '_blank')}
+        onClick={() => navigate(`/cricket/match/${match.id}`)}
       >
         {isLive && (
           <div className="absolute left-0 top-3 bottom-3 w-1 bg-brand-secondary rounded-r" />
@@ -201,79 +191,13 @@ const CricketPage = () => {
           </aside>
 
           <main className="min-w-0 flex flex-col gap-4">
-            <section className="block-style !p-0 overflow-visible z-10">
-              <div className="flex flex-wrap items-center gap-3 px-5 py-4 dark:border-[#1F2937]">
-                <div className="flex rounded-full bg-snow-100 p-1 dark:bg-white/5">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                        activeTab === tab.id
-                          ? "bg-brand-secondary text-white"
-                          : "text-[#586069] dark:text-snow-200"
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="ml-auto flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200"
-                    onClick={() =>
-                      setSelectedDate((prev) =>
-                        prev ? new Date(prev.getTime() - 86400000) : new Date(),
-                      )
-                    }
-                    aria-label="Previous day"
-                  >
-                    <ArrowLeftIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-snow-200 p-2 text-[#586069] dark:border-white/10 dark:text-snow-200"
-                    onClick={() =>
-                      setSelectedDate((prev) =>
-                        prev ? new Date(prev.getTime() + 86400000) : new Date(),
-                      )
-                    }
-                    aria-label="Next day"
-                  >
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 rounded-full border border-snow-200 px-4 py-2 text-sm text-[#586069] dark:border-white/10 dark:text-snow-200"
-                      onClick={() => setShowDatePicker((value) => !value)}
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                      {selectedDate && isToday(selectedDate)
-                        ? "Today"
-                        : selectedDate
-                          ? format(selectedDate, "dd MMM")
-                          : "Pick date"}
-                    </button>
-                    {showDatePicker ? (
-                      <div className="absolute right-0 top-full z-20 mt-2 rounded-2xl border border-snow-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#111827]">
-                        <DatePicker
-                          inline
-                          selected={selectedDate}
-                          onChange={(date: any) => {
-                            setSelectedDate(date);
-                            setShowDatePicker(false);
-                          }}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <FixturesDateToggle
+              fixturesMode={fixturesMode}
+              onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixtures")}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              liveLabel="Live"
+            />
             <div>
               {favoriteMatches.length ? (
                   <div className="mb-5 overflow-hidden rounded-2xl border border-snow-200 dark:border-[#1F2937]">
@@ -369,6 +293,20 @@ const CricketPage = () => {
       </div>
 
       <FooterComp />
+
+      <ReturnToToday
+        show={shouldShowReturnToToday}
+        onReturnToToday={() => {
+          setSelectedDate(new Date());
+          setActiveTab("fixtures");
+          try {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } catch {
+            // ignore
+          }
+        }}
+        subtitle="Go back to today's matches"
+      />
     </div>
   );
 };

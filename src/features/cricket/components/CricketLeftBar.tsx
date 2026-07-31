@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ChevronUpDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { getCricketSeriesList } from "@/lib/api/cricket";
+import { navigate } from "@/lib/router/navigate";
 
 // Shimmer skeleton loader
 const Skeleton = ({ className = "" }: { className?: string }) => (
@@ -73,7 +74,7 @@ const CompetitionList: React.FC<CompetitionListProps> = ({ series, searchQuery }
                 <li
                   key={comp.series_id}
                   className="flex mt-3 dark:text-snow-200 items-center gap-2 text-[#586069] text-sm mb-1 cursor-pointer hover:text-brand-secondary dark:hover:text-brand-secondary transition-colors"
-                  onClick={() => window.open(`/cricket/series/${comp.series_id}`, '_blank')}
+                  onClick={() => navigate(`/cricket/series/${comp.series_id}`)}
                 >
                   {comp.image_url ? (
                     <img src={comp.image_url} alt={comp.name} className="w-5 h-5 object-contain shrink-0" />
@@ -125,7 +126,7 @@ export const CricketLeftBar = () => {
                 <li
                   key={`pop-${comp.series_id}`}
                   className="flex mt-4 items-center gap-2 dark:text-snow-200 text-[#586069] text-sm cursor-pointer hover:text-brand-secondary dark:hover:text-brand-secondary transition-colors"
-                  onClick={() => window.open(`/cricket/series/${comp.series_id}`, '_blank')}
+                  onClick={() => navigate(`/cricket/series/${comp.series_id}`)}
                 >
                   {comp.image_url ? (
                     <img src={comp.image_url} alt={comp.name} className="w-5 h-5 object-contain shrink-0" />
