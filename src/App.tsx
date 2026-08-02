@@ -52,6 +52,9 @@ const SseDebug = lazy(() => import("./features/dev/pages/SseDebug"));
 const PrivacyPolicy = lazy(
   () => import("./features/legal/pages/privacyPolicy"),
 );
+const TermsAndConditions = lazy(
+  () => import("./features/legal/pages/terms"),
+);
 const BasketballPage = lazy(
   () => import("./features/basketball/pages/basketBall"),
 );
@@ -641,6 +644,21 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <PrivacyPolicy />
+                </m.div>
+              }
+            />
+
+            <Route
+              path="/terms"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TermsAndConditions />
                 </m.div>
               }
             />
