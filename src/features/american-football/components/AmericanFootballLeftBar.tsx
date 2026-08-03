@@ -9,10 +9,11 @@ import {
   mockAmericanFootballPopularLeagues,
 } from "../data/mockAmericanFootball";
 import {
-  getAmericanFootballCoverage,
+  getAmericanFootballLeagues,
   isAmericanFootballApiEnabled,
   normalizeAmericanFootballLeagues,
 } from "@/lib/api/american-football";
+import { navigate } from "@/lib/router/navigate";
 
 type AmericanFootballLeftBarProps = {
   selectedLeagueName?: string | null;
@@ -29,7 +30,8 @@ export const AmericanFootballLeftBar = ({
   const leaguesQuery = useQuery({
     queryKey: ["american-football", "coverage"],
     enabled: isAmericanFootballApiEnabled,
-    queryFn: async () => normalizeAmericanFootballLeagues(await getAmericanFootballCoverage()),
+    queryFn: async () =>
+      normalizeAmericanFootballLeagues(await getAmericanFootballLeagues()),
     staleTime: 24 * 60 * 60 * 1000,
   });
 
@@ -75,7 +77,7 @@ export const AmericanFootballLeftBar = ({
                 ? "text-brand-primary font-bold"
                 : "dark:text-snow-200 text-[#586069]"
             }`}
-            onClick={() => onSelectLeagueName?.(league.name)}
+            onClick={() => navigate(`/american-football/league/${league.id}`)}
           >
             <span className="w-2 h-2 rounded-full bg-neutral-n4" />
             <span>{league.name}</span>
@@ -145,7 +147,9 @@ export const AmericanFootballLeftBar = ({
                         ? "text-brand-primary font-bold"
                         : "dark:text-snow-200 text-[#586069]"
                     }`}
-                    onClick={() => onSelectLeagueName?.(league.name)}
+                    onClick={() =>
+                      navigate(`/american-football/league/${league.id}`)
+                    }
                   >
                     <span className="w-2 h-2 rounded-full bg-neutral-n4" />
                     <span className="flex-1">{league.name}</span>
