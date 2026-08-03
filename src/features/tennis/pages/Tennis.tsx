@@ -17,10 +17,8 @@ import {
   startOfDay,
 } from "date-fns";
 import DatePicker from "react-datepicker";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { RightBar } from "@/components/layout/RightBar";
-import { FooterComp } from "@/components/layout/Footer";
-import Category from "@/features/dashboard/components/Category";
+import { SportLayout } from "@/components/layout/SportLayout";
+import { TennisLeftBar } from "../components/TennisLeftBar";
 import {
   getTennisLiveMatches,
   getTennisMatchesByDayOffset,
@@ -397,19 +395,14 @@ const Tennis = () => {
   }, [activeTab]);
 
   return (
-    <div className="dark:bg-[#0D1117] min-h-screen bg-[#f6f6f6] md:pb-3">
-      <PageHeader />
-      <Category />
-
-      <div className="flex page-padding-x gap-5 py-5 justify-around">
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+      <SportLayout 
+        leftBar={
           <TennisLeftBar
             selectedLeagueName={selectedLeagueName}
             onSelectLeagueName={setSelectedLeagueName}
           />
-        </section>
-
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto overflow-x-auto hide-scrollbar pr-2">
+        }
+      >
           <div className="block-style flex flex-col gap-4">
             <div className="relative flex items-center justify-between dark:text-snow-200">
               <ArrowLeftIcon
@@ -822,15 +815,7 @@ const Tennis = () => {
               ))}
             </div>
           )}
-        </div>
-
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-      </div>
-
-      <FooterComp />
-    </div>
+      </SportLayout>
   );
 };
 

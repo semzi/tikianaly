@@ -3,7 +3,7 @@ import { FooterComp } from "@/components/layout/Footer";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
 import Image from "@/components/common/Image";
 import TeamFixturesSidebar from "@/features/football/components/TeamFixturesSidebar";
-import { getPlayerById, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
+import { getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
 import { closeLiveStream, subscribeDashboardLiveFixtures, type DashboardLiveFixture } from "@/lib/api/livestream";
 import { navigate } from "@/lib/router/navigate";
 import {
@@ -84,6 +84,7 @@ type TeamSquadRow = {
   passes?: string;
   keyPasses?: string;
   rating?: string;
+  playerImageUrl?: string;
 };
 
 type TeamDetailedStatsRow = {
@@ -130,14 +131,6 @@ type TeamApiResponse = {
     item?: TeamApiItem | TeamApiItem[];
   };
   statusCode?: number;
-};
-
-type PlayerApiResponse = {
-  responseObject?: {
-    item?: {
-      image?: string;
-    };
-  };
 };
 
 const toNumber = (v: unknown): number => {
@@ -229,16 +222,6 @@ const getCachedPlayerAvatar = (playerId?: string): string | null => {
     return cached || null;
   } catch {
     return null;
-  }
-};
-
-const cachePlayerAvatar = (playerId: string, dataUrl: string) => {
-  const id = String(playerId ?? "").trim();
-  if (!id || !dataUrl) return;
-  try {
-    sessionStorage.setItem(playerAvatarStorageKey(id), dataUrl);
-  } catch {
-    // ignore
   }
 };
 
@@ -522,70 +505,17 @@ const TeamProfile = () => {
   const transfersOut = useMemo(() => team?.transfers?.out ?? [], [team]);
 
   useEffect(() => {
-    const ids = Array.from(
-      new Set(
-        [...(squad ?? []), ...(Array.isArray(transfersIn) ? transfersIn : []), ...(Array.isArray(transfersOut) ? transfersOut : [])]
-          .map((r: any) => String(r?.id ?? "").trim())
-          .filter(Boolean)
-      )
-    ).slice(0, 60);
-
-    if (ids.length === 0) return;
-
-    const missing = ids.filter((id) => !playerImages[id] && !getCachedPlayerAvatar(id));
-    if (missing.length === 0) {
-      const cachedToHydrate = ids.filter((id) => !playerImages[id]).map((id) => ({ id, img: getCachedPlayerAvatar(id) }));
-      const valid = cachedToHydrate.filter((x) => Boolean(x.img)) as Array<{ id: string; img: string }>;
-      if (valid.length > 0) {
-        setPlayerImages((prev) => {
-          const next = { ...prev };
-          valid.forEach((x) => {
-            if (!next[x.id]) next[x.id] = x.img;
-          });
-          return next;
-        });
-      }
-      return;
+    // Hydrate playerImages from squad's playerImageUrl (new API structure)
+    const squadImages: Record<string, string> = {};
+    for (const p of squad ?? []) {
+      const pid = String(p?.id ?? "").trim();
+      const url = String(p?.playerImageUrl ?? "").trim();
+      if (pid && url) squadImages[pid] = url;
     }
-
-    let cancelled = false;
-
-    const run = async () => {
-      const results = await Promise.all(
-        missing.map(async (id) => {
-          try {
-            const res = (await getPlayerById(id)) as PlayerApiResponse;
-            const raw = res?.responseObject?.item?.image;
-            if (!raw) return null;
-            const s = String(raw);
-            const dataUrl = s.startsWith("data:image") ? s : `data:image/png;base64,${s}`;
-            cachePlayerAvatar(id, dataUrl);
-            return { id, dataUrl };
-          } catch {
-            return null;
-          }
-        })
-      );
-
-      if (cancelled) return;
-
-      const valid = results.filter(Boolean) as Array<{ id: string; dataUrl: string }>;
-      if (valid.length === 0) return;
-
-      setPlayerImages((prev) => {
-        const next = { ...prev };
-        valid.forEach(({ id, dataUrl }) => {
-          next[id] = dataUrl;
-        });
-        return next;
-      });
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [squad, transfersIn, transfersOut, playerImages]);
+    if (Object.keys(squadImages).length > 0) {
+      setPlayerImages((prev) => ({ ...prev, ...squadImages }));
+    }
+  }, [squad]);
 
   type TransferChartPoint = {
     label: string;
@@ -715,7 +645,7 @@ const TeamProfile = () => {
   const hasTeamId = Boolean(teamId);
 
   useEffect(() => {
-    const id = String(teamId ?? "").trim();
+    const id = team?.team_id;
     if (!id) return;
 
     const run = async () => {
@@ -732,7 +662,7 @@ const TeamProfile = () => {
     };
 
     run();
-  }, [teamId]);
+  }, [team?.team_id]);
 
   useEffect(() => {
     closeLiveStream(liveEventSourceRef.current);
@@ -1091,7 +1021,7 @@ const TeamProfile = () => {
           <div className="sz-8 flex flex-col gap-y-7 md:flex-row my-8 md:gap-7">
             <div className="w-full md:w-1/3">
               {(() => {
-                const finalTeamId = teamId || "9260";
+                const finalTeamId = team?.team_id ?? "9260";
                 return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
               })()}
             </div>
@@ -1221,10 +1151,7 @@ const TeamProfile = () => {
             {/* Team Fixtures Sidebar - Left Side */}
             <div className="w-full md:w-1/3">
               {(() => {
-                const finalTeamId = teamId || "9260"; // Use fallback teamId for testing
-                console.log("teamProfile - teamId being passed:", finalTeamId);
-                console.log("teamProfile - teamId type:", typeof finalTeamId);
-                console.log("teamProfile - About to render TeamFixturesSidebar");
+                const finalTeamId = team?.team_id ?? "9260"; // Use fallback teamId for testing
                 return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
               })()}
             </div>
@@ -1379,7 +1306,7 @@ const TeamProfile = () => {
                               <td className="py-2 pr-4">
                                 <div className="flex items-center gap-2">
                                   <img
-                                    src={playerImages[String(p?.id ?? "")] ?? getCachedPlayerAvatar(String(p?.id ?? "")) ?? "/loading-state/player.svg"}
+                                    src={p?.playerImageUrl ?? playerImages[String(p?.id ?? "")] ?? getCachedPlayerAvatar(String(p?.id ?? "")) ?? "/loading-state/player.svg"}
                                     alt={String(p?.name ?? "Player")}
                                     className="w-7 h-7 rounded-full object-cover"
                                   />

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, isToday } from "date-fns";
 import {
   ChevronDownIcon,
@@ -6,12 +6,9 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FooterComp } from "@/components/layout/Footer";
-import Category from "@/features/dashboard/components/Category";
-import { RightBar } from "@/components/layout/RightBar";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
 import ReturnToToday from "@/components/ui/ReturnToToday";
+import { SportLayout } from "@/components/layout/SportLayout";
 import { CricketLeftBar } from "../components/CricketLeftBar";
 import { navigate } from "@/lib/router/navigate";
 import { useQuery } from "@tanstack/react-query";
@@ -180,17 +177,23 @@ const CricketPage = () => {
   };
 
   return (
-    <div className="dark:bg-[#0D1117] min-h-screen">
-      <PageHeader />
-      <Category />
-
-      <div className="page-padding-x py-6">
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
-          <aside className="hidden lg:block">
-            <CricketLeftBar />
-          </aside>
-
-          <main className="min-w-0 flex flex-col gap-4">
+      <SportLayout 
+        leftBar={<CricketLeftBar />}
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setActiveTab("fixtures");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+          />
+        }
+      >
             <FixturesDateToggle
               fixturesMode={fixturesMode}
               onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixtures")}
@@ -284,30 +287,7 @@ const CricketPage = () => {
                   </div>
                 )}
             </div>
-          </main>
-
-          <aside className="hidden xl:block">
-            <RightBar />
-          </aside>
-        </div>
-      </div>
-
-      <FooterComp />
-
-      <ReturnToToday
-        show={shouldShowReturnToToday}
-        onReturnToToday={() => {
-          setSelectedDate(new Date());
-          setActiveTab("fixtures");
-          try {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } catch {
-            // ignore
-          }
-        }}
-        subtitle="Go back to today's matches"
-      />
-    </div>
+      </SportLayout>
   );
 };
 

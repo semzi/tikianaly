@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FooterComp } from "@/components/layout/Footer";
-import { Category } from "@/features/dashboard/components/Category";
 import { getFixtureDetails, getFootballFixturesByDate } from "@/lib/api/endpoints";
 import {
   closeLiveStream,
@@ -20,7 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import Leftbar from "@/components/layout/LeftBar";
-import { RightBar } from "@/components/layout/RightBar";
+import { SportLayout } from "@/components/layout/SportLayout";
 import { Link, useSearchParams } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -854,20 +851,23 @@ export const dashboard = () => {
   }, [fixturesMode, selectedDate]);
 
   return (
-    <div className="transition-al">
-      {/* Page Header (always visible, no skeleton) */}
-      <PageHeader />
-      {/* Category Navigation */}
-      <Category />
-
-      <div className="flex page-padding-x dark:bg-[#0D1117] gap-5 py-5 justify-around" style={{ height: 'calc(100vh - 20px)' }}>
-        {/* Left Sidebar */}
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
-          <Leftbar />
-        </section>
-
-        {/* Main Content Area */}
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+      <SportLayout 
+        leftBar={<Leftbar />}
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setFixturesMode("date");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+          />
+        }
+      >
 
           {/* Date and Filter Controls */}
             <FixturesDateToggle
@@ -2044,31 +2044,7 @@ export const dashboard = () => {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-
-      </div>
-
-      {/* Footer */}
-      <FooterComp />
-
-      <ReturnToToday
-        show={shouldShowReturnToToday}
-        onReturnToToday={() => {
-          setSelectedDate(new Date());
-          setFixturesMode("date");
-          try {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } catch {
-            // ignore
-          }
-        }}
-      />
-    </div>
+      </SportLayout>
   );
 };
 

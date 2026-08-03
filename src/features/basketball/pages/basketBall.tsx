@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import PageHeader from "../../../components/layout/PageHeader";
 import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
@@ -23,6 +23,7 @@ import {
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
 import RightBar from "@/components/layout/RightBar";
+import { SportLayout } from "@/components/layout/SportLayout";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
 import ReturnToToday from "@/components/ui/ReturnToToday";
 
@@ -491,21 +492,29 @@ const BasketballPage = () => {
   };
 
   return (
-    <div className="transition-all min-h-screen dark:bg-[#0D1117]">
-      <PageHeader />
-      <Category />
-
-      <div className="flex page-padding-x gap-5 py-5 justify-around">
-        {/* Left Sidebar */}
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+      <SportLayout 
+        leftBar={
           <BasketballLeftBar
             onSelectLeague={setSelectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
-        </section>
-
-        {/* Main Content Area */}
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+        }
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setActiveTab("fixture");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+            subtitle="Go back to today's matches"
+          />
+        }
+      >
           <FixturesDateToggle
             fixturesMode={fixturesMode}
             onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixture")}
@@ -784,30 +793,7 @@ const BasketballPage = () => {
                 </div>
               )}
           </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-      </div>
-
-      <FooterComp />
-
-      <ReturnToToday
-        show={shouldShowReturnToToday}
-        onReturnToToday={() => {
-          setSelectedDate(new Date());
-          setActiveTab("fixture");
-          try {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } catch {
-            // ignore
-          }
-        }}
-        subtitle="Go back to today's matches"
-      />
-    </div>
+      </SportLayout>
   );
 };
 

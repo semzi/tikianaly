@@ -30,6 +30,8 @@ import {
   YAxis,
 } from "recharts";
 
+const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+
 const Skeleton = ({ className = "" }: { className?: string }) => (
   <div
     className={`animate-pulse bg-snow-200 dark:bg-[#1F2937] rounded ${className}`}
@@ -441,7 +443,7 @@ const playerProfile = () => {
     const seasonStart = Date.UTC(startYear, 6, 1); // Jul 1
     const seasonEnd = Date.UTC(startYear + 1, 5, 30, 23, 59, 59); // Jun 30
 
-    const transfers = [...(player?.transfers ?? [])]
+    const transfers = [...asArray(player?.transfers)]
       .map((t) => ({
         ...t,
         ts: parseTransferDate(t?.date),
@@ -478,7 +480,7 @@ const playerProfile = () => {
   };
 
   const transferChartData = useMemo<TransferChartPoint[]>(() => {
-    const transfers = [...(player?.transfers ?? [])]
+    const transfers = [...asArray(player?.transfers)]
       .map((t) => {
         const ts = parseTransferDate(t?.date);
         const fee = parseFeeToNumber(t?.price);
@@ -546,10 +548,10 @@ const playerProfile = () => {
 
   const allSeasonRows = useMemo(() => {
     const rows = [
-      ...(player?.statistics?.clubs ?? []),
-      ...(player?.statistics?.cups ?? []),
-      ...(player?.statistics?.cups_intl ?? []),
-      ...(player?.statistics?.intl ?? []),
+      ...asArray(player?.statistics?.clubs),
+      ...asArray(player?.statistics?.cups),
+      ...asArray(player?.statistics?.cups_intl),
+      ...asArray(player?.statistics?.intl),
     ];
     return rows.filter((r) => Boolean(r?.season));
   }, [player]);
@@ -580,10 +582,10 @@ const playerProfile = () => {
     const season = selectedSeason;
     if (!season) return buckets;
 
-    (player?.statistics?.clubs ?? []).filter((r) => String(r.season) === season).forEach((r) => add(buckets.clubs, r));
-    (player?.statistics?.cups ?? []).filter((r) => String(r.season) === season).forEach((r) => add(buckets.cups, r));
-    (player?.statistics?.cups_intl ?? []).filter((r) => String(r.season) === season).forEach((r) => add(buckets.cups_intl, r));
-    (player?.statistics?.intl ?? []).filter((r) => String(r.season) === season).forEach((r) => add(buckets.intl, r));
+    asArray(player?.statistics?.clubs).filter((r) => String(r.season) === season).forEach((r) => add(buckets.clubs, r));
+    asArray(player?.statistics?.cups).filter((r) => String(r.season) === season).forEach((r) => add(buckets.cups, r));
+    asArray(player?.statistics?.cups_intl).filter((r) => String(r.season) === season).forEach((r) => add(buckets.cups_intl, r));
+    asArray(player?.statistics?.intl).filter((r) => String(r.season) === season).forEach((r) => add(buckets.intl, r));
 
     return buckets;
   }, [player, selectedSeason]);
@@ -1438,7 +1440,7 @@ const playerProfile = () => {
                   {(player?.transfers ?? []).length === 0 ? (
                     <div className="theme-text">No transfer data</div>
                   ) : (
-                    [...(player?.transfers ?? [])]
+                    [...asArray(player?.transfers)]
                       .sort((a, b) => parseTransferDate(b?.date) - parseTransferDate(a?.date))
                       .map((t, idx) => (
                         <div
@@ -1495,7 +1497,7 @@ const playerProfile = () => {
                 <div className="theme-text">No trophy data</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[...(player?.trophies ?? [])].map((t, idx) => (
+                  {[...asArray(player?.trophies)].map((t, idx) => (
                     <div key={`${t?.league ?? "trophy"}-${idx}`} className="rounded-lg border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#161B22] p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
