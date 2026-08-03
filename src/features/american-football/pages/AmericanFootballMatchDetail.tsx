@@ -16,7 +16,7 @@ import {
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
 import {
-  getAmericanFootballMatchDetail,
+  getAmericanFootballFixtureById,
   getAmericanFootballPlayByPlay,
   isAmericanFootballApiEnabled,
   normalizeAmericanFootballMatchDetail,
@@ -104,12 +104,15 @@ const AmericanFootballMatchDetail = () => {
   const [activeTab, setActiveTab] = useState<MatchTab>("stats");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
+  // Check if this is a mock ID (all mock IDs start with "af-")
+  const isMockMatchId = Boolean(matchId?.startsWith("af-"));
+
   const detailQuery = useQuery({
     queryKey: ["american-football", "match", matchId],
-    enabled: isAmericanFootballApiEnabled && Boolean(matchId),
+    enabled: isAmericanFootballApiEnabled && Boolean(matchId) && !isMockMatchId,
     queryFn: async () =>
       normalizeAmericanFootballMatchDetail(
-        await getAmericanFootballMatchDetail(String(matchId)),
+        await getAmericanFootballFixtureById(String(matchId)),
       ),
     staleTime: 20_000,
     refetchInterval: 20_000,
@@ -120,6 +123,7 @@ const AmericanFootballMatchDetail = () => {
     enabled:
       isAmericanFootballApiEnabled &&
       Boolean(matchId) &&
+      !isMockMatchId &&
       activeTab === "timeline",
     queryFn: async () =>
       normalizeAmericanFootballTimeline(

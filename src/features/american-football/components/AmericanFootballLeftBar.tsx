@@ -9,7 +9,7 @@ import {
   mockAmericanFootballPopularLeagues,
 } from "../data/mockAmericanFootball";
 import {
-  getAmericanFootballCoverage,
+  getAmericanFootballLeagues,
   isAmericanFootballApiEnabled,
   normalizeAmericanFootballLeagues,
 } from "@/lib/api/american-football";
@@ -31,7 +31,7 @@ export const AmericanFootballLeftBar = ({
     queryKey: ["american-football", "coverage"],
     enabled: isAmericanFootballApiEnabled,
     queryFn: async () =>
-      normalizeAmericanFootballLeagues(await getAmericanFootballCoverage()),
+      normalizeAmericanFootballLeagues(await getAmericanFootballLeagues()),
     staleTime: 24 * 60 * 60 * 1000,
   });
 

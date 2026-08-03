@@ -1044,6 +1044,15 @@ export const mockAmericanFootballPopularLeagues: AmericanFootballLeague[] = [
       "The top professional league with the biggest weekly audience.",
   },
   {
+    id: "div3",
+    name: "AmFtbl DIV3",
+    region: "United States",
+    season: "2025",
+    teams: "",
+    tier: "College",
+    description: "NCAA Division II/III American football.",
+  },
+  {
     id: "ncaa-fbs",
     name: "NCAA FBS",
     region: "United States",

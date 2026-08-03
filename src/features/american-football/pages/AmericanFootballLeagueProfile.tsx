@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -10,8 +11,22 @@ import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
 import { mockAmericanFootballAllLeagues } from "../data/mockAmericanFootball";
 import { mockLeagueStandings } from "../data/mockAmericanFootballStandings";
+import {
+  getAmericanFootballAllStandings,
+  isAmericanFootballApiEnabled,
+  normalizeAmericanFootballStandings,
+  AF_LEAGUE_CODE_TO_MOCK_ID,
+} from "@/lib/api/american-football";
 
 type LeagueTab = "overview" | "standings";
+
+// Add this mapping - reverse of what's in index.ts
+const AF_CODE_TO_MOCK_ID: Record<string, string> = {
+  NFL: "nfl",
+  FBS: "ncaa-fbs",
+  FCS: "ncaa-fcs",
+  DIV3: "div3",
+};
 
 const leagueInitials = (name: string) =>
   name
@@ -25,12 +40,49 @@ const AmericanFootballLeagueProfile = () => {
   const { leagueId } = useParams();
   const [activeTab, setActiveTab] = useState<LeagueTab>("standings");
 
+  // Replace this line with the new logic
+  const normalizedLeagueId = leagueId
+    ? (AF_CODE_TO_MOCK_ID[leagueId.toUpperCase()] ?? leagueId.toLowerCase())
+    : undefined;
+
   const league = useMemo(
-    () => mockAmericanFootballAllLeagues.find((item) => item.id === leagueId),
-    [leagueId],
+    () =>
+      mockAmericanFootballAllLeagues.find(
+        (item) => item.id.toLowerCase() === normalizedLeagueId,
+      ),
+    [normalizedLeagueId],
   );
 
-  const standingsGroups = leagueId ? mockLeagueStandings[leagueId] : undefined;
+  const standingsQuery = useQuery({
+    queryKey: ["american-football", "standings", "all"],
+    enabled: isAmericanFootballApiEnabled,
+    queryFn: async () => {
+      const raw = await getAmericanFootballAllStandings();
+      const entries = Array.isArray(
+        (raw as { responseObject?: unknown[] })?.responseObject,
+      )
+        ? (raw as { responseObject: unknown[] }).responseObject
+        : [];
+      const result: Record<
+        string,
+        ReturnType<typeof normalizeAmericanFootballStandings>
+      > = {};
+      for (const entry of entries) {
+        const record = entry as { code?: string };
+        const code = String(record.code ?? "").toUpperCase();
+        const mockId = AF_LEAGUE_CODE_TO_MOCK_ID[code] ?? code.toLowerCase();
+        result[mockId] = normalizeAmericanFootballStandings(entry);
+      }
+      return result;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const standingsGroups = normalizedLeagueId
+    ? standingsQuery.data?.[normalizedLeagueId]?.length
+      ? standingsQuery.data[normalizedLeagueId]
+      : mockLeagueStandings[normalizedLeagueId]
+    : undefined;
 
   const tabs = [
     { id: "overview" as LeagueTab, label: "Overview" },
@@ -55,7 +107,6 @@ const AmericanFootballLeagueProfile = () => {
 
       <div className="flex page-padding-x gap-5 py-5 justify-around">
         <div className="w-full flex flex-col gap-y-5 h-full pr-2">
-          {/* Header Banner */}
           <div className="secondary-gradient relative z-0 rounded-[10px] overflow-hidden shadow-lg">
             <div className="w-full px-6 py-8 relative z-0 flex items-center">
               <div className="flex flex-col md:flex-row items-center gap-6 w-full">
@@ -97,7 +148,6 @@ const AmericanFootballLeagueProfile = () => {
             </div>
           </div>
 
-          {/* Tabs and Content */}
           <div className="flex flex-col gap-5">
             <div className="block-style">
               <div className="flex gap-4 border-b border-snow-200 dark:border-[#1F2937]">
