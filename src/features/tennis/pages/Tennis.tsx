@@ -33,7 +33,6 @@ import {
   mockTennisUpcomingMatches,
   type TennisMatch,
 } from "../data/mockTennis";
-import { TennisLeftBar } from "../components/TennisLeftBar";
 import { navigate } from "@/lib/router/navigate";
 
 const TENNIS_FAVORITES_STORAGE_KEY = "tennis_favorite_matches_v1";

@@ -1,6 +1,4 @@
 import { useEffect, useState, useMemo } from "react";
-import PageHeader from "../../../components/layout/PageHeader";
-import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
 import {
   StarIcon,
@@ -13,7 +11,6 @@ import {
   getLiveBasketballMatches,
 } from "@/lib/api/endpoints";
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
-import Category from "@/features/dashboard/components/Category";
 import { isToday, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,7 +19,6 @@ import {
 } from "@/lib/api/basketball/livestream";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
-import RightBar from "@/components/layout/RightBar";
 import { SportLayout } from "@/components/layout/SportLayout";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
 import ReturnToToday from "@/components/ui/ReturnToToday";
