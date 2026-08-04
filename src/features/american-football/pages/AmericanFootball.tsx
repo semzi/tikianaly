@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
@@ -70,7 +76,7 @@ const quarterTotal = (values: (string | number)[]) =>
     return Number.isFinite(n) ? sum + n : sum;
   }, 0);
 
-const QuarterStrip = ({ match }: { match: AmericanFootballMatch }) => {
+const QuarterTooltipContent = ({ match }: { match: AmericanFootballMatch }) => {
   if (!match.quarters) return null;
   const { home, away } = match.quarters;
 
@@ -97,8 +103,30 @@ const QuarterStrip = ({ match }: { match: AmericanFootballMatch }) => {
     </div>
   );
 
+  const header = (label: string) => (
+    <div className="flex items-center justify-between gap-3">
+      <span className="w-4" />
+      <div className="flex items-center justify-end gap-3 flex-1">
+        <div className="flex items-center gap-3">
+          {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+            <span
+              key={q}
+              className="text-[10px] font-semibold text-neutral-n4 dark:text-snow-200/50 w-4 text-center"
+            >
+              {q}
+            </span>
+          ))}
+        </div>
+        <span className="text-[10px] font-semibold text-neutral-n4 dark:text-snow-200/50 w-6 text-center ml-2">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="px-5 pb-3 -mt-1 flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
+      {header("T")}
       {row("H", home, quarterTotal(home))}
       {row("A", away, quarterTotal(away))}
     </div>
@@ -172,6 +200,30 @@ const AmericanFootballPage = () => {
   const [selectedLeagueName, setSelectedLeagueName] = useState<string | null>(
     null,
   );
+
+  // Mouse-following Q1–Q4 tooltip (desktop only; mobile keeps click-through).
+  const [quarterTooltip, setQuarterTooltip] = useState<{
+    match: AmericanFootballMatch;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const trackQuarterTooltip =
+    (match: AmericanFootballMatch) => (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (!match.quarters) return;
+      // Hover does not exist on touch — skip so taps navigate straight to detail.
+      if (!window.matchMedia("(min-width: 768px)").matches) return;
+      const OFFSET = 14;
+      const WIDTH = 210;
+      const HEIGHT = 96;
+      let x = event.clientX + OFFSET;
+      let y = event.clientY + OFFSET;
+      if (x + WIDTH > window.innerWidth) x = event.clientX - WIDTH - OFFSET;
+      if (y + HEIGHT > window.innerHeight) y = event.clientY - HEIGHT - OFFSET;
+      setQuarterTooltip({ match, x, y });
+    };
+
+  const hideQuarterTooltip = () => setQuarterTooltip(null);
 
   const tabs = useMemo(
     () => [
@@ -311,6 +363,9 @@ const AmericanFootballPage = () => {
         key={match.id}
         className="hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors cursor-pointer"
         onClick={() => openMatch(match)}
+        onMouseEnter={trackQuarterTooltip(match)}
+        onMouseMove={trackQuarterTooltip(match)}
+        onMouseLeave={hideQuarterTooltip}
       >
         <div className="hidden md:flex items-center gap-4 px-5 py-4">
           <p
@@ -346,7 +401,6 @@ const AmericanFootballPage = () => {
             )}
           </button>
         </div>
-        <QuarterStrip match={match} />
         <div className="flex md:hidden items-center gap-3 px-3 py-3">
           <p
             className={`text-xs font-bold w-14 text-center ${status.isLive || status.text === "FT" ? "text-brand-secondary" : "theme-text opacity-70"}`}
@@ -394,7 +448,7 @@ const AmericanFootballPage = () => {
             onSelectLeagueName={setSelectedLeagueName}
           />
         </section>
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto overflow-x-auto hide-scrollbar pr-2">
+        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
           <div className="block-style flex flex-col gap-4">
             <div className="relative flex items-center justify-between dark:text-snow-200">
               <ArrowLeftIcon
@@ -523,7 +577,7 @@ const AmericanFootballPage = () => {
                     </button>
                   </div>
                   {!collapsedLeagues[league] ? (
-                    <div className="divide-y divide-snow-200 dark:divide-[#1F2937] min-w-[680px] md:min-w-0">
+                    <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
                       {items.map((match) => matchRow(match))}
                     </div>
                   ) : null}
@@ -537,6 +591,16 @@ const AmericanFootballPage = () => {
         </div>
       </div>
       <FooterComp />
+      {quarterTooltip ? (
+        <div
+          className="fixed z-50 hidden md:block pointer-events-none"
+          style={{ left: quarterTooltip.x, top: quarterTooltip.y }}
+        >
+          <div className="rounded-xl border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#161B22] shadow-2xl px-4 py-3">
+            <QuarterTooltipContent match={quarterTooltip.match} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -224,49 +224,101 @@ const AmericanFootballMatchDetail = () => {
     <div className="min-h-screen dark:bg-[#0D1117] bg-[#f6f6f6]">
       <PageHeader />
 
-      <section className="relative isolate overflow-hidden bg-gradient-to-r from-orange-500 via-orange-500 to-pink-600 text-white">
+      <section className="relative isolate overflow-hidden bg-brand-primary text-white">
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute blur-sm inset-0 pointer-events-none opacity-50"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+              "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
           }}
         />
-        <div className="page-padding-x relative z-10 py-4 md:py-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="mb-4 flex items-center gap-2 text-sm text-white/95 hover:text-white"
-          >
-            <ArrowLeftIcon className="h-4 w-4" /> Back
-          </button>
-          <div className="grid grid-cols-3 items-center gap-3 md:gap-8">
-            <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
-                {teamInitials(match.homeTeam)}
-              </div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">
-                {match.homeTeam}
-              </p>
+        <div className="relative z-[2] page-padding-x pt-10 pb-16 md:pt-14 md:pb-20">
+          {/* Toolbar - back | status | (actions) */}
+          <div className="relative px-3 grid grid-cols-3 items-center">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="flex gap-4 items-center w-fit cursor-pointer text-left"
+            >
+              <ArrowLeftIcon className="text-white h-5" />
+              <p className="text-white hidden md:block">Back</p>
+            </button>
+            <div className="bg-brand-secondary font-semibold text-white py-1.5 px-4 rounded w-fit mx-auto hidden md:block">
+              {isLive ? "Live" : match.status}
             </div>
-            <div className="flex flex-col items-center text-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-white text-orange-600 text-xs md:text-sm font-bold uppercase tracking-wide">
-                {isLive ? "Live" : match.status}
-              </span>
-              <p className="text-xl md:text-5xl font-black tracking-wide">
-                {homeScore} - {awayScore}
-              </p>
-              <p className="text-xs md:text-base text-white/90">
+            <div className="flex justify-end" />
+          </div>
+
+          {/* Mobile hero - football-style, quarter box below the score */}
+          <div className="md:hidden px-3 mt-2 text-white">
+            <div className="grid grid-cols-3 items-start gap-2">
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-10 w-10 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-xs font-bold">
+                  {teamInitials(match.homeTeam)}
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {match.homeTeam}
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <p className="shrink-0 text-[11px] bg-brand-secondary px-2 py-0.5 rounded">
+                  {isLive ? "Live" : match.status}
+                </p>
+              </div>
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-10 w-10 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-xs font-bold">
+                  {teamInitials(match.awayTeam)}
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {match.awayTeam}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-col items-center">
+              <div className="flex justify-center items-center gap-3 leading-none tabular-nums tall-font text-[56px]">
+                <p className="leading-none">{homeScore}</p>
+                <p className="text-[32px] leading-none">-</p>
+                <p className="leading-none">{awayScore}</p>
+              </div>
+              <p className="mt-1 text-[11px] text-white/90">
                 {match.league}
                 {isLive ? ` • ${match.period}` : ""}
               </p>
+            </div>
+            <div className="mt-3 flex justify-center">
               <QuarterScoreBox match={match} />
             </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
+          </div>
+
+          {/* Desktop hero - football-style, quarter box inline */}
+          <div className="hidden md:grid md:mt-5 mb-5 px-3 grid-cols-3 items-start text-white">
+            <div className="flex flex-col items-center md:items-end">
+              <div className="h-12 w-12 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base font-bold">
+                {teamInitials(match.homeTeam)}
+              </div>
+              <p className="mt-2 text-[20px] font-light text-center md:text-right">
+                {match.homeTeam}
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex text-[56px] md:text-[80px] tall-font justify-center items-center gap-3 leading-none tabular-nums">
+                <p className="leading-none">{homeScore}</p>
+                <p>-</p>
+                <p className="leading-none">{awayScore}</p>
+              </div>
+              <p className="mt-1 text-sm text-white/90">
+                {match.league}
+                {isLive ? ` • ${match.period}` : ""}
+              </p>
+              <div className="mt-3">
+                <QuarterScoreBox match={match} />
+              </div>
+            </div>
+            <div className="flex flex-col items-center md:items-start">
+              <div className="h-12 w-12 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base font-bold">
                 {teamInitials(match.awayTeam)}
               </div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">
+              <p className="mt-2 text-[20px] font-light text-center md:text-left">
                 {match.awayTeam}
               </p>
             </div>
