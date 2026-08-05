@@ -1,24 +1,30 @@
 # TikiAnaly Web
 
-TikiAnaly is a **React + TypeScript** web app for football-first exploration (fixtures, leagues, favourites, player views) with a responsive UI built on Tailwind.
+TikiAnaly is a **multi-sport** analytics web app built with **React + TypeScript** and Vite, featuring fixtures, live matches, league/team/player profiles, standings, and interactive statistics. It currently supports **football**, **basketball**, **cricket**, **tennis**, and **American football**.
 
-This README is written for **new contributors**: how to run the project, where things live, and the conventions we follow.
+This README is written for **new contributors**: how to run the project, how the codebase is organized, and how to add support for a brand-new sport.
+
+---
 
 ## Tech stack
 
 - **React 19**
 - **TypeScript 5**
 - **Vite 6**
-- **React Router**
-- **Tailwind CSS**
+- **React Router 7** (SPA, animated route transitions)
+- **Tailwind CSS 4**
 - **Axios** for API calls
-- **Framer Motion** for route/page transitions
+- **TanStack Query** for server state & caching
+- **Framer Motion** for page transitions
+- **Zustand**, **Recharts**, **lucide-react**, **@heroicons/react**
+
+---
 
 ## Quick start
 
 ### Prerequisites
 
-- Node.js **18+** recommended (16+ may work, but modern tooling is smoother on 18+)
+- Node.js **18+** (modern tooling is smoothest on 18+)
 - npm
 
 ### Install & run
@@ -34,74 +40,96 @@ Then open:
 http://localhost:5173
 ```
 
-## Scripts
+> **Environment variables** — copy `.env.example` to `.env` before running:
 
-From `package.json`:
+```bash
+cp .env.example .env
+```
 
-- **`npm run dev`**
-  Runs the Vite dev server.
-- **`npm run build`**
-  Type-checks (`tsc -b`) and builds for production (`vite build`).
-- **`npm run preview`**
-  Serves the production build locally.
-- **`npm run lint`**
-  Runs ESLint.
-- **`npm test`**
-  Runs Jest tests.
+Never commit real secrets.
 
-## Project structure (high-level)
+### Scripts
 
-We follow a **feature-first** structure: each feature owns its pages and feature-specific components.
+| Command              | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `npm run dev`        | Start the Vite dev server                       |
+| `npm run build`      | Type-check + production build + sitemap         |
+| `npm run preview`    | Serve the production build locally              |
+| `npm run lint`       | Run ESLint                                      |
+| `npm test`           | Run Jest tests                                  |
+| `npm run test:scripts` | Run the scripts test suite                   |
+| `npm run generate-sitemap` | Regenerate `public/sitemap*.xml`         |
+
+---
+
+## Project structure
+
+The repo uses a **feature-first** structure. Each sport is a self-contained feature under `src/features/<sport>/`, with its own pages, components, data mappers, and types. Shared UI lives in `src/components/`, and API code is split per sport under `src/lib/api/`.
 
 ```text
 src/
-  App.tsx                  # Routing is defined here
-  main.tsx                 # React entry
+  main.tsx                     # React entry
+  App.tsx                      # All routes are registered here
   ScrollToTop.tsx
 
-  features/
-    auth/
-      pages/               # Login, Signup, ForgotPassword, ResetPassword
-    dashboard/
-      pages/               # dashboard, favourites, league, news
-      components/          # Dashboard-only components (Category, AfconBanner)
-    football/
-      pages/               # gameInfo, teamProfile
-      components/          # Football-only components (LineupBuilder, StandingsTable, etc.)
-    basketball/
-      pages/               # BasketballLeagueProfile, BasketballTeamProfile
-      components/          # Basketball-specific components
-    news/
+  features/                    # One folder per feature/sport
+    dashboard/                 # Home, news, favourites, league picker
       pages/
       components/
-    community/
-      pages/               # Community features
-    onboarding/
-      pages/               # Onboarding flow
+    football/
+      pages/                   # gameInfo, teamProfile, playerProfile, ...
       components/
+      data/                    # static/mock data
+    cricket/
+      pages/
+      components/
+      data/
+      types.ts                 # API response types
+      utils/mappers.ts         # raw API -> UI shapes
+    basketball/
+    tennis/
+    american-football/
+    auth/
     account/
-      pages/               # Account settings
     legal/
-      pages/               # Terms, Privacy
-    dev/
-      pages/               # Dev utilities
+    news/
+    community/
+    onboarding/
+    dev/                       # debugging tools (SSE debug, script sandbox)
 
   components/
-    layout/                # Shared layout: PageHeader, Footer, LeftBar, RightBar
-    common/                # Reusable components (GetTeamLogo, GetLeagueLogo, GetVenueImage)
-    ui/                    # UI primitives (SegmentedSelector, Skeleton components)
+    layout/     # PageHeader, Footer, Navigation, RightBar, SportLayout
+    common/     # GetTeamLogo, GetLeagueLogo, GetPlayerImage, Image, Logo
+    ui/         # Button, DropdownSelector, SegmentedSelector, Form/*, ...
+    auth/
+    player/
 
   lib/
-    api/                   # axios client, cache, endpoints, livestream
-    router/                # global navigate helper
+    api/
+      axios.ts                 # shared Axios client
+      cache.ts                 # lightweight client-side cache
+      endpoints.ts             # re-exports from per-sport modules (back-compat)
+      livestream.ts            # SSE helpers
+      <sport>/index.ts          # per-sport endpoint functions
+      <sport>/livestream.ts     # per-sport SSE URLs
+    router/navigate.ts         # router-agnostic navigation helper
+    matchStatusUi.ts
 
-  data/                    # static data lists used by UI
-  context/                 # providers (ThemeContext, ToastContext, BackendStatusContext)
-  animations/              # Framer Motion animations
-  styles/                  # Global CSS, Tailwind config, theme variables
-  hooks/                   # Custom React hooks (useFetch, usePaginatedApi, useProfileAvatar)
-  visualization/           # Charts and data visualization components
+  context/                # ThemeContext, ToastContext, BackendStatusContext
+  animations/             # Framer Motion shared animations
+  hooks/                  # useFetch, usePaginatedApi, useProfileAvatar
+  visualization/           # Recharts-based chart components
+  styles/                 # Global CSS, Tailwind theme variables
+  data/                   # static lists (e.g. dashboard categories)
 ```
+
+### docs/
+
+`docs/` holds reference material that is **not** part of the runtime bundle:
+
+- `docs/api-responses/` — captured API response structures and endpoint notes
+
+For the step-by-step **"Adding a new sport"** guide, see the section below.
 
 ### Import aliases
 
@@ -109,73 +137,252 @@ We use path aliases to keep imports stable:
 
 - **`@/...`** resolves to `src/...`
 
-Configured in:
-
-- `vite.config.ts`
-- `tsconfig.app.json`
-
-Example:
+Configured in `vite.config.ts` and `tsconfig.app.json`.
 
 ```ts
-import { getAllTeams } from "@/lib/api/endpoints";
+import { getTeamById } from "@/lib/api/football";
 ```
+
+---
 
 ## Routing
 
-All routes are defined in **`src/App.tsx`**.
+All routes are declared in **`src/App.tsx`**. Routes are individually wrapped with **Framer Motion** transitions and lazy-loaded via `React.lazy`.
 
-Notable behaviors:
+Conventions per sport (`src/features/<sport>/pages/`):
 
-- Routes are wrapped with **Framer Motion** transitions.
-- Navigation is conditionally hidden on `/login` and `/signup`.
+| Route pattern                 | Typical page                    |
+| --------------------------- | ------------------------------- |
+| `/<sport>`                  | Dashboard / home                |
+| `/<sport>/leagues`          | Leagues list                    |
+| `/<sport>/league/:leagueId` | League profile                  |
+| `/<sport>/match/:matchId`   | Match / game info               |
+| `/<sport>/team/:teamId`     | Team profile                    |
+| `/<sport>/player/:playerId` | Player profile                  |
 
-If you add a new page:
+To add a page:
 
-- Create it under `src/features/<feature>/pages/`
-- Add the route in `src/App.tsx`
+1. Create the component under `src/features/<sport>/pages/`.
+2. Register a lazy import at the top of `src/App.tsx`.
+3. Add the `<Route>` block that wraps the element in the motion `m.div` wrapper.
+
+---
 
 ## API layer
 
-All API calls live in `src/lib/api/`:
+API calls live in `src/lib/api/`:
 
-- `axios.ts` sets up the Axios instance
-- `cache.ts` provides a lightweight client-side cache
-- `endpoints.ts` exports typed functions used by UI
+- `axios.ts` — the shared Axios instance
+- `cache.ts` — lightweight client-side cache
+- `endpoints.ts` — re-exports all per-sport endpoints for backward compatibility
+- `<sport>/index.ts` — per-sport endpoint functions
 
-### Endpoint organization
+Each sport folder mirrors the backend namespace. For example, cricket endpoints are at `src/lib/api/cricket/index.ts` and hit `/api/v1/cricket/...`.
 
-`src/lib/api/endpoints.ts` is grouped in this order:
+When adding an endpoint:
 
-- **Authentication**
-- **Players**
-- **Teams**
-- **Leagues**
-- **Fixtures**
-- **Favorites**
-- **Cache utilities**
+- Put it in the correct per-sport module (not `endpoints.ts` directly, if one exists).
+- Keep naming consistent (`getXById`, `getAllX`, `getLiveFixtures`, …).
+- Prefer `encodeURIComponent` for user-provided strings.
 
-When adding a new endpoint:
+### Live updates (SSE)
 
-- Add it to the correct section
-- Keep naming consistent (`getXById`, `getAllX`, `addX`, etc.)
-- Prefer `encodeURIComponent` for user-provided strings
+Real-time updates use Server-Sent Events. Per-sport SSE URLs and helpers live in
+`src/lib/api/<sport>/livestream.ts`. Subscriptions are cleaned up on unmount.
 
-## Local dev proxy
+```ts
+import { subscribeDashboardLiveFixtures } from "@/lib/api/livestream";
 
-Vite proxies `/goalserve` to an upstream service (see `vite.config.ts`).
+const eventSource = subscribeDashboardLiveFixtures({
+  onUpdate: (liveItems) => {
+    // update fixtures in place
+  },
+});
 
-If you call `/goalserve/...` in dev, it will be forwarded to:
-
-```text
-http://data2.goalserve.com:8084
+// cleanup on unmount
+closeLiveStream(eventSource);
 ```
 
-## SPA deployment (routing fallback)
+---
 
-This is a single-page app, so production hosting must rewrite unknown routes to `index.html`.
+## Adding a new sport (guide)
+
+This is the blueprint used to add **basketball**, **cricket**, **tennis**, and **American football**.
+Follow it top-to-bottom to add a sport in a way that matches the existing conventions.
+
+### 1. Pick a route prefix
+
+Use a lowercase, kebab-case identifier, e.g. `handball` → paths like `/handball`, `/handball/match/:matchId`.
+
+### 2. Create the feature folder
+
+```text
+src/features/handball/
+├── pages/          # Handball pages
+├── components/     # Handball-specific components
+├── data/           # Static / mock data (only if needed)
+├── types.ts        # API response TypeScript interfaces
+└── utils/
+    └── mappers.ts  # raw API → UI-shaped data
+```
+
+Start with the two "leaf" pages and keep the folder self-contained:
+
+```text
+src/features/handball/
+├── pages/
+│   ├── Handball.tsx                  # dashboard / home (list of matches)
+│   └── HandballGameInfo.tsx          # single match detail
+└── components/
+    └── HandballLeftBar.tsx           # nav sidebar for the sport
+```
+
+### 3. Create the per-sport API module
+
+Create `src/lib/api/<sport>/index.ts` with endpoint functions. Keep the same
+naming convention as the other sports.
+
+```ts
+// src/lib/api/handball/index.ts
+import apiClient from "../axios";
+
+const base = "/api/v1/handball";
+
+export const getHandballHome = async () => {
+  const response = await apiClient.get(`${base}/home`);
+  return response.data;
+};
+
+export const getHandballMatch = async (matchId: string | number) => {
+  const response = await apiClient.get(`${base}/match/${encodeURIComponent(String(matchId))}`);
+  return response.data;
+};
+```
+
+If the sport has an SSE stream, add `src/lib/api/<sport>/livestream.ts` too.
+
+### 4. Wire up routing in `src/App.tsx`
+
+```ts
+import { lazy } from "react";
+
+const HandballPage = lazy(() => import("./features/handball/pages/Handball"));
+const HandballMatch = lazy(() => import("./features/handball/pages/HandballGameInfo"));
+
+// inside <Routes>
+<Route
+  path="/handball"
+  element={<m.div variants={motionVariants} initial="initial" animate="animate" exit="exit" transition={motionTransition}><HandballPage /></m.div>}
+/>
+<Route
+  path="/handball/match/:matchId"
+  element={<m.div variants={motionVariants} initial="initial" animate="animate" exit="exit" transition={motionTransition}><HandballMatch /></m.div>}
+/>
+```
+
+### 5. Add the sport to the dashboard categories
+
+`src/data/categoryList.tsx` drives the sport buttons on the home page:
+
+```ts
+const categories = [
+  { label: "Football", variant: "", href: "/football" },
+  // ...
+  { label: "Handball", variant: "", href: "/handball" },
+];
+```
+
+### 6. Reuse shared pieces
+
+- **Layout** — wrap pages in `SportLayout` from `src/components/layout/SportLayout.tsx` and pass a sport-specific `<XxxLeftBar />`.
+- **Logos** — use the generic `GetLeagueLogo` / `GetTeamLogo`, or add sport-specific logo getters in `src/components/common/` (follow the `GetBasketballTeamLogo` pattern).
+- **Standings** — either reuse `StandingsTable` if the shape matches, or build a sport-specific one under `src/features/<sport>/components/standings/`.
+- **Charts** — add sport-specific visualizations under `src/features/<sport>/components/` or the shared `src/visualization/` if reusable.
+
+### 7. Type-check and lint
+
+```bash
+npm run lint
+npm run build
+```
+
+> Prefer feature-specific component under that sport's `components/` folder. Keep genuinely shared UI under `src/components/`.
+
+---
+
+## Data fetching & caching
+
+TanStack Query is the standard for server state:
+
+```ts
+const { data, isLoading, error } = useQuery({
+  queryKey: ["feature", "data", id],
+  queryFn: () => fetchData(id),
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  gcTime: 10 * 60 * 1000,   // 10 minutes
+  refetchOnWindowFocus: true,
+  placeholderData: (prev) => prev,
+});
+```
+
+---
+
+## UI components
+
+Reusable components live in `src/components/ui/` and `src/components/common/`.
+
+- **SegmentedSelector** — pill-style tab selector for filtering.
+- **Toast Notifications** — via `ToastContext`
+  ```ts
+  const toast = useToast();
+  toast.show({ variant: "success", message: "Saved", durationMs: 5000 });
+  toast.dismiss("unique-id");
+  ```
+- **DropdownSelector** — dropdown selection.
+- **Button / Form\*** — form primitives.
+
+### Skeleton loaders
+
+Shimmer loaders use the `animate-shimmer` keyframe defined in `src/styles/index.css`.
+
+```tsx
+<div className="h-3 w-full rounded bg-gray-300 dark:bg-[#1F2937]" />
+```
+
+---
+
+## Theme & colors
+
+Defined in `src/styles/index.css` under `@theme`:
+
+- Brand: `--color-brand-primary` (blue), `--color-brand-secondary` (orange accent)
+- UI: `--color-ui-success` / `--color-ui-negative` / `--color-ui-pending`
+- Neutrals: `--color-neutral-n1` … `--color-neutral-n5`
+
+Common Tailwind utilities defined in CSS:
+
+```css
+.block-style {
+  @apply bg-white border dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-5;
+}
+.theme-text {
+  @apply dark:text-white text-[#23272A];
+}
+```
+
+---
+
+## Environment / deployment
+
+**`.env`** is git-ignored. Only `.env.example` is committed. Provide every `VITE_*`
+variable with a sensible placeholder.
+
+This is a single-page app, so production hosts must rewrite unknown routes to `index.html`:
 
 - **Vercel:** `vercel.json`
 - **Netlify:** `public/_redirects`
+
+---
 
 ## Contributing guidelines
 
@@ -187,197 +394,37 @@ This is a single-page app, so production hosting must rewrite unknown routes to 
 
 ### Commit style
 
-- Keep commits small and focused.
-- Use clear messages, e.g.:
-  - `fix: handle empty fixtures response`
-  - `refactor: move dashboard components into feature folder`
+Keep commits small and focused:
 
-### Code conventions
-
-- Prefer `@/...` imports over deep relative imports.
-- Put feature-specific components under that feature’s `components/`.
-- Keep shared components under `src/components/`.
+```text
+feat(handball): add match detail page
+fix: handle empty fixtures response
+```
 
 ### Before opening a PR
 
-- Run:
-  - `npm run lint`
-  - `npm run build`
+- Run `npm run lint`
+- Run `npm run build`
+
+---
 
 ## Troubleshooting
 
-### “Cannot find module 'react-router-dom'”
+### “Cannot find module 'react-router-dom'”"
 
-This typically means dependencies are not installed or TS server needs a refresh:
+Dependencies may be missing or the TS server needs a refresh:
 
 - Run `npm install`
 - In VS Code: “TypeScript: Restart TS server”
 
-### Windows note
+### Windows
 
-This repo works on Windows. If you see path or script issues, include:
+This repo works on Windows. If you hit path/script issues, include:
 
-- Node version (`node -v`)
-- npm version (`npm -v`)
+- `node -v`
+- `npm -v`
 
-## UI Components
-
-### SegmentedSelector
-
-A pill-style tab selector component used for filtering (e.g., Live/All/By Date on dashboard).
-
-**Location:** `src/components/ui/SegmentedSelector.tsx`
-
-**Usage:**
-```tsx
-import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
-
-const [mode, setMode] = useState<"all" | "live" | "date">("all");
-
-<SegmentedSelector
-  value={mode}
-  options={[
-    { value: "all", label: "All" },
-    { value: "live", label: "Live" },
-    { value: "date", label: "By Date" },
-  ]}
-  onChange={(value) => setMode(value as "all" | "live" | "date")}
-  size="md" // "sm" | "md" | "lg"
-/>
-```
-
-### Toast Notifications
-
-Toast notifications are managed via `ToastContext`.
-
-**Location:** `src/context/ToastContext.tsx`
-
-**Usage:**
-```tsx
-import { useToast } from "@/context/ToastContext";
-
-const toast = useToast();
-
-// Show toast
-toast.show({
-  variant: "success", // "success" | "error" | "info" | "warning"
-  message: "Operation completed!",
-  durationMs: 5000, // optional, default 5000
-});
-
-// Show with ID (for updating/dismissing)
-toast.show({
-  id: "unique-id",
-  variant: "info",
-  message: "Loading...",
-});
-
-// Dismiss toast
-toast.dismiss("unique-id");
-```
-
-### Skeleton Loaders
-
-Shimmer-style skeleton loaders are used throughout the app for loading states.
-
-**Pattern:**
-```tsx
-const SkeletonBlock = ({ className = "" }: { className?: string }) => (
-  <div className={`relative overflow-hidden bg-gray-300 dark:bg-[#1F2937] rounded ${className}`}>
-    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
-  </div>
-);
-```
-
-The `animate-shimmer` keyframe is defined in `src/styles/index.css`.
-
-## Theme & Colors
-
-### CSS Variables (Tailwind Theme)
-
-Defined in `src/styles/index.css` under `@theme`:
-
-**Brand Colors:**
-- `--color-brand-primary: #0056d2` - Primary blue
-- `--color-brand-secondary: #FF4500` - Orange accent (CTAs, highlights)
-- `--color-brand-p1/p2/p3/p4` - Primary blue variants
-- `--color-brand-s1/s2/s3/s4` - Secondary orange variants
-
-**UI Colors:**
-- `--color-ui-success: #00d68f` - Green
-- `--color-ui-negative: #cc2e2e` - Red/errors
-- `--color-ui-pending: #ffc82c` - Yellow/warning
-- `--color-ui-darkv2: #161B22` - Dark background
-
-**Neutral Colors:**
-- `--color-neutral-n1: #1c1c1e` - Darkest
-- `--color-neutral-n2: #2c2c2e`
-- `--color-neutral-n3: #3a3a3c`
-- `--color-neutral-n4: #48484a`
-- `--color-neutral-n5: #909090` - Muted text
-- `--color-neutral-m6: #aeaeb2`
-
-**Background Colors:**
-- Light: `--color-body: #fdfdfd`
-- Dark: `--color-ui-darkv2: #161B22`
-- Card dark: `#0D1117`
-- Border dark: `#1F2937`
-
-### Utility Classes
-
-Common Tailwind patterns used:
-
-```css
-/* Block container style */
-.block-style {
-  @apply bg-white border dark:bg-[#161B22] dark:border-[#1F2937] border-snow-200 rounded p-5;
-}
-
-/* Theme text */
-.theme-text {
-  @apply dark:text-white text-[#23272A];
-}
-
-/* Theme border */
-.theme-border {
-  @apply dark:border-[#1F2937] border-snow-200;
-}
-```
-
-## Data Fetching
-
-### TanStack Query Patterns
-
-We use TanStack Query for server state management with consistent caching strategies:
-
-```tsx
-const { data, isLoading, error } = useQuery({
-  queryKey: ["feature", "data", id],
-  queryFn: () => fetchData(id),
-  staleTime: 5 * 60 * 1000,    // 5 minutes
-  gcTime: 10 * 60 * 1000,      // 10 minutes garbage collection
-  refetchOnWindowFocus: true,
-  refetchOnReconnect: true,
-  placeholderData: (prev) => prev, // Keep previous data while loading
-});
-```
-
-### Live Updates (SSE)
-
-For real-time fixture updates, we use Server-Sent Events:
-
-```tsx
-import { subscribeDashboardLiveFixtures } from "@/lib/api/livestream";
-
-const eventSource = subscribeDashboardLiveFixtures({
-  onUpdate: (liveItems) => {
-    // Update fixtures with live data
-  },
-});
-
-// Cleanup on unmount
-closeLiveStream(eventSource);
-```
+---
 
 ## License
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/basketball/index";
 import { useParams } from "react-router-dom";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
+import BasketballPlayByPlay from "../components/BasketballPlayByPlay";
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }: { className?: string }) => (
@@ -307,137 +308,7 @@ const ReboundBar: React.FC<ReboundBarProps> = ({
 };
 
 // Quarter Section Component - Enhanced Play-by-Play Timeline
-interface QuarterSectionProps {
-  period: number;
-  homeScore: number;
-  awayScore: number;
-  events: PlayByPlayEvent[];
-  isExpanded: boolean;
-  onToggle: () => void;
-}
 
-const QuarterSection: React.FC<QuarterSectionProps> = ({
-  period,
-  homeScore,
-  awayScore,
-  events,
-  isExpanded,
-  onToggle,
-}) => {
-  return (
-    <div className="border-b border-snow-200 dark:border-[#1F2937] last:border-0">
-      {/* Quarter Header - Collapsible */}
-      <button
-        onClick={onToggle}
-        className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold theme-text uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-            Q{period}
-          </span>
-          <span className="text-sm font-bold theme-text">
-            {homeScore} - {awayScore}
-          </span>
-        </div>
-        <svg
-          className={`w-5 h-5 theme-text transition-transform duration-300 ${
-            isExpanded ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Events List */}
-      {isExpanded && (
-        <div className="px-5 pb-4 space-y-2 animate-fadeIn">
-          {events.map((event) => {
-            // Determine which team the event belongs to
-            const isHomeEvent = event.team_id.toString() !== event.away_score.toString();
-            
-            return (
-              <div
-                key={event._id}
-                className={`flex items-center justify-between py-3 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${
-                  isHomeEvent ? "flex-row" : "flex-row-reverse"
-                }`}
-              >
-                {/* Left Side (Home Team Events) */}
-                <div className={`flex-1 ${isHomeEvent ? "text-right" : "text-left"}`}>
-                  {isHomeEvent ? (
-                    <>
-                      {/* Time */}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                        {event.time}
-                      </span>
-                      {/* Player Name */}
-                      {event.player_name && (
-                        <p className="text-sm font-medium theme-text leading-tight mb-0.5">
-                          {event.player_name}
-                        </p>
-                      )}
-                      {/* Action Description */}
-                      <p className="text-xs theme-text opacity-60 leading-tight">
-                        {event.event_description}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="h-full" />
-                  )}
-                </div>
-
-                {/* Center - Score */}
-                <div className="flex flex-col items-center px-4 min-w-[100px]">
-                  {/* Points Indicator */}
-                  {event.points_scored && (
-                    <span className={`text-[10px] font-black mb-0.5 px-1.5 py-0.5 rounded-full ${
-                      isHomeEvent 
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    }`}>
-                      +{event.points_scored}
-                    </span>
-                  )}
-                  {/* Score */}
-                  <span className="text-base font-black theme-text tabular-nums">
-                    {event.home_score} - {event.away_score}
-                  </span>
-                </div>
-
-                {/* Right Side (Away Team Events) */}
-                <div className={`flex-1 ${!isHomeEvent ? "text-right" : "text-left"}`}>
-                  {!isHomeEvent ? (
-                    <>
-                      {/* Time */}
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                        {event.time}
-                      </span>
-                      {/* Player Name */}
-                      {event.player_name && (
-                        <p className="text-sm font-medium theme-text leading-tight mb-0.5">
-                          {event.player_name}
-                        </p>
-                      )}
-                      {/* Action Description */}
-                      <p className="text-xs theme-text opacity-60 leading-tight">
-                        {event.event_description}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="h-full" />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
 
 interface Team {
   id: string | number;
@@ -490,25 +361,14 @@ interface MatchStats {
 }
 
 interface PlayByPlayEvent {
-  _id: string;
-  match_id: number;
-  period: number;
-  time: string;
-  team_id: number;
-  player_name?: string;
-  event_type: string;
-  event_description: string;
-  points_scored?: number;
-  assist_player?: string;
+  id: string;
+  playByPlayId: string;
+  number: number;
+  team_scored: "home" | "away";
   home_score: number;
   away_score: number;
-}
-
-interface QuarterGroup {
-  period: number;
-  events: PlayByPlayEvent[];
-  homeScore: number;
-  awayScore: number;
+  leader_team: "home" | "away" | "draw";
+  points_difference: number;
 }
 
 interface MatchDetail {
@@ -540,12 +400,6 @@ const BasketballMatchDetail = () => {
   const [playByPlay, setPlayByPlay] = useState<PlayByPlayEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuarter, setSelectedQuarter] = useState<string>("ALL");
-  const [expandedQuarters, setExpandedQuarters] = useState<Record<number, boolean>>({
-    1: false,
-    2: false,
-    3: false,
-    4: false,
-  });
 
   const { matchId } = useParams<{ matchId: string }>();
 
@@ -562,8 +416,8 @@ const BasketballMatchDetail = () => {
           setMatchData(detailResponse.responseObject.item);
         }
 
-        if (pbpResponse.success && pbpResponse.responseObject) {
-          setPlayByPlay(pbpResponse.responseObject.item || []);
+        if (pbpResponse.success && pbpResponse.responseObject?.item?.plays) {
+          setPlayByPlay(Array.isArray(pbpResponse.responseObject.item.plays) ? pbpResponse.responseObject.item.plays : []);
         }
       } catch (error) {
         console.error("Error fetching match data:", error);
@@ -584,42 +438,6 @@ const BasketballMatchDetail = () => {
       if (interval) clearInterval(interval);
     };
   }, [matchId]);
-
-  // Toggle quarter expansion
-  const toggleQuarter = (period: number) => {
-    setExpandedQuarters((prev) => ({
-      ...prev,
-      [period]: !prev[period],
-    }));
-  };
-
-  // Group play-by-play events by quarter
-  const groupEventsByQuarter = (): QuarterGroup[] => {
-    const quarters: Record<number, QuarterGroup> = {};
-    
-    playByPlay.forEach((event) => {
-      const period = event.period;
-      if (!quarters[period]) {
-        quarters[period] = {
-          period,
-          events: [],
-          homeScore: 0,
-          awayScore: 0,
-        };
-      }
-      quarters[period].events.push(event);
-      // Track final scores for each quarter
-      if (quarters[period].events.length > 0) {
-        const lastEvent = quarters[period].events[quarters[period].events.length - 1];
-        quarters[period].homeScore = lastEvent.home_score;
-        quarters[period].awayScore = lastEvent.away_score;
-      }
-    });
-
-    return Object.values(quarters).sort((a, b) => a.period - b.period);
-  };
-
-  const groupedEvents = groupEventsByQuarter();
 
   // Calculate stats percentages
   const calculatePercentage = (made: number, attempted: number) => {
@@ -764,31 +582,36 @@ const BasketballMatchDetail = () => {
                 {hasScores ? homeScore : "-"}
               </div>
 
-              {/* Center QTR Box (Desktop) / Dash (Mobile) */}
-              <div className="hidden md:block bg-[#0f172a]/80 backdrop-blur-md rounded-2xl p-4 min-w-[220px] border border-white/5 shadow-2xl">
-                <div className="text-center mb-3">
+              {/* Center Dash (mobile only) */}
+              <div className="md:hidden text-2xl font-bold text-white tabular-nums tracking-tight opacity-50 px-1">
+                -
+              </div>
+
+              {/* Quarter Scores (Desktop) */}
+              <div className="hidden md:block bg-[#0f172a]/80 backdrop-blur-md rounded-2xl p-3 min-w-[200px] border border-white/5 shadow-2xl">
+                <div className="text-center mb-2">
                   <span className="text-[10px] text-[#38bdf8] font-bold tracking-widest uppercase">Qtr Score</span>
                 </div>
                 <table className="w-full text-xs font-medium">
                   <thead>
                     <tr className="text-gray-400">
-                      <th className="font-normal pb-2 text-left w-12"></th>
-                      <th className="font-normal pb-2 text-center w-8">Q1</th>
-                      <th className="font-normal pb-2 text-center w-8">Q2</th>
-                      <th className="font-normal pb-2 text-center w-8">Q3</th>
-                      <th className="font-normal pb-2 text-center w-8">Q4</th>
+                      <th className="font-normal pb-1 text-left w-10"></th>
+                      <th className="font-normal pb-1 text-center w-7">Q1</th>
+                      <th className="font-normal pb-1 text-center w-7">Q2</th>
+                      <th className="font-normal pb-1 text-center w-7">Q3</th>
+                      <th className="font-normal pb-1 text-center w-7">Q4</th>
                     </tr>
                   </thead>
                   <tbody className="text-white">
                     <tr>
-                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-1">Home</td>
+                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-0.5">Home</td>
                       <td className="text-center tabular-nums">{matchData?.localteam?.q1 || "-"}</td>
                       <td className="text-center tabular-nums">{matchData?.localteam?.q2 || "-"}</td>
                       <td className="text-center tabular-nums">{matchData?.localteam?.q3 || "-"}</td>
                       <td className="text-center tabular-nums">{matchData?.localteam?.q4 || "-"}</td>
                     </tr>
                     <tr>
-                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-1">Away</td>
+                      <td className="text-gray-400 text-[10px] tracking-wider uppercase py-0.5">Away</td>
                       <td className="text-center tabular-nums">{matchData?.awayteam?.q1 || "-"}</td>
                       <td className="text-center tabular-nums">{matchData?.awayteam?.q2 || "-"}</td>
                       <td className="text-center tabular-nums">{matchData?.awayteam?.q3 || "-"}</td>
@@ -796,11 +619,6 @@ const BasketballMatchDetail = () => {
                     </tr>
                   </tbody>
                 </table>
-              </div>
-
-              {/* Mobile Dash */}
-              <div className="md:hidden text-2xl font-bold text-white tabular-nums tracking-tight opacity-50 px-1">
-                -
               </div>
 
               {/* Away Score */}
@@ -884,6 +702,45 @@ const BasketballMatchDetail = () => {
         {/* Stats Tab */}
         {activeTab === "stats" && (
           <div className="space-y-6">
+            {/* Quarter Scores */}
+            <div className="block-style !p-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+                <h3 className="font-bold theme-text uppercase text-xs tracking-wider">Score Summary</h3>
+              </div>
+              <div className="p-4">
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="text-xs theme-text uppercase opacity-70 border-b border-snow-200 dark:border-[#1F2937]">
+                      <th className="pb-2 font-medium">Team</th>
+                      <th className="pb-2 text-center w-10">Q1</th>
+                      <th className="pb-2 text-center w-10">Q2</th>
+                      <th className="pb-2 text-center w-10">Q3</th>
+                      <th className="pb-2 text-center w-10">Q4</th>
+                      <th className="pb-2 text-center w-10 font-bold text-brand-primary">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                    <tr className="theme-text">
+                      <td className="py-3 font-semibold">{matchData?.localteam.name || "Home"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.localteam?.q1 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.localteam?.q2 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.localteam?.q3 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.localteam?.q4 || "-"}</td>
+                      <td className="py-3 text-center font-bold tabular-nums">{matchData?.localteam?.totalscore || "-"}</td>
+                    </tr>
+                    <tr className="theme-text">
+                      <td className="py-3 font-semibold">{matchData?.awayteam.name || "Away"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.awayteam?.q1 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.awayteam?.q2 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.awayteam?.q3 || "-"}</td>
+                      <td className="py-3 text-center tabular-nums">{matchData?.awayteam?.q4 || "-"}</td>
+                      <td className="py-3 text-center font-bold tabular-nums">{matchData?.awayteam?.totalscore || "-"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Quarter Filter */}
             <div className="flex justify-center gap-2">
               {["ALL", "Q1", "Q2", "Q3", "Q4"].map((quarter) => (
@@ -1012,27 +869,17 @@ const BasketballMatchDetail = () => {
 
         {/* Timeline Tab */}
         {activeTab === "timeline" && (
-          <div className="space-y-4">
-            <div className="block-style !p-0 overflow-hidden">
-              <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
-                <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
-                  Play by Play
-                </h3>
-              </div>
-              <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
-                {groupedEvents.map((quarter) => (
-                  <QuarterSection
-                    key={quarter.period}
-                    period={quarter.period}
-                    homeScore={quarter.homeScore}
-                    awayScore={quarter.awayScore}
-                    events={quarter.events}
-                    isExpanded={expandedQuarters[quarter.period] || false}
-                    onToggle={() => toggleQuarter(quarter.period)}
-                  />
-                ))}
-              </div>
+          <div className="block-style !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+              <h3 className="font-bold theme-text uppercase text-xs tracking-wider">
+                Play by Play
+              </h3>
             </div>
+            <BasketballPlayByPlay
+              plays={playByPlay}
+              homeTeam={matchData?.localteam?.name || "Home"}
+              awayTeam={matchData?.awayteam?.name || "Away"}
+            />
           </div>
         )}
         {/* Info Tab */}

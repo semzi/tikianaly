@@ -277,6 +277,24 @@ export const gameInfo = () => {
 
   const [, setStandingsData] = useState<any>(null);
 
+  const [standingsAvailable, setStandingsAvailable] = useState(false);
+
+  // Fallback if standings tab was active but becomes unavailable
+  useEffect(() => {
+    if (!standingsAvailable && activeTab === "standings") {
+      setActiveTab("overview");
+    }
+  }, [standingsAvailable, activeTab]);
+
+  const [commentaryAvailable, setCommentaryAvailable] = useState(true);
+
+  // Fallback if commentary tab was active but becomes unavailable
+  useEffect(() => {
+    if (!commentaryAvailable && activeTab === "commentary") {
+      setActiveTab("overview");
+    }
+  }, [commentaryAvailable, activeTab]);
+
   const [isLoadingMatchInfo, setIsLoadingMatchInfo] = useState(false);
 
   const [isLoadingFixtureDetails, setIsLoadingFixtureDetails] = useState(false);
@@ -519,13 +537,26 @@ export const gameInfo = () => {
 
         const res = await getMatchCommentary(fixtureIdForRest);
 
+        if (!isMounted) return;
+
+        const success =
+          (res as any)?.success !== false &&
+          (res as any)?.statusCode !== 400 &&
+          !String((res as any)?.message ?? "").toLowerCase().includes("not found");
+
+        if (!success) {
+          setCommentaryAvailable(false);
+          setCommentaryComments([]);
+          return;
+        }
+
+        setCommentaryAvailable(true);
+
         const item = (res as any)?.responseObject?.item;
 
         const item0 = Array.isArray(item) ? item[0] : item;
 
         const comments = (item0?.comments ?? []) as CommentaryComment[];
-
-        if (!isMounted) return;
 
         setCommentaryComments(Array.isArray(comments) ? comments : []);
 
@@ -533,6 +564,7 @@ export const gameInfo = () => {
 
         if (!isMounted) return;
 
+        setCommentaryAvailable(false);
         setCommentaryComments([]);
 
         console.error("Error fetching match commentary:", error);
@@ -2001,6 +2033,8 @@ export const gameInfo = () => {
 
       setStandingsData(null);
 
+      setStandingsAvailable(false);
+
       setHomeRecentForm([]);
 
       setAwayRecentForm([]);
@@ -2037,6 +2071,20 @@ export const gameInfo = () => {
 
         if (isCancelled) return;
 
+        const success =
+          res?.success !== false &&
+          res?.statusCode !== 400 &&
+          !String(res?.message ?? "").toLowerCase().includes("not found");
+
+        setStandingsAvailable(success);
+
+        if (!success) {
+          setStandingsData(null);
+          setHomeRecentForm([]);
+          setAwayRecentForm([]);
+          return;
+        }
+
         setStandingsData(res);
 
 
@@ -2068,6 +2116,8 @@ export const gameInfo = () => {
       } catch {
 
         if (isCancelled) return;
+
+        setStandingsAvailable(false);
 
         setStandingsData(null);
 
@@ -4445,7 +4495,13 @@ export const gameInfo = () => {
 
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
 
-          {tabs.map((tab) => (
+          {tabs
+            .filter(
+              (tab) =>
+                (tab.id !== "standings" || standingsAvailable) &&
+                (tab.id !== "commentary" || commentaryAvailable),
+            )
+            .map((tab) => (
 
             <button
 

@@ -1,6 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 type LogItem = {
@@ -11,15 +11,14 @@ type LogItem = {
 };
 
 const DEFAULT_URL =
-  "https://api.tikianaly.com/api/v1/football/sse/stream-match-info?matchId=4357403";
+  "https://api.tikianaly.com/api/v1/football/sse/stream-match-info?matchId=4366647";
 
 export const SseDebug = () => {
   const [searchParams] = useSearchParams();
   const urlFromQuery = String(searchParams.get("url") ?? "").trim();
 
-  const url = useMemo(() => {
-    return urlFromQuery || DEFAULT_URL;
-  }, [urlFromQuery]);
+  const initialUrl = urlFromQuery || DEFAULT_URL;
+  const [inputUrl, setInputUrl] = useState(initialUrl);
 
   const [connected, setConnected] = useState(false);
   const [logs, setLogs] = useState<LogItem[]>([]);
@@ -45,43 +44,51 @@ export const SseDebug = () => {
     }
   };
 
-  const connect = () => {
+  const connect = (targetUrl: string) => {
     close();
 
-    append({ ts: Date.now(), kind: "open", raw: `CONNECT ${url}` });
+    append({ ts: Date.now(), kind: "open", raw: `CONNECT ${targetUrl}` });
 
-    const es = new EventSource(url);
-    esRef.current = es;
+    try {
+      const es = new EventSource(targetUrl);
+      esRef.current = es;
 
-    es.onopen = () => {
-      setConnected(true);
-      append({ ts: Date.now(), kind: "open", raw: "SSE connected" });
-    };
+      es.onopen = () => {
+        setConnected(true);
+        append({ ts: Date.now(), kind: "open", raw: "SSE connected" });
+      };
 
-    es.onmessage = (ev) => {
-      const raw = String(ev.data ?? "");
-      let parsed: unknown = undefined;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = undefined;
-      }
-      append({ ts: Date.now(), kind: "message", raw, parsed });
-    };
+      es.onmessage = (ev) => {
+        const raw = String(ev.data ?? "");
+        let parsed: unknown = undefined;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = undefined;
+        }
+        append({ ts: Date.now(), kind: "message", raw, parsed });
+      };
 
-    es.onerror = () => {
-      setConnected(false);
-      append({ ts: Date.now(), kind: "error", raw: "SSE error (see browser console for details)" });
-    };
+      es.onerror = () => {
+        setConnected(false);
+        append({ ts: Date.now(), kind: "error", raw: "SSE error (see browser console for details)" });
+      };
+    } catch (e) {
+      append({ ts: Date.now(), kind: "error", raw: `Failed to construct EventSource: ${e}` });
+    }
+  };
+
+  const handleConnect = () => {
+    connect(inputUrl);
   };
 
   useEffect(() => {
-    connect();
+    connect(initialUrl);
     return () => {
       close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+  }, []);
 
   useEffect(() => {
     if (!scrollerRef.current) return;
@@ -94,15 +101,24 @@ export const SseDebug = () => {
 
       <div className="page-padding-x py-6">
         <div className="block-style p-4 rounded">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="min-w-0">
-              <p className="theme-text font-semibold text-base">SSE Debug</p>
-              <p className="text-neutral-m6 text-sm mt-1 break-all">{url}</p>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="min-w-0 flex-1 max-w-2xl">
+              <p className="theme-text font-semibold text-base mb-2">SSE Debug</p>
+              <input
+                type="text"
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleConnect();
+                }}
+                placeholder="Enter SSE URL..."
+                className="w-full px-3 py-2 rounded-lg border border-snow-200 dark:border-snow-100/10 bg-white/60 dark:bg-white/5 theme-text text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              />
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               <span
-                className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
                   connected
                     ? "text-ui-positive border-ui-positive/40 bg-ui-positive/10"
                     : "theme-text border-snow-200 dark:border-snow-100/10 bg-white/60 dark:bg-white/5"
@@ -113,10 +129,10 @@ export const SseDebug = () => {
 
               <button
                 type="button"
-                onClick={connect}
-                className="px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:opacity-90"
+                onClick={handleConnect}
+                className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:opacity-90"
               >
-                Reconnect
+                Connect
               </button>
               <button
                 type="button"
@@ -177,10 +193,6 @@ export const SseDebug = () => {
               </div>
             )}
           </div>
-        </div>
-
-        <div className="mt-4 text-xs text-neutral-m6">
-          Tip: you can override the SSE URL via <span className="font-semibold">?url=</span>.
         </div>
       </div>
 

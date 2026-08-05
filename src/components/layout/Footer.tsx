@@ -6,6 +6,7 @@ import { useToast } from "../../context/ToastContext";
 const footerLinks = [
   { label: "Community", href: "https://tikianaly.com" },
   { label: "Blog", href: "https://blog.tikianaly.com" },
+  { label: "Terms & Conditions", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Contact", href: "mailto:info@tikianaly.com" },
 ];

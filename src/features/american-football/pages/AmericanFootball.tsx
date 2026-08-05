@@ -7,28 +7,19 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CalendarIcon,
   ChevronDownIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import {
-  addDays,
   format,
   isToday,
-  isYesterday,
-  isTomorrow,
-  subDays,
 } from "date-fns";
 import { useSearchParams } from "react-router-dom";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { RightBar } from "@/components/layout/RightBar";
-import { FooterComp } from "@/components/layout/Footer";
-import Category from "@/features/dashboard/components/Category";
+import { SportLayout } from "@/components/layout/SportLayout";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import ReturnToToday from "@/components/ui/ReturnToToday";
 import { navigate } from "@/lib/router/navigate";
-import { CustomDatePicker } from "@/components/ui/CustomDatePicker";
 import { AmericanFootballLeftBar } from "../components/AmericanFootballLeftBar";
 import {
   mockAmericanFootballLiveMatches,
@@ -188,7 +179,6 @@ const AmericanFootballPage = () => {
     [setSearchParams],
   );
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
   // --- end calendar state ---
 
   const [favorites, setFavorites] =
@@ -225,21 +215,16 @@ const AmericanFootballPage = () => {
 
   const hideQuarterTooltip = () => setQuarterTooltip(null);
 
-  const tabs = useMemo(
-    () => [
-      { id: "live" as AmericanFootballTab, label: "Live" },
-      {
-        id: "fixture" as AmericanFootballTab,
-        label:
-          selectedDate && isToday(selectedDate)
-            ? "Today"
-            : selectedDate
-              ? format(selectedDate, "MMM d")
-              : "Fixture",
-      },
-    ],
-    [selectedDate],
-  );
+  const fixturesMode = activeTab === "live" ? "live" as const : "date" as const;
+
+  const shouldShowReturnToToday = useMemo(() => {
+    if (activeTab !== "fixture") return false;
+    try {
+      return !isToday(selectedDate ?? new Date());
+    } catch {
+      return false;
+    }
+  }, [activeTab, selectedDate]);
 
   const matchesQuery = useQuery({
     queryKey: [
@@ -438,81 +423,36 @@ const AmericanFootballPage = () => {
   };
 
   return (
-    <div className="dark:bg-[#0D1117] min-h-screen bg-[#f6f6f6] md:pb-3">
-      <PageHeader />
-      <Category />
-      <div className="flex page-padding-x gap-5 py-5 justify-around">
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+    <>
+      <SportLayout
+        leftBar={
           <AmericanFootballLeftBar
             selectedLeagueName={selectedLeagueName}
             onSelectLeagueName={setSelectedLeagueName}
           />
-        </section>
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
-          <div className="block-style flex flex-col gap-4">
-            <div className="relative flex items-center justify-between dark:text-snow-200">
-              <ArrowLeftIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() =>
-                  setSelectedDate((date) => subDays(date || new Date(), 1))
-                }
-              />
-              <div
-                className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
-                onClick={() => setShowDatePicker((open) => !open)}
-              >
-                <p className="font-semibold theme-text">
-                  {selectedDate
-                    ? isToday(selectedDate)
-                      ? "Today"
-                      : isYesterday(selectedDate)
-                        ? "Yesterday"
-                        : isTomorrow(selectedDate)
-                          ? "Tomorrow"
-                          : format(selectedDate, "EEE, MMM d, yyyy")
-                    : "Select Date"}
-                </p>
-                <CalendarIcon className="h-5 w-5 text-neutral-n4" />
-              </div>
-              <ArrowRightIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() =>
-                  setSelectedDate((date) => addDays(date || new Date(), 1))
-                }
-              />
-              {showDatePicker ? (
-                <div className="absolute z-50 top-full mt-2 lg:left-1/2 lg:-translate-x-1/2 right-0 lg:right-auto">
-                  <CustomDatePicker
-                    selectedDate={selectedDate}
-                    onChange={(date: Date) => {
-                      setSelectedDate(date);
-                      setActiveTab("fixture");
-                      setShowDatePicker(false);
-                    }}
-                  />
-                </div>
-              ) : null}
-            </div>
-            <div className="relative flex w-full bg-snow-200 dark:bg-[#1F2937] rounded-full p-1">
-              <div
-                className="absolute top-1 bottom-1 rounded-full bg-brand-secondary transition-all duration-300 ease-in-out"
-                style={{
-                  width: "calc(50% - 4px)",
-                  left: `calc(${activeTab === "live" ? 0 : 1} * 50% + 2px)`,
-                }}
-              />
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${activeTab === tab.id ? "text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        }
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setActiveTab("fixture");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+            subtitle="Go back to today's matches"
+          />
+        }
+      >
+          <FixturesDateToggle
+            fixturesMode={fixturesMode}
+            onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixture")}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
           {matches.length === 0 ? (
             <div className="block-style text-center py-12">
               <div className="text-6xl mb-4">🏈</div>
@@ -585,12 +525,7 @@ const AmericanFootballPage = () => {
               ))}
             </div>
           )}
-        </div>
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-      </div>
-      <FooterComp />
+      </SportLayout>
       {quarterTooltip ? (
         <div
           className="fixed z-50 hidden md:block pointer-events-none"
@@ -601,7 +536,7 @@ const AmericanFootballPage = () => {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 };
 

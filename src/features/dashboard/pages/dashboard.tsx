@@ -1,28 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { FooterComp } from "@/components/layout/Footer";
-import { Category } from "@/features/dashboard/components/Category";
-import { getFixtureDetails, getFixturesByLeague } from "@/lib/api/endpoints";
+import { getFixtureDetails, getFootballFixturesByDate } from "@/lib/api/endpoints";
 import {
   closeLiveStream,
   subscribeDashboardLiveFixtures,
   type DashboardLiveFixture,
 } from "@/lib/api/livestream";
 import { useToast } from "@/context/ToastContext";
-import { CustomDatePicker } from "@/components/ui/CustomDatePicker";
-import { addDays, subDays, isToday, isYesterday, isTomorrow, format } from "date-fns";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import ReturnToToday from "@/components/ui/ReturnToToday";
+import { isToday, format } from "date-fns";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
-  CalendarIcon,
   InboxIcon,
-  ArrowUturnLeftIcon,
   ChevronDownIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import Leftbar from "@/components/layout/LeftBar";
-import { RightBar } from "@/components/layout/RightBar";
+import { SportLayout } from "@/components/layout/SportLayout";
 import { Link, useSearchParams } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
@@ -30,7 +25,7 @@ import Image from "@/components/common/Image";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
-import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
+
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
@@ -235,7 +230,7 @@ export const dashboard = () => {
       return newDate;
     });
   }, [setSearchParams]);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+
 
   const COLLAPSED_LEAGUES_KEY = "dashboard_collapsed_leagues_v2";
   const [userToggledLeagues, setUserToggledLeagues] = useState<Record<string, Record<number, boolean>>>(() => {
@@ -282,18 +277,6 @@ export const dashboard = () => {
     });
   }, [isLeagueCollapsed, dateKey]);
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
-  const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const shouldShowReturnToToday = useMemo(() => {
     if (fixturesMode !== "date") return false;
     try {
@@ -313,18 +296,6 @@ export const dashboard = () => {
       // ignore date comparison errors
     }
   }, [selectedDate]);
-
-  useEffect(() => {
-    if (!shouldShowReturnToToday) return;
-    if (!isMobile) {
-      setIsReturnToTodayCollapsed(false);
-      return;
-    }
-
-    setIsReturnToTodayCollapsed(false);
-    const t = window.setTimeout(() => setIsReturnToTodayCollapsed(true), 5000);
-    return () => window.clearTimeout(t);
-  }, [shouldShowReturnToToday, isMobile]);
 
   const selectedDateKey = useMemo(() => {
     try {
@@ -821,43 +792,42 @@ export const dashboard = () => {
           return;
         }
 
-        const fetchLeague = async (leagueId: number) => {
+        if (fixturesMode === "date") {
           try {
-            const response = await queryClient.ensureQueryData<any>({
-              queryKey: ["leagueFixturesByDate", { leagueId, date: formattedDate }],
-              queryFn: () => getFixturesByLeague(leagueId, formattedDate, 1, 100),
-              staleTime: 3 * 60 * 60 * 1000, // cache per league+date for 3 hrs
-            });
-            if (
-              response?.success &&
-              response?.responseObject?.items &&
-              Array.isArray(response.responseObject.items) &&
-              response.responseObject.items.length > 0
-            ) {
-              upsertLeagueFixtures(leagueId, response.responseObject.items);
-            } else if (
-              response?.message === "Error fetching fixtures By LeagueId" &&
-              response?.error === "Fixture list is empty."
-            ) {
-              // Silently ignore empty fixture lists for specific league IDs
+            // 1. Stale-while-revalidate: Load from cache immediately if available
+            const cachedResponse = queryClient.getQueryData<any>(["footballFixturesByDate", formattedDate]);
+            if (cachedResponse?.success && cachedResponse?.responseObject?.leagues) {
+              const leagues = cachedResponse.responseObject.leagues;
+              leagues.forEach((leagueBlock: any) => {
+                const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
+                if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
+                }
+              });
             }
+
+            // 2. Fetch fresh data in the background and update UI seamlessly
+            const response = await queryClient.fetchQuery<any>({
+              queryKey: ["footballFixturesByDate", formattedDate],
+              queryFn: () => getFootballFixturesByDate(formattedDate, 1, 100),
+              staleTime: 0, // Always fetch to ensure we check for updates
+            });
+
+            if (response?.success && response?.responseObject?.leagues) {
+              const leagues = response.responseObject.leagues;
+              leagues.forEach((leagueBlock: any) => {
+                const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
+                if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
+                }
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching grouped date fixtures:", error);
           } finally {
-            markLeagueDone(leagueId);
+            topLeagueIds.forEach((id) => markLeagueDone(id));
           }
-        };
-
-        // Limited concurrency to keep the page responsive.
-        const concurrency = 4;
-        let idx = 0;
-        const workers = Array.from({ length: concurrency }).map(async () => {
-          while (idx < topLeagueIds.length) {
-            const current = topLeagueIds[idx];
-            idx += 1;
-            await fetchLeague(current);
-          }
-        });
-
-        await Promise.all(workers);
+        }
 
         // ensure last partial batch is flushed
         if (flushFixturesTimeoutRef.current !== null) {
@@ -881,72 +851,31 @@ export const dashboard = () => {
   }, [fixturesMode, selectedDate]);
 
   return (
-    <div className="transition-al">
-      {/* Page Header (always visible, no skeleton) */}
-      <PageHeader />
-      {/* Category Navigation */}
-      <Category />
-
-      <div className="flex page-padding-x dark:bg-[#0D1117] gap-5 py-5 justify-around" style={{ height: 'calc(100vh - 20px)' }}>
-        {/* Left Sidebar */}
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
-          <Leftbar />
-        </section>
-
-        {/* Main Content Area */}
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
+      <SportLayout 
+        leftBar={<Leftbar />}
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setFixturesMode("date");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+          />
+        }
+      >
 
           {/* Date and Filter Controls */}
-          <div className="flex-col">
-            {/* <AfconBanner /> */}
-            <div className="block-style ">
-              <div className="flex dark:text-snow-200 justify-center flex-col">
-                {/* Date Navigation */}
-                <div className="relative flex items-center mb-3 justify-between">
-                  <ArrowLeftIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => subDays(prevDate || new Date(), 1))} />
-                  <div className="flex gap-3  items-center cursor-pointer" onClick={() => setShowDatePicker(!showDatePicker)}>
-                    <p>
-                      {selectedDate 
-                        ? isToday(selectedDate) 
-                          ? "Today" 
-                          : isYesterday(selectedDate)
-                            ? "Yesterday"
-                            : isTomorrow(selectedDate)
-                              ? "Tomorrow"
-                              : selectedDate.toDateString() 
-                        : new Date().toDateString()}
-                    </p>
-                    <CalendarIcon className="text-neutral-n4 h-5" />
-                  </div>
-                  <ArrowRightIcon className="text-neutral-n4 h-5 cursor-pointer" onClick={() => setSelectedDate(prevDate => addDays(prevDate || new Date(), 1))} />
-                  {showDatePicker && (
-                    <div className="absolute z-50 top-full mt-2 lg:left-1/2 lg:-translate-x-1/2 right-0 lg:right-auto">
-                      <CustomDatePicker
-                        selectedDate={selectedDate}
-                        onChange={(date: Date) => {
-                          setSelectedDate(date);
-                          setFixturesMode("date");
-                          setShowDatePicker(false);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {/* Filter Segmented Selector */}
-                <div className="mt-3">
-                  <SegmentedSelector
-                    value={fixturesMode}
-                    options={[
-                      { value: "live", label: "Live" },
-                      { value: "date", label: "Fixture" },
-                    ]}
-                    onChange={(value) => setFixturesMode(value as "live" | "date")}
-                    size="md"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+            <FixturesDateToggle
+              fixturesMode={fixturesMode}
+              onModeChange={setFixturesMode}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+            />
 
 
 
@@ -2115,57 +2044,7 @@ export const dashboard = () => {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-
-      </div>
-
-      {/* Footer */}
-      <FooterComp />
-
-      {shouldShowReturnToToday && (
-        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
-          <button
-            type="button"
-            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${isMobile && isReturnToTodayCollapsed
-              ? "w-14 h-14 rounded-full flex items-center justify-center"
-              : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
-              }`}
-            onClick={() => {
-              setSelectedDate(new Date());
-              setFixturesMode("date");
-              setShowDatePicker(false);
-              try {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              } catch {
-                // ignore
-              }
-            }}
-          >
-            {isMobile && isReturnToTodayCollapsed ? (
-              <ArrowUturnLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
-                  <ArrowUturnLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Return to Today</p>
-                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">Go back to today's fixtures</p>
-                </div>
-                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
-                  Open
-                </div>
-              </div>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
+      </SportLayout>
   );
 };
 

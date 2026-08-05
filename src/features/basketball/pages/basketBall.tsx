@@ -1,32 +1,27 @@
 import { useEffect, useState, useMemo } from "react";
-import PageHeader from "../../../components/layout/PageHeader";
-import { FooterComp } from "../../../components/layout/Footer";
 import { navigate } from "../../../lib/router/navigate";
 import {
   StarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CalendarIcon,
-  ArrowLeftIcon,
   ArrowRightIcon,
-  ArrowUturnLeftIcon,
 } from "@heroicons/react/24/outline";
 import {
   getBasketballFixturesByDate,
   getLiveBasketballMatches,
 } from "@/lib/api/endpoints";
 import { BasketballLeftBar } from "../components/BasketballLeftBar";
-import Category from "@/features/dashboard/components/Category";
-import { subDays, addDays, isToday, format } from "date-fns";
+import { isToday, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import {
   subscribeBasketballLiveMatchesStream,
   closeBasketballLiveStream,
 } from "@/lib/api/basketball/livestream";
-import DatePicker from "react-datepicker";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
-import RightBar from "@/components/layout/RightBar";
+import { SportLayout } from "@/components/layout/SportLayout";
+import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
+import ReturnToToday from "@/components/ui/ReturnToToday";
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
@@ -191,9 +186,6 @@ const BasketballPage = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isReturnToTodayCollapsed, setIsReturnToTodayCollapsed] = useState(false);
 
   // SSE & Live Override state
   const [liveMatches, setLiveMatches] = useState<Record<number, Match>>({});
@@ -204,21 +196,7 @@ const BasketballPage = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
-  const tabs = useMemo(() => {
-    let dateLabel = "Fixture";
-    if (selectedDate) {
-      if (isToday(selectedDate)) {
-        dateLabel = "Today";
-      } else {
-        dateLabel = format(selectedDate, "MMM d");
-      }
-    }
-    return [
-      { id: "live", label: "Live" },
-      { id: "fixture", label: dateLabel },
-    ];
-  }, [selectedDate]);
-
+  const fixturesMode = activeTab === "live" ? "live" : "date";
   // Fetch data with React Query
   const fetchMatchesData = async () => {
     if (activeTab === "live") {
@@ -272,16 +250,6 @@ const BasketballPage = () => {
     }
   }, [selectedDate]);
 
-  // Handle window resize for mobile detection
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const shouldShowReturnToToday = useMemo(() => {
     if (activeTab !== "fixture") return false;
     try {
@@ -290,17 +258,6 @@ const BasketballPage = () => {
       return false;
     }
   }, [activeTab, selectedDate]);
-
-  useEffect(() => {
-    if (!shouldShowReturnToToday) return;
-    if (!isMobile) {
-      setIsReturnToTodayCollapsed(false);
-      return;
-    }
-    setIsReturnToTodayCollapsed(false);
-    const t = window.setTimeout(() => setIsReturnToTodayCollapsed(true), 5000);
-    return () => window.clearTimeout(t);
-  }, [shouldShowReturnToToday, isMobile]);
 
   // Sync state with React Query response (pagination and loading only)
   useEffect(() => {
@@ -531,92 +488,37 @@ const BasketballPage = () => {
   };
 
   return (
-    <div className="transition-all min-h-screen dark:bg-[#0D1117]">
-      <PageHeader />
-      <Category />
-
-      <div className="flex page-padding-x gap-5 py-5 justify-around">
-        {/* Left Sidebar */}
-        <section className="h-full pb-30 overflow-y-auto hide-scrollbar w-1/5 hidden lg:block pr-2">
+      <SportLayout 
+        leftBar={
           <BasketballLeftBar
             onSelectLeague={setSelectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
-        </section>
+        }
+        pageBottom={
+          <ReturnToToday
+            show={shouldShowReturnToToday}
+            onReturnToToday={() => {
+              setSelectedDate(new Date());
+              setActiveTab("fixture");
+              try {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } catch {
+                // ignore
+              }
+            }}
+            subtitle="Go back to today's matches"
+          />
+        }
+      >
+          <FixturesDateToggle
+            fixturesMode={fixturesMode}
+            onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixture")}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            liveLabel="Live"
+          />
 
-        {/* Main Content Area */}
-        <div className="w-full pb-30 flex flex-col gap-y-3 md:gap-y-5 lg:w-3/5 h-full overflow-y-auto hide-scrollbar pr-2">
-          {/* Controls */}
-          <div className="block-style flex flex-col gap-4">
-            {/* Date Navigation */}
-            <div className="relative flex items-center justify-between dark:text-snow-200">
-              <ArrowLeftIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() => {
-                  setSelectedDate((prev) => subDays(prev || new Date(), 1));
-                }}
-              />
-              <div
-                className="flex gap-3 items-center cursor-pointer hover:text-brand-secondary"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-              >
-                <p className="font-semibold theme-text">
-                  {selectedDate && isToday(selectedDate)
-                    ? "Today"
-                    : selectedDate
-                      ? format(selectedDate, "EEE, MMM d, yyyy")
-                      : "Select Date"}
-                </p>
-                <CalendarIcon className="h-5 w-5 text-neutral-n4" />
-              </div>
-              <ArrowRightIcon
-                className="h-5 w-5 transition-colors text-neutral-n4 cursor-pointer hover:text-brand-secondary"
-                onClick={() => {
-                  setSelectedDate((prev) => addDays(prev || new Date(), 1));
-                }}
-              />
-              {showDatePicker && (
-                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2">
-                  <DatePicker
-                    selected={selectedDate}
-                    onChange={(date: Date | null) => {
-                      setSelectedDate(date);
-                      setShowDatePicker(false);
-                    }}
-                    inline
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Pill Tabs */}
-            <div className="relative flex w-full bg-snow-200 dark:bg-[#1F2937] rounded-full p-1">
-              {/* Sliding indicator */}
-              <div
-                className="absolute top-1 bottom-1 rounded-full bg-brand-secondary transition-all duration-300 ease-in-out"
-                style={{
-                  width: `calc(${100 / tabs.length}% - 4px)`,
-                  left: `calc(${tabs.findIndex((t) => t.id === activeTab) * (100 / tabs.length)}% + 2px)`,
-                }}
-              />
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${
-                    activeTab === tab.id
-                      ? "text-white"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Matches */}
           <div className="flex flex-col gap-y-4">
             {loading ? (
               <BasketballDashboardSkeleton />
@@ -835,7 +737,7 @@ const BasketballPage = () => {
               ))
             ) : (
               <div className="block-style text-center py-12">
-                <div className="text-4xl mb-4">🏀</div>
+                <div className="text-4xl mb-4">ðŸ€</div>
                 <p className="text-lg font-semibold theme-text mb-2">
                   No {activeTab} matches
                 </p>
@@ -887,57 +789,9 @@ const BasketballPage = () => {
                 </div>
               )}
           </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="w-1/5 pb-30 hidden lg:block h-full overflow-y-auto hide-scrollbar">
-          <RightBar />
-        </div>
-      </div>
-
-      <FooterComp />
-
-      {shouldShowReturnToToday && (
-        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-50 flex justify-center px-4 pointer-events-none w-full">
-          <button
-            type="button"
-            className={`pointer-events-auto backdrop-blur shadow-[0_0_18px_rgba(34,211,238,0.35)] dark:shadow-[0_0_22px_rgba(217,70,239,0.30)] hover:shadow-[0_0_24px_rgba(34,211,238,0.55)] dark:hover:shadow-[0_0_28px_rgba(217,70,239,0.50)] transition-shadow border border-cyan-400/40 dark:border-fuchsia-400/30 bg-white/90 dark:bg-black/40 ${
-              isMobile && isReturnToTodayCollapsed
-                ? "w-14 h-14 rounded-full flex items-center justify-center"
-                : "w-full max-w-md rounded-2xl px-4 py-3 text-left"
-            }`}
-            onClick={() => {
-              setSelectedDate(new Date());
-              setActiveTab("fixture");
-              setShowDatePicker(false);
-              try {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              } catch {
-                // ignore
-              }
-            }}
-          >
-            {isMobile && isReturnToTodayCollapsed ? (
-              <ArrowUturnLeftIcon className="h-6 w-6 text-brand-primary dark:text-white" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 dark:border-fuchsia-400/30 flex items-center justify-center flex-shrink-0">
-                  <ArrowUturnLeftIcon className="h-5 w-5 text-brand-primary dark:text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-brand-primary dark:text-white">Return to Today</p>
-                  <p className="text-xs text-neutral-n5 dark:text-snow-200 truncate">Go back to today's matches</p>
-                </div>
-                <div className="text-xs font-semibold text-brand-secondary dark:text-cyan-300 flex-shrink-0">
-                  Open
-                </div>
-              </div>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
+      </SportLayout>
   );
 };
 
 export default BasketballPage;
+

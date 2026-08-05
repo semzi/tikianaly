@@ -1,0 +1,158 @@
+================================================================================
+                    FOOTBALL MATCH INFO (GAME INFO) — API & ROUTES
+================================================================================
+
+Base URL: https://api.tikianaly.com
+Source:   src/features/football/pages/gameInfo.tsx
+
+--------------------------------------------------------------------------------
+ROUTES
+--------------------------------------------------------------------------------
+
+  /football/gameinfo/:fixtureId?fixtureId={id}
+
+  Example:
+    /football/gameinfo/4366647?fixtureId=4366647
+
+  ID resolution:
+    • API calls use ?fixtureId= query param if present, else path :fixtureId
+    • Live SSE matches by path param against static_id, fixture_id, or match_id
+
+  Tabs (URL hash):
+    #overview       (default)
+    #timeline
+    #commentary
+    #lineup
+    #statistics
+    #headtohead
+    #standings
+
+--------------------------------------------------------------------------------
+CORE ENDPOINTS (loaded on page open)
+--------------------------------------------------------------------------------
+
+  All paths prefixed with: /api/v1/football/
+
+  #   Endpoint                                      Params        Used for
+  ─   ────────────────────────────────────────────  ────────────  ──────────────────────────
+  1   GET /match/match-info                         matchId       Rich match data: teams,
+                                                                  scores, stats, summary,
+                                                                  lineups (best for FT)
+  2   GET /fixture/get-fixture                      fixtureId     Fixture details: teams,
+                                                                  lineups, goals, venue,
+                                                                  events, status
+  3   SSE /live/live-stream                         —             Live score, timer, status,
+                                                                  real-time events
+  4   SSE /sse/stream-comment                       —             Live commentary feed
+  5   GET /commentary/comment                       matchId       Commentary REST fallback
+                                                                  (if SSE silent 2.5s)
+
+  Client functions:
+    1 → getMatchInfo(matchId)
+    2 → getFixtureDetails(fixtureId)
+    3 → createFootballLiveStream()  →  /live/live-stream
+    4 → FOOTBALL_COMMENTARY_SSE_URL →  /sse/stream-comment
+    5 → getMatchCommentary(matchId)
+
+--------------------------------------------------------------------------------
+SECONDARY ENDPOINTS (after teams/league IDs are known)
+--------------------------------------------------------------------------------
+
+  #   Endpoint                                      Season     Used for
+  ─   ────────────────────────────────────────────  ─────────  ──────────────────────────
+  6   GET /standing/league?leagueId=                Optional   Overview: recent form dots
+  7   GET /fixture/team?teamId=&season=             Default    Recent lineups (home + away)
+  8   GET /teams/id/{teamId}                        —          Squad player images
+  9   GET /teams/id/{teamId}                        —          TeamComparison (overview)
+  10  GET /teams/id/{teamId}                        —          Venue image (home team)
+  11  POST /teams/head-to-head                      —          Head To Head tab
+  12  GET /standing/league?leagueId=                Optional   Standings tab
+  13  GET /players/id/{playerId}                    —          Player sheet / avatars
+                                                                  (on click, lazy)
+
+  Client functions:
+    6,12 → getStandingsByLeagueId(leagueId, season?)
+    7    → getTeamFixtures(teamId, season?)   default season: "2025/2026"
+    8-10 → getTeamById(teamId)
+    11   → postTeamHeadToHead(teamA, teamB)
+    13   → getPlayerById(playerId)
+
+  Note: Statistics tab uses matchInfo.stats only — no extra API call.
+        Lineup tab uses fixtureDetails / matchInfo lineups — no extra call.
+
+--------------------------------------------------------------------------------
+DATA LAYER PRIORITY
+--------------------------------------------------------------------------------
+
+  Three sources are merged on the client:
+
+    liveFixture   ← SSE live stream          (live matches — highest priority)
+    fixtureDetails← GET get-fixture          (general fixture data)
+    matchInfo     ← GET match-info           (full-time rich data)
+
+  Display rule:
+    • Live score / events  → liveFixture first, then fixtureDetails
+    • Full-time stats      → matchInfo (when status = "full-time")
+    • Lineups              → matchInfo if FT, else fixtureDetails
+    • Goals on scoreboard  → SSE events → matchInfo summary → fixtureDetails
+
+--------------------------------------------------------------------------------
+FLOW
+--------------------------------------------------------------------------------
+
+  1. Page loads with fixtureId (path or ?fixtureId= query)
+
+  2. Three parallel fetches start immediately:
+       GET /match/match-info?matchId={id}
+       GET /fixture/get-fixture?fixtureId={id}
+       SSE  /live/live-stream  (finds this match in the stream)
+
+  3. Commentary loads via SSE /sse/stream-comment
+     → if no data within 2.5s, falls back to:
+       GET /commentary/comment?matchId={id}
+
+  4. Once fixtureDetails returns team + league IDs:
+
+       Overview tab:
+         GET /standing/league?leagueId=          (no season = current)
+         GET /fixture/team?teamId={home}         (season defaults to 2025/2026)
+         GET /fixture/team?teamId={away}
+         GET /teams/id/{home}  +  GET /teams/id/{away}   (TeamComparison)
+
+       Player images + venue:
+         GET /teams/id/{home}  +  GET /teams/id/{away}   (squad avatars)
+         GET /teams/id/{home}                             (venue image)
+
+  5. Tab-specific loads (when user opens tab):
+
+       Statistics   → uses matchInfo.stats (already fetched)
+       Head To Head → POST /teams/head-to-head  { teamA, teamB }
+       Standings    → GET /standing/league?leagueId=  (season optional)
+
+  6. User clicks a player:
+       GET /players/id/{playerId}
+
+--------------------------------------------------------------------------------
+SEASON BEHAVIOUR
+--------------------------------------------------------------------------------
+
+  Standings (endpoints 6 & 12):
+    • season param is OPTIONAL
+    • Page does not pass season → backend returns current season
+    • Can append &season=2024/2025 if needed
+
+  Team fixtures (endpoint 7):
+    • season defaults to "2025/2026" in client code
+    • Used only to find each team's most recent played match for lineup preview
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+  Match info is built from two REST calls (match-info + get-fixture) plus two
+  SSE streams (live scores + commentary). Live data overrides REST when the
+  match is in progress. For finished matches, match-info is the primary source
+  for stats and final scores. Secondary calls load form, comparisons, H2H,
+  and standings once team/league IDs are resolved from the fixture.
+
+================================================================================

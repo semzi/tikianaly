@@ -1,0 +1,85 @@
+================================================================================
+                    FOOTBALL LEAGUE PROFILE — API & ROUTES
+================================================================================
+
+Base URL: https://api.tikianaly.com
+Source:   src/features/football/pages/leagueProfile.tsx
+
+--------------------------------------------------------------------------------
+ROUTES
+--------------------------------------------------------------------------------
+
+  /league/profile/:leagueId     Main route (e.g. /league/profile/1204)
+  /league/profile?id=1204       Alternate via query param
+  /league/profile               No ID — shows prompt to add one
+
+  Tabs (URL hash, not separate routes):
+    #standings
+    #matches
+    #top-scorers
+    #top-assists
+    #top-duels
+
+--------------------------------------------------------------------------------
+ENDPOINTS
+--------------------------------------------------------------------------------
+
+  All paths prefixed with: /api/v1/football/
+
+  #   Endpoint                                      Season     Used for
+  ─   ────────────────────────────────────────────  ─────────  ─────────────────────────────
+  1   GET /leagues/id/{leagueId}                    —          Name, country, category, logo
+  2   GET /standing/seasons?leagueId={leagueId}     —          Season dropdown options
+  3   GET /standing/league?leagueId={leagueId}      Optional   Standings table
+  4   GET /fixture/season?leagueId=&season=         Required   Matches (played / upcoming)
+  5   GET /players/league-leaders?leagueId=         Optional   Top scorers, assists, duels
+
+  Season optional = append &season={value} when selected; omit for backend default.
+
+  Client functions (src/lib/api/football/index.ts):
+    1 → getLeagueById()
+    2 → getStandingSeasonsByLeagueId()
+    3 → getStandingsByLeagueId(leagueId, season?)
+    4 → getLeagueFixtures(leagueId, season)
+    5 → getFootballLeagueLeaders(leagueId, season?)
+
+--------------------------------------------------------------------------------
+FLOW
+--------------------------------------------------------------------------------
+
+  1. Page loads with leagueId (path param or ?id= query)
+
+  2. Fetch league info + available seasons
+     • GET /leagues/id/{leagueId}
+     • GET /standing/seasons?leagueId={leagueId}
+     (No season needed for these calls)
+
+  3. Season dropdown auto-selects the first season from the list
+
+  4. Selected season is passed to data endpoints:
+
+     Standings       → season OPTIONAL
+                       ?leagueId=1204
+                       ?leagueId=1204&season=2024/2025
+
+     Matches         → season REQUIRED
+                       Page waits until a season is selected
+                       ?leagueId=1204&season=2024/2025&page=1&limit=100
+
+     League leaders  → season OPTIONAL
+                       ?leagueId=1204
+                       ?leagueId=1204&season=2024/2025
+
+  5. User changes season in dropdown
+     → Standings, matches, and leaders all refetch with new season
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+  The season picker drives three endpoints. On first load, standings and
+  leaders may be called without a season (backend uses current/default).
+  Matches always require an explicit season, so they wait until the dropdown
+  is populated. Once selected, all three include &season= in the request.
+
+================================================================================

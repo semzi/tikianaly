@@ -614,11 +614,11 @@ function Signup() {
           />
           <p>
             I agree to the{" "}
-            <a href="#" className="text-brand-primary hover:underline">
+            <a href="/terms" className="text-brand-primary hover:underline">
               Terms & Conditions
             </a>{" "}
             and{" "}
-            <a href="#" className="text-brand-primary hover:underline">
+            <a href="/privacy-policy" className="text-brand-primary hover:underline">
               Privacy Policy
             </a>
           </p>

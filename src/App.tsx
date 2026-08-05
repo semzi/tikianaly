@@ -52,6 +52,9 @@ const SseDebug = lazy(() => import("./features/dev/pages/SseDebug"));
 const PrivacyPolicy = lazy(
   () => import("./features/legal/pages/privacyPolicy"),
 );
+const TermsAndConditions = lazy(
+  () => import("./features/legal/pages/terms"),
+);
 const BasketballPage = lazy(
   () => import("./features/basketball/pages/basketBall"),
 );
@@ -81,6 +84,16 @@ const BasketballLeagueProfile = lazy(
 );
 const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
+);
+const CricketPage = lazy(() => import("./features/cricket/pages/Cricket"));
+const CricketLeagues = lazy(
+  () => import("./features/cricket/pages/CricketLeagues"),
+);
+const CricketLeagueProfile = lazy(
+  () => import("./features/cricket/pages/CricketLeagueProfile"),
+);
+const CricketGameInfo = lazy(
+  () => import("./features/cricket/pages/CricketGameInfo"),
 );
 const AmericanFootballPage = lazy(
   () => import("./features/american-football/pages/AmericanFootball"),
@@ -318,6 +331,62 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <BasketballLeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/cricket"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <CricketPage />
+                </m.div>
+              }
+            />
+            <Route
+              path="/cricket/leagues"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <CricketLeagues />
+                </m.div>
+              }
+            />
+            <Route
+              path="/cricket/league/:leagueId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <CricketLeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/cricket/match/:matchId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <CricketGameInfo />
                 </m.div>
               }
             />
@@ -602,6 +671,21 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <PrivacyPolicy />
+                </m.div>
+              }
+            />
+
+            <Route
+              path="/terms"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <TermsAndConditions />
                 </m.div>
               }
             />
