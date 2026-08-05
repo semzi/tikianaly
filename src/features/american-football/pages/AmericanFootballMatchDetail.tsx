@@ -6,10 +6,16 @@ import {
   ChartBarIcon,
   ClockIcon,
   InformationCircleIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
+import AmericanFootballMatchOverview from "../components/AmericanFootballMatchOverview";
+import AmericanFootballMatchStatistics from "../components/AmericanFootballMatchStatistics";
+import AmericanFootballStandings from "../components/AmericanFootballStandings";
+import { teamInitials } from "../statUtils";
 import {
   mockAmericanFootballLiveMatches,
   mockAmericanFootballUpcomingMatches,
@@ -23,21 +29,13 @@ import {
   normalizeAmericanFootballTimeline,
 } from "@/lib/api/american-football";
 
-type MatchTab = "stats" | "timeline" | "info";
+type MatchTab = "overview" | "stats" | "timeline" | "info" | "standings";
 type MatchLocationState = { match?: AmericanFootballMatch };
 
 const splitScore = (score: string) => {
   const [home = "-", away = "-"] = String(score || "- -").split("-");
   return [home.trim() || "-", away.trim() || "-"] as const;
 };
-
-const teamInitials = (team: string) =>
-  team
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 const quarterTotal = (values: (string | number)[]) =>
   values.reduce<number>((sum, v) => {
@@ -101,7 +99,7 @@ const QuarterScoreBox = ({ match }: { match: AmericanFootballMatch }) => {
 const AmericanFootballMatchDetail = () => {
   const { matchId } = useParams();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<MatchTab>("stats");
+  const [activeTab, setActiveTab] = useState<MatchTab>("overview");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
   // Check if this is a mock ID (all mock IDs start with "af-")
@@ -161,36 +159,12 @@ const AmericanFootballMatchDetail = () => {
   const [homeScore, awayScore] = splitScore(match.score);
   const isLive = match.status.toLowerCase().includes("live");
   const tabs = [
+    { id: "overview" as MatchTab, label: "Overview", icon: Squares2X2Icon },
     { id: "stats" as MatchTab, label: "Stats", icon: ChartBarIcon },
     { id: "timeline" as MatchTab, label: "Timeline", icon: ClockIcon },
     { id: "info" as MatchTab, label: "Info", icon: InformationCircleIcon },
+    { id: "standings" as MatchTab, label: "Standings", icon: TableCellsIcon },
   ];
-
-  const statsRows = match.stats?.length
-    ? match.stats
-    : [
-        {
-          label: "Total Yards",
-          home: isLive ? 238 : 0,
-          away: isLive ? 261 : 0,
-        },
-        {
-          label: "Passing Yards",
-          home: isLive ? 156 : 0,
-          away: isLive ? 184 : 0,
-        },
-        {
-          label: "Rushing Yards",
-          home: isLive ? 82 : 0,
-          away: isLive ? 77 : 0,
-        },
-        { label: "First Downs", home: isLive ? 14 : 0, away: isLive ? 16 : 0 },
-        {
-          label: "Time of Possession",
-          home: isLive ? 28 : 0,
-          away: isLive ? 32 : 0,
-        },
-      ];
 
   const fallbackTimelineRows = isLive
     ? [
@@ -327,7 +301,7 @@ const AmericanFootballMatchDetail = () => {
       </section>
 
       <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
-        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
+        <div className="flex md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -346,6 +320,10 @@ const AmericanFootballMatchDetail = () => {
       </div>
 
       <div className="page-padding-x my-8">
+        {activeTab === "overview" ? (
+          <AmericanFootballMatchOverview match={match} isLive={isLive} />
+        ) : null}
+
         {activeTab === "stats" ? (
           <div className="block-style !p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
@@ -353,61 +331,13 @@ const AmericanFootballMatchDetail = () => {
                 American Football Match Statistics
               </p>
             </div>
-            <div className="p-5 space-y-6">
-              {statsRows.map((row) => {
-                const homeValue = Number(row.home) || 0;
-                const awayValue = Number(row.away) || 0;
-                const total = homeValue + awayValue;
-                const homeWidth = total ? (homeValue / total) * 100 : 50;
-                const awayWidth = total ? (awayValue / total) * 100 : 50;
-                return (
-                  <div key={row.label} className="space-y-2">
-                    <div className="text-center">
-                      <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">
-                        {row.label}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold theme-text text-right">
-                          {row.home}
-                          {row.label === "Time of Possession" && isLive
-                            ? ":00"
-                            : ""}
-                        </p>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-green-400 to-green-500"
-                            style={{ width: `${homeWidth}%` }}
-                          />
-                        </div>
-                      </div>
-                      <p className="text-xs uppercase font-semibold text-neutral-n4">
-                        vs
-                      </p>
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold theme-text">
-                          {row.away}
-                          {row.label === "Time of Possession" && isLive
-                            ? ":00"
-                            : ""}
-                        </p>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-l from-blue-400 to-blue-500"
-                            style={{ width: `${awayWidth}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {!isLive ? (
-                <p className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-4 text-sm text-neutral-n4">
-                  Team statistics will appear when the game begins.
-                </p>
-              ) : null}
+            <div className="p-5">
+              <AmericanFootballMatchStatistics
+                stats={match.stats}
+                homeTeamName={match.homeTeam}
+                awayTeamName={match.awayTeam}
+                isLive={isLive}
+              />
             </div>
           </div>
         ) : null}
@@ -483,6 +413,23 @@ const AmericanFootballMatchDetail = () => {
                 Preview
               </p>
               <p className="text-sm theme-text">{match.highlight}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "standings" ? (
+          <div className="block-style !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+              <p className="font-bold uppercase text-sm theme-text tracking-wide">
+                League Standings
+              </p>
+            </div>
+            <div className="p-5">
+              <AmericanFootballStandings
+                league={match.league}
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+              />
             </div>
           </div>
         ) : null}
