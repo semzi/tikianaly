@@ -6,10 +6,16 @@ import {
   ChartBarIcon,
   ClockIcon,
   InformationCircleIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
+import AmericanFootballMatchOverview from "../components/AmericanFootballMatchOverview";
+import AmericanFootballMatchStatistics from "../components/AmericanFootballMatchStatistics";
+import AmericanFootballStandings from "../components/AmericanFootballStandings";
+import { teamInitials } from "../statUtils";
 import {
   mockAmericanFootballLiveMatches,
   mockAmericanFootballUpcomingMatches,
@@ -23,21 +29,13 @@ import {
   normalizeAmericanFootballTimeline,
 } from "@/lib/api/american-football";
 
-type MatchTab = "stats" | "timeline" | "info";
+type MatchTab = "overview" | "stats" | "timeline" | "info" | "standings";
 type MatchLocationState = { match?: AmericanFootballMatch };
 
 const splitScore = (score: string) => {
   const [home = "-", away = "-"] = String(score || "- -").split("-");
   return [home.trim() || "-", away.trim() || "-"] as const;
 };
-
-const teamInitials = (team: string) =>
-  team
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 const quarterTotal = (values: (string | number)[]) =>
   values.reduce<number>((sum, v) => {
@@ -101,7 +99,7 @@ const QuarterScoreBox = ({ match }: { match: AmericanFootballMatch }) => {
 const AmericanFootballMatchDetail = () => {
   const { matchId } = useParams();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<MatchTab>("stats");
+  const [activeTab, setActiveTab] = useState<MatchTab>("overview");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
   // Check if this is a mock ID (all mock IDs start with "af-")
@@ -161,36 +159,12 @@ const AmericanFootballMatchDetail = () => {
   const [homeScore, awayScore] = splitScore(match.score);
   const isLive = match.status.toLowerCase().includes("live");
   const tabs = [
+    { id: "overview" as MatchTab, label: "Overview", icon: Squares2X2Icon },
     { id: "stats" as MatchTab, label: "Stats", icon: ChartBarIcon },
     { id: "timeline" as MatchTab, label: "Timeline", icon: ClockIcon },
     { id: "info" as MatchTab, label: "Info", icon: InformationCircleIcon },
+    { id: "standings" as MatchTab, label: "Standings", icon: TableCellsIcon },
   ];
-
-  const statsRows = match.stats?.length
-    ? match.stats
-    : [
-        {
-          label: "Total Yards",
-          home: isLive ? 238 : 0,
-          away: isLive ? 261 : 0,
-        },
-        {
-          label: "Passing Yards",
-          home: isLive ? 156 : 0,
-          away: isLive ? 184 : 0,
-        },
-        {
-          label: "Rushing Yards",
-          home: isLive ? 82 : 0,
-          away: isLive ? 77 : 0,
-        },
-        { label: "First Downs", home: isLive ? 14 : 0, away: isLive ? 16 : 0 },
-        {
-          label: "Time of Possession",
-          home: isLive ? 28 : 0,
-          away: isLive ? 32 : 0,
-        },
-      ];
 
   const fallbackTimelineRows = isLive
     ? [
@@ -224,49 +198,101 @@ const AmericanFootballMatchDetail = () => {
     <div className="min-h-screen dark:bg-[#0D1117] bg-[#f6f6f6]">
       <PageHeader />
 
-      <section className="relative isolate overflow-hidden bg-gradient-to-r from-orange-500 via-orange-500 to-pink-600 text-white">
+      <section className="relative isolate overflow-hidden bg-brand-primary text-white">
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute blur-sm inset-0 pointer-events-none opacity-50"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
+              "repeating-linear-gradient(135deg, var(--gameinfo-stripe-color) 0px, var(--gameinfo-stripe-color) 12px, rgba(0,0,0,0) 12px, rgba(0,0,0,0) 24px)",
           }}
         />
-        <div className="page-padding-x relative z-10 py-4 md:py-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="mb-4 flex items-center gap-2 text-sm text-white/95 hover:text-white"
-          >
-            <ArrowLeftIcon className="h-4 w-4" /> Back
-          </button>
-          <div className="grid grid-cols-3 items-center gap-3 md:gap-8">
-            <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
-                {teamInitials(match.homeTeam)}
-              </div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">
-                {match.homeTeam}
-              </p>
+        <div className="relative z-[2] page-padding-x pt-10 pb-16 md:pt-14 md:pb-20">
+          {/* Toolbar - back | status | (actions) */}
+          <div className="relative px-3 grid grid-cols-3 items-center">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="flex gap-4 items-center w-fit cursor-pointer text-left"
+            >
+              <ArrowLeftIcon className="text-white h-5" />
+              <p className="text-white hidden md:block">Back</p>
+            </button>
+            <div className="bg-brand-secondary font-semibold text-white py-1.5 px-4 rounded w-fit mx-auto hidden md:block">
+              {isLive ? "Live" : match.status}
             </div>
-            <div className="flex flex-col items-center text-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-white text-orange-600 text-xs md:text-sm font-bold uppercase tracking-wide">
-                {isLive ? "Live" : match.status}
-              </span>
-              <p className="text-xl md:text-5xl font-black tracking-wide">
-                {homeScore} - {awayScore}
-              </p>
-              <p className="text-xs md:text-base text-white/90">
+            <div className="flex justify-end" />
+          </div>
+
+          {/* Mobile hero - football-style, quarter box below the score */}
+          <div className="md:hidden px-3 mt-2 text-white">
+            <div className="grid grid-cols-3 items-start gap-2">
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-10 w-10 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-xs font-bold">
+                  {teamInitials(match.homeTeam)}
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {match.homeTeam}
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <p className="shrink-0 text-[11px] bg-brand-secondary px-2 py-0.5 rounded">
+                  {isLive ? "Live" : match.status}
+                </p>
+              </div>
+              <div className="min-w-0 flex flex-col items-center">
+                <div className="h-10 w-10 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-xs font-bold">
+                  {teamInitials(match.awayTeam)}
+                </div>
+                <p className="mt-1 w-full truncate text-[13px] font-semibold text-center">
+                  {match.awayTeam}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-col items-center">
+              <div className="flex justify-center items-center gap-3 leading-none tabular-nums tall-font text-[56px]">
+                <p className="leading-none">{homeScore}</p>
+                <p className="text-[32px] leading-none">-</p>
+                <p className="leading-none">{awayScore}</p>
+              </div>
+              <p className="mt-1 text-[11px] text-white/90">
                 {match.league}
                 {isLive ? ` • ${match.period}` : ""}
               </p>
+            </div>
+            <div className="mt-3 flex justify-center">
               <QuarterScoreBox match={match} />
             </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base md:text-xl font-bold">
+          </div>
+
+          {/* Desktop hero - football-style, quarter box inline */}
+          <div className="hidden md:grid md:mt-5 mb-5 px-3 grid-cols-3 items-start text-white">
+            <div className="flex flex-col items-center md:items-end">
+              <div className="h-12 w-12 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base font-bold">
+                {teamInitials(match.homeTeam)}
+              </div>
+              <p className="mt-2 text-[20px] font-light text-center md:text-right">
+                {match.homeTeam}
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex text-[56px] md:text-[80px] tall-font justify-center items-center gap-3 leading-none tabular-nums">
+                <p className="leading-none">{homeScore}</p>
+                <p>-</p>
+                <p className="leading-none">{awayScore}</p>
+              </div>
+              <p className="mt-1 text-sm text-white/90">
+                {match.league}
+                {isLive ? ` • ${match.period}` : ""}
+              </p>
+              <div className="mt-3">
+                <QuarterScoreBox match={match} />
+              </div>
+            </div>
+            <div className="flex flex-col items-center md:items-start">
+              <div className="h-12 w-12 rounded-full bg-white/90 text-neutral-700 flex items-center justify-center text-base font-bold">
                 {teamInitials(match.awayTeam)}
               </div>
-              <p className="mt-2 text-sm md:text-3xl font-semibold">
+              <p className="mt-2 text-[20px] font-light text-center md:text-left">
                 {match.awayTeam}
               </p>
             </div>
@@ -275,7 +301,7 @@ const AmericanFootballMatchDetail = () => {
       </section>
 
       <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
-        <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
+        <div className="flex md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -294,6 +320,10 @@ const AmericanFootballMatchDetail = () => {
       </div>
 
       <div className="page-padding-x my-8">
+        {activeTab === "overview" ? (
+          <AmericanFootballMatchOverview match={match} isLive={isLive} />
+        ) : null}
+
         {activeTab === "stats" ? (
           <div className="block-style !p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
@@ -301,61 +331,13 @@ const AmericanFootballMatchDetail = () => {
                 American Football Match Statistics
               </p>
             </div>
-            <div className="p-5 space-y-6">
-              {statsRows.map((row) => {
-                const homeValue = Number(row.home) || 0;
-                const awayValue = Number(row.away) || 0;
-                const total = homeValue + awayValue;
-                const homeWidth = total ? (homeValue / total) * 100 : 50;
-                const awayWidth = total ? (awayValue / total) * 100 : 50;
-                return (
-                  <div key={row.label} className="space-y-2">
-                    <div className="text-center">
-                      <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold theme-text uppercase tracking-wider">
-                        {row.label}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold theme-text text-right">
-                          {row.home}
-                          {row.label === "Time of Possession" && isLive
-                            ? ":00"
-                            : ""}
-                        </p>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-green-400 to-green-500"
-                            style={{ width: `${homeWidth}%` }}
-                          />
-                        </div>
-                      </div>
-                      <p className="text-xs uppercase font-semibold text-neutral-n4">
-                        vs
-                      </p>
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold theme-text">
-                          {row.away}
-                          {row.label === "Time of Possession" && isLive
-                            ? ":00"
-                            : ""}
-                        </p>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-l from-blue-400 to-blue-500"
-                            style={{ width: `${awayWidth}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {!isLive ? (
-                <p className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-4 text-sm text-neutral-n4">
-                  Team statistics will appear when the game begins.
-                </p>
-              ) : null}
+            <div className="p-5">
+              <AmericanFootballMatchStatistics
+                stats={match.stats}
+                homeTeamName={match.homeTeam}
+                awayTeamName={match.awayTeam}
+                isLive={isLive}
+              />
             </div>
           </div>
         ) : null}
@@ -431,6 +413,23 @@ const AmericanFootballMatchDetail = () => {
                 Preview
               </p>
               <p className="text-sm theme-text">{match.highlight}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "standings" ? (
+          <div className="block-style !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-snow-200 dark:border-[#1F2937] bg-snow-100/50 dark:bg-white/5">
+              <p className="font-bold uppercase text-sm theme-text tracking-wide">
+                League Standings
+              </p>
+            </div>
+            <div className="p-5">
+              <AmericanFootballStandings
+                league={match.league}
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+              />
             </div>
           </div>
         ) : null}

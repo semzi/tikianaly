@@ -205,57 +205,114 @@ const AmericanFootballLeagueProfile = () => {
                           </p>
                         </div>
                       ) : null}
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-xs text-neutral-n4 uppercase bg-snow-100 dark:bg-white/5 border-b border-snow-200 dark:border-[#1F2937]">
-                            <th className="text-left px-5 py-2">#</th>
-                            <th className="text-left px-2 py-2">Team</th>
-                            <th className="px-2 py-2">W</th>
-                            <th className="px-2 py-2">L</th>
-                            <th className="px-2 py-2">T</th>
-                            <th className="px-2 py-2">PF</th>
-                            <th className="px-2 py-2">PA</th>
-                            <th className="px-2 py-2">Strk</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.teams.map((team, rowIdx) => (
-                            <tr
-                              key={team.id}
-                              className={`border-b border-snow-200 dark:border-[#1F2937] last:border-b-0 ${
-                                rowIdx % 2 === 1
-                                  ? "bg-snow-50 dark:bg-white/[0.02]"
-                                  : ""
-                              }`}
-                            >
-                              <td className="px-5 py-2 text-neutral-n4">
-                                {team.position}
-                              </td>
-                              <td className="px-2 py-2 font-medium theme-text">
-                                {team.name}
-                              </td>
-                              <td className="text-center px-2 py-2 theme-text">
-                                {team.won}
-                              </td>
-                              <td className="text-center px-2 py-2 theme-text">
-                                {team.lost}
-                              </td>
-                              <td className="text-center px-2 py-2 theme-text">
-                                {team.ties}
-                              </td>
-                              <td className="text-center px-2 py-2 theme-text">
-                                {team.pointsFor}
-                              </td>
-                              <td className="text-center px-2 py-2 theme-text">
-                                {team.pointsAgainst}
-                              </td>
-                              <td className="text-center px-2 py-2 font-semibold text-brand-secondary">
-                                {team.streak}
-                              </td>
+                      {/* Desktop Layout - full standings table */}
+                      <div className="hidden md:block">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs text-neutral-n4 uppercase bg-snow-100 dark:bg-white/5 border-b border-snow-200 dark:border-[#1F2937]">
+                              <th className="text-left px-5 py-2">#</th>
+                              <th className="text-left px-2 py-2">Team</th>
+                              <th className="px-2 py-2">W</th>
+                              <th className="px-2 py-2">L</th>
+                              <th className="px-2 py-2">T</th>
+                              <th className="px-2 py-2">PF</th>
+                              <th className="px-2 py-2">PA</th>
+                              <th className="px-2 py-2">Strk</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {group.teams.map((team, rowIdx) => (
+                              <tr
+                                key={team.id}
+                                className={`border-b border-snow-200 dark:border-[#1F2937] last:border-b-0 ${
+                                  rowIdx % 2 === 1
+                                    ? "bg-snow-50 dark:bg-white/[0.02]"
+                                    : ""
+                                }`}
+                              >
+                                <td className="px-5 py-2 text-neutral-n4">
+                                  {team.position}
+                                </td>
+                                <td className="px-2 py-2 font-medium theme-text">
+                                  {team.name}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.won}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.lost}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.ties}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.pointsFor}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.pointsAgainst}
+                                </td>
+                                <td className="text-center px-2 py-2 font-semibold text-brand-secondary">
+                                  {team.streak}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Mobile Layout - horizontally scrollable full table */}
+                      <div className="md:hidden overflow-x-auto">
+                        <table className="w-full text-sm min-w-[560px]">
+                          <thead>
+                            <tr className="text-xs text-neutral-n4 uppercase bg-snow-100 dark:bg-white/5 border-b border-snow-200 dark:border-[#1F2937]">
+                              <th className="text-left px-5 py-2">#</th>
+                              <th className="text-left px-2 py-2">Team</th>
+                              <th className="px-2 py-2">W</th>
+                              <th className="px-2 py-2">L</th>
+                              <th className="px-2 py-2">T</th>
+                              <th className="px-2 py-2">PF</th>
+                              <th className="px-2 py-2">PA</th>
+                              <th className="px-2 py-2">Strk</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.teams.map((team, rowIdx) => (
+                              <tr
+                                key={team.id}
+                                className={`border-b border-snow-200 dark:border-[#1F2937] last:border-b-0 ${
+                                  rowIdx % 2 === 1
+                                    ? "bg-snow-50 dark:bg-white/[0.02]"
+                                    : ""
+                                }`}
+                              >
+                                <td className="px-5 py-2 text-neutral-n4">
+                                  {team.position}
+                                </td>
+                                <td className="px-2 py-2 font-medium theme-text">
+                                  {team.name}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.won}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.lost}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.ties}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.pointsFor}
+                                </td>
+                                <td className="text-center px-2 py-2 theme-text">
+                                  {team.pointsAgainst}
+                                </td>
+                                <td className="text-center px-2 py-2 font-semibold text-brand-secondary">
+                                  {team.streak}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   ))
                 ) : (
