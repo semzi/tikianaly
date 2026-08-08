@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { navigate } from "../../../lib/router/navigate";
 import {
   StarIcon,
@@ -181,11 +182,57 @@ interface ApiResponse {
 }
 
 const BasketballPage = () => {
-  const [activeTab, setActiveTab] = useState("fixture");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.has("date") ? "fixture" : "live";
+  });
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  
+  const [selectedDate, _setSelectedDate] = useState<Date | null>(() => {
+    try {
+      const dateParam = searchParams.get("date");
+      if (dateParam) {
+        const d = new Date(dateParam);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+      return new Date();
+    } catch {
+      return new Date();
+    }
+  });
+
+  const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
+    _setSelectedDate(prev => {
+      const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
+      
+      setSearchParams(prevParams => {
+        if (newDate && !isToday(newDate)) {
+          prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
+        } else {
+          prevParams.delete("date");
+        }
+        return prevParams;
+      }, { replace: false });
+      
+      return newDate;
+    });
+  }, [setSearchParams]);
+
+  // Sync state with URL when navigating back/forward
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const d = new Date(dateParam);
+      if (!Number.isNaN(d.getTime())) {
+        _setSelectedDate(d);
+        setActiveTab("fixture");
+        return;
+      }
+    }
+    _setSelectedDate(new Date());
+  }, [searchParams]);
 
   // SSE & Live Override state
   const [liveMatches, setLiveMatches] = useState<Record<number, Match>>({});

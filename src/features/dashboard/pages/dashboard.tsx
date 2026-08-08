@@ -225,12 +225,25 @@ export const dashboard = () => {
           prevParams.delete("date");
         }
         return prevParams;
-      }, { replace: true });
+      }, { replace: false });
       
       return newDate;
     });
   }, [setSearchParams]);
 
+  // Sync state with URL when navigating back/forward
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const d = new Date(dateParam);
+      if (!Number.isNaN(d.getTime())) {
+        _setSelectedDate(d);
+        setFixturesMode("date");
+        return;
+      }
+    }
+    _setSelectedDate(new Date());
+  }, [searchParams]);
 
   const COLLAPSED_LEAGUES_KEY = "dashboard_collapsed_leagues_v2";
   const [userToggledLeagues, setUserToggledLeagues] = useState<Record<string, Record<number, boolean>>>(() => {
@@ -1089,12 +1102,10 @@ export const dashboard = () => {
                                       </div>
                                       <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                                         <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                          {ui.state === "ft" ? (
-                                            game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
-                                          ) : ui.state === "timer" || ui.state === "ht" ? (
-                                            <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                                          ) : (
+                                          {ui.state === "upcoming" ? (
                                             "-"
+                                          ) : (
+                                            <AnimatedScore value={game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? 0} />
                                           )}
                                         </span>
                                       </div>
@@ -1120,12 +1131,10 @@ export const dashboard = () => {
                                       </div>
                                       <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                                         <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                          {ui.state === "ft" ? (
-                                            game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
-                                          ) : ui.state === "timer" || ui.state === "ht" ? (
-                                            <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                                          ) : (
+                                          {ui.state === "upcoming" ? (
                                             "-"
+                                          ) : (
+                                            <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? 0} />
                                           )}
                                         </span>
                                       </div>
@@ -1744,14 +1753,10 @@ export const dashboard = () => {
                                 </div>
                                 <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                                   <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                    {fixturesMode === "live" ? (
-                                      <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                                    ) : ui.state === "ft" ? (
-                                      game.localteam?.ft_score ?? game.localteam?.goals ?? game.localteam?.score ?? "-"
-                                    ) : ui.state === "timer" || ui.state === "ht" ? (
-                                      <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
-                                    ) : (
+                                    {ui.state === "upcoming" ? (
                                       "-"
+                                    ) : (
+                                      <AnimatedScore value={game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? 0} />
                                     )}
                                   </span>
                                 </div>
@@ -1775,14 +1780,10 @@ export const dashboard = () => {
                                 </div>
                                 <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                                   <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                    {fixturesMode === "live" ? (
-                                      <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                                    ) : ui.state === "ft" ? (
-                                      game.visitorteam?.ft_score ?? game.visitorteam?.goals ?? game.visitorteam?.score ?? "-"
-                                    ) : ui.state === "timer" || ui.state === "ht" ? (
-                                      <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
-                                    ) : (
+                                    {ui.state === "upcoming" ? (
                                       "-"
+                                    ) : (
+                                      <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? 0} />
                                     )}
                                   </span>
                                 </div>
@@ -1948,7 +1949,7 @@ export const dashboard = () => {
                             </div>
                             <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                               <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.score ?? 0} />
+                                <AnimatedScore value={game.localteam?.goals ?? game.localteam?.ft_score ?? game.localteam?.score ?? 0} />
                               </span>
                             </div>
                           </div>
@@ -1971,7 +1972,7 @@ export const dashboard = () => {
                             </div>
                             <div className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 min-w-[24px] text-center">
                               <span className="text-xs font-bold dark:text-white text-neutral-n4">
-                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.score ?? 0} />
+                                <AnimatedScore value={game.visitorteam?.goals ?? game.visitorteam?.ft_score ?? game.visitorteam?.score ?? 0} />
                               </span>
                             </div>
                           </div>

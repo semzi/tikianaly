@@ -98,6 +98,7 @@ export {
   getBasketballTeamDetail,
   getBasketballPlayers,
   getBasketballPlayerDetail,
+  searchBasketballPlayers,
   compareBasketballTeams,
   compareBasketballPlayers,
   // Image/Logo endpoints
