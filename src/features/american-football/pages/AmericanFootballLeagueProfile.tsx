@@ -9,24 +9,15 @@ import {
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
 import { navigate } from "@/lib/router/navigate";
-import { mockAmericanFootballAllLeagues } from "../data/mockAmericanFootball";
-import { mockLeagueStandings } from "../data/mockAmericanFootballStandings";
 import {
   getAmericanFootballAllStandings,
-  isAmericanFootballApiEnabled,
+  getAmericanFootballLeagueByCode,
+  normalizeAmericanFootballLeagues,
   normalizeAmericanFootballStandings,
   AF_LEAGUE_CODE_TO_MOCK_ID,
 } from "@/lib/api/american-football";
 
 type LeagueTab = "overview" | "standings";
-
-// Add this mapping - reverse of what's in index.ts
-const AF_CODE_TO_MOCK_ID: Record<string, string> = {
-  NFL: "nfl",
-  FBS: "ncaa-fbs",
-  FCS: "ncaa-fcs",
-  DIV3: "div3",
-};
 
 const leagueInitials = (name: string) =>
   name
@@ -40,22 +31,38 @@ const AmericanFootballLeagueProfile = () => {
   const { leagueId } = useParams();
   const [activeTab, setActiveTab] = useState<LeagueTab>("standings");
 
-  // Replace this line with the new logic
   const normalizedLeagueId = leagueId
-    ? (AF_CODE_TO_MOCK_ID[leagueId.toUpperCase()] ?? leagueId.toLowerCase())
+    ? (AF_LEAGUE_CODE_TO_MOCK_ID[leagueId.toUpperCase()] ?? leagueId.toLowerCase())
     : undefined;
 
-  const league = useMemo(
-    () =>
-      mockAmericanFootballAllLeagues.find(
-        (item) => item.id.toLowerCase() === normalizedLeagueId,
-      ),
-    [normalizedLeagueId],
-  );
+  const leagueQuery = useQuery({
+    queryKey: ["american-football", "league", leagueId],
+    queryFn: async () => {
+      const raw = await getAmericanFootballLeagueByCode(String(leagueId));
+      const leagues = normalizeAmericanFootballLeagues(raw);
+      return leagues[0] ?? null;
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const league = useMemo(() => {
+    if (leagueQuery.data) return leagueQuery.data;
+    if (leagueId) {
+      return {
+        id: leagueId,
+        name: leagueId.toUpperCase(),
+        region: "",
+        season: "",
+        teams: "",
+        tier: "",
+        description: "",
+      };
+    }
+    return null;
+  }, [leagueQuery.data, leagueId]);
 
   const standingsQuery = useQuery({
     queryKey: ["american-football", "standings", "all"],
-    enabled: isAmericanFootballApiEnabled,
     queryFn: async () => {
       const raw = await getAmericanFootballAllStandings();
       const entries = Array.isArray(
@@ -79,9 +86,7 @@ const AmericanFootballLeagueProfile = () => {
   });
 
   const standingsGroups = normalizedLeagueId
-    ? standingsQuery.data?.[normalizedLeagueId]?.length
-      ? standingsQuery.data[normalizedLeagueId]
-      : mockLeagueStandings[normalizedLeagueId]
+    ? standingsQuery.data?.[normalizedLeagueId]
     : undefined;
 
   const tabs = [

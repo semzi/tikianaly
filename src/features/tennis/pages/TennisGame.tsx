@@ -167,7 +167,7 @@ const TennisGame = () => {
         </div>
       </section>
 
-      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
+      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-gray-800 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
