@@ -18,7 +18,12 @@ import {
   getTeamByName,
 } from "@/lib/api/endpoints";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import GetBasketballLeagueLogo from "@/components/common/GetBasketballLeagueLogo";
 import useProfileAvatar from "@/hooks/useProfileAvatar";
+import {
+  searchBasketballPlayers,
+  getBasketballLeagueById,
+} from "@/lib/api/basketball/index";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +40,7 @@ export const PageHeader = () => {
       country: string;
       image?: string;
       position?: string;
+      sport?: "football" | "basketball" | "cricket" | "tennis";
       kind: "player" | "team" | "league";
     }>
   >([]);
@@ -56,6 +62,9 @@ export const PageHeader = () => {
   const QUICK_LEAGUE_IDS = [
     1204, 1059, 1399, 1198, 1005, 1007, 1205, 1326, 1229, 1269, 1368, 1221, 1141, 1322, 1352, 1081, 1308, 1457, 1271, 1282,
   ];
+  const QUICK_BASKETBALL_LEAGUE_IDS = [
+    1046, 1287, 1014, 1011, 1571, 1001,
+  ];
 
   type QuickPlayerInfo = { id: number; name?: string; image?: string; country?: string };
   type QuickTeamInfo = { id: number; name?: string; image?: string; country?: string };
@@ -64,15 +73,17 @@ export const PageHeader = () => {
   const [quickPlayersById, setQuickPlayersById] = useState<Record<string, QuickPlayerInfo>>({});
   const [quickTeamsById, setQuickTeamsById] = useState<Record<string, QuickTeamInfo>>({});
   const [quickLeaguesById, setQuickLeaguesById] = useState<Record<string, QuickLeagueInfo>>({});
+  const [quickBasketballLeaguesById, setQuickBasketballLeaguesById] = useState<Record<string, QuickLeagueInfo>>({});
 
   const quickPlayersRef = useRef<Record<string, QuickPlayerInfo>>({});
   const quickTeamsRef = useRef<Record<string, QuickTeamInfo>>({});
   const quickLeaguesRef = useRef<Record<string, QuickLeagueInfo>>({});
+  const quickBasketballLeaguesRef = useRef<Record<string, QuickLeagueInfo>>({});
 
-  const quickPickStorageKey = (kind: "player" | "team" | "league", id: string) =>
+  const quickPickStorageKey = (kind: string, id: string) =>
     `quick_pick_${kind}_${id}`;
 
-  const readQuickPickFromStorage = <T,>(kind: "player" | "team" | "league", id: string): T | null => {
+  const readQuickPickFromStorage = <T,>(kind: string, id: string): T | null => {
     try {
       const raw = sessionStorage.getItem(quickPickStorageKey(kind, id));
       if (!raw) return null;
@@ -83,7 +94,7 @@ export const PageHeader = () => {
     }
   };
 
-  const writeQuickPickToStorage = (kind: "player" | "team" | "league", id: string, value: unknown) => {
+  const writeQuickPickToStorage = (kind: string, id: string, value: unknown) => {
     try {
       sessionStorage.setItem(quickPickStorageKey(kind, id), JSON.stringify(value));
     } catch {
@@ -117,13 +128,7 @@ export const PageHeader = () => {
         const item = res?.responseObject?.item;
         const p = Array.isArray(item) ? item[0] : item;
         const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || String(p?.common_name ?? "").trim();
-        const rawImage = p?.image;
-        const image =
-          typeof rawImage === "string" && rawImage.length
-            ? rawImage.startsWith("data:image")
-              ? rawImage
-              : `data:image/png;base64,${rawImage}`
-            : undefined;
+        const image = resolveImage(p?.image_url ?? p?.image);
         const info: QuickPlayerInfo = {
           id: Number(id),
           name: String(name || "Player"),
@@ -146,13 +151,7 @@ export const PageHeader = () => {
         const res: any = await getTeamById(id);
         const item = res?.responseObject?.item;
         const t = Array.isArray(item) ? item[0] : item;
-        const rawImage = t?.image;
-        const image =
-          typeof rawImage === "string" && rawImage.length
-            ? rawImage.startsWith("data:image")
-              ? rawImage
-              : `data:image/png;base64,${rawImage}`
-            : undefined;
+        const image = resolveImage(t?.image_url ?? t?.image);
         const info: QuickTeamInfo = {
           id: Number(id),
           name: String(t?.name ?? "Team"),
@@ -184,6 +183,28 @@ export const PageHeader = () => {
         writeQuickPickToStorage("league", id, info);
         setQuickLeaguesById((prev) => ({ ...prev, [id]: info }));
       });
+
+      await batch(QUICK_BASKETBALL_LEAGUE_IDS, 6, async (id) => {
+        const key = String(id);
+        if (quickBasketballLeaguesRef.current[key]) return;
+        const stored = readQuickPickFromStorage<QuickLeagueInfo>("bb_league", key);
+        if (stored) {
+          quickBasketballLeaguesRef.current[key] = stored;
+          setQuickBasketballLeaguesById((prev) => ({ ...prev, [key]: stored }));
+          return;
+        }
+        const res: any = await getBasketballLeagueById(id);
+        const item = res?.responseObject?.item;
+        const l = Array.isArray(item) ? item[0] : item;
+        const info: QuickLeagueInfo = {
+          id: Number(id),
+          name: String(l?.name ?? "League"),
+          category: String(l?.category ?? l?.country_name ?? l?.country ?? "") || undefined,
+        };
+        quickBasketballLeaguesRef.current[key] = info;
+        writeQuickPickToStorage("bb_league", key, info);
+        setQuickBasketballLeaguesById((prev) => ({ ...prev, [key]: info }));
+      });
     };
 
     void preload();
@@ -195,15 +216,22 @@ export const PageHeader = () => {
     return [];
   };
 
+  const resolveImage = (raw?: unknown): string | undefined => {
+    if (typeof raw !== "string" || !raw) return undefined;
+    if (raw.startsWith("data:image")) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `data:image/png;base64,${raw}`;
+  };
+
   const mergeSearchResults = (
-    prev: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "player" | "team" | "league" }>,
-    incoming: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "player" | "team" | "league" }>
+    prev: Array<{ id?: string | number; name: string; country: string; image?: string; sport?: "football" | "basketball" | "cricket" | "tennis"; kind: "player" | "team" | "league" }>,
+    incoming: Array<{ id?: string | number; name: string; country: string; image?: string; sport?: "football" | "basketball" | "cricket" | "tennis"; kind: "player" | "team" | "league" }>
   ) => {
     if (incoming.length === 0) return prev;
-    const seen = new Set(prev.map((r) => `${r.kind}:${String(r.id ?? "")}::${r.name}`));
+    const seen = new Set(prev.map((r) => `${r.kind}:${String(r.id ?? "")}::${r.sport ?? ""}::${r.name}`));
     const next = [...prev];
     incoming.forEach((r) => {
-      const key = `${r.kind}:${String(r.id ?? "")}::${r.name}`;
+      const key = `${r.kind}:${String(r.id ?? "")}:${r.sport ?? ""}::${r.name}`;
       if (!seen.has(key)) {
         seen.add(key);
         next.push(r);
@@ -218,7 +246,7 @@ export const PageHeader = () => {
   };
 
   const handleSelectSearchResult = useCallback(
-    (r: { id?: string | number; name: string; kind: "player" | "team" | "league" }) => {
+    (r: { id?: string | number; name: string; kind: "player" | "team" | "league"; sport?: "football" | "basketball" | "cricket" | "tennis" }) => {
       if (!r?.id) {
         setSearchValue(r?.name ?? "");
         return;
@@ -227,7 +255,11 @@ export const PageHeader = () => {
       if (r.kind === "player") {
         setOpenMenu(null);
         closeSearch();
-        navigate(`/player/profile/${r.id}`);
+        if (r.sport === "basketball") {
+          navigate(`/basketball/player/${r.id}`);
+        } else {
+          navigate(`/player/profile/${r.id}`);
+        }
         return;
       }
 
@@ -314,7 +346,7 @@ export const PageHeader = () => {
       setDemoResults([]);
 
       if (searchScope === "all") {
-        let remaining = 3;
+        let remaining = 4;
 
         const done = () => {
           remaining -= 1;
@@ -336,6 +368,7 @@ export const PageHeader = () => {
                 country: String(p?.nationality ?? ""),
                 image: p?.image_url ?? undefined,
                 position: String(p?.position ?? ""),
+                sport: "football" as const,
                 kind: "player" as const,
               };
             });
@@ -361,6 +394,7 @@ export const PageHeader = () => {
                 name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
                 country: String(t?.country ?? ""),
                 image: t?.image_url ?? undefined,
+                sport: "football" as const,
                 kind: "team" as const,
               };
             });
@@ -386,12 +420,47 @@ export const PageHeader = () => {
                 name: String(l?.name ?? "Unknown"),
                 country: String(l?.category ?? ""),
                 image: l?.image_url ?? l?.image ?? undefined,
+                sport: "football" as const,
                 kind: "league" as const,
               };
             });
 
             setDemoResults((prev) => {
               const next = mergeSearchResults(prev, leagues);
+              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+              return next;
+            });
+          })
+          .catch(() => {
+            // ignore
+          })
+          .finally(done);
+
+        searchBasketballPlayers(q)
+          .then((items) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const bballPlayers = items.slice(0, 5).map((p: any) => {
+              const raw = p?.image_url || "";
+              const image =
+                typeof raw === "string" && raw.startsWith("data:image")
+                  ? raw
+                  : typeof raw === "string" && raw.length
+                    ? `data:image/png;base64,${raw}`
+                    : undefined;
+
+              return {
+                id: p?.player_id,
+                name: String(p?.player_name ?? "Unknown"),
+                country: "",
+                image,
+                position: "",
+                sport: "basketball" as const,
+                kind: "player" as const,
+              };
+            });
+
+            setDemoResults((prev) => {
+              const next = mergeSearchResults(prev, bballPlayers);
               searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
               return next;
             });
@@ -412,7 +481,7 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
 
             const items = normalizeItemsToArray(data?.responseObject?.item);
-            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; position?: string; kind: "player" }> =
+            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; position?: string; sport?: "basketball" | "football" | "cricket" | "tennis"; kind: "player" }> =
               items.length
                 ? items.slice(0, 10).map((p: any) => {
                     const name =
@@ -424,12 +493,13 @@ export const PageHeader = () => {
                       country: String(p?.nationality ?? ""),
                       image: p?.image_url ?? undefined,
                       position: String(p?.position ?? ""),
+                      sport: "football",
                       kind: "player",
                     };
                   })
                 : [];
 
-            setDemoResults(normalized);
+            setDemoResults((prev) => mergeSearchResults(prev, normalized));
             searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
             setSearchLoading(false);
           } catch {
@@ -438,6 +508,37 @@ export const PageHeader = () => {
             setSearchLoading(false);
           }
         })();
+
+        searchBasketballPlayers(q)
+          .then((items) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const bballPlayers = items.slice(0, 10).map((p: any) => {
+              const raw = p?.image_url || "";
+              const image =
+                typeof raw === "string" && raw.startsWith("data:image")
+                  ? raw
+                  : typeof raw === "string" && raw.length
+                    ? `data:image/png;base64,${raw}`
+                    : undefined;
+
+              return {
+                id: p?.player_id,
+                name: String(p?.player_name ?? "Unknown"),
+                country: "",
+                image,
+                position: "",
+                sport: "basketball" as const,
+                kind: "player" as const,
+              };
+            });
+
+            setDemoResults((prev) => mergeSearchResults(prev, bballPlayers));
+            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: bballPlayers });
+            setSearchLoading(false);
+          })
+          .catch(() => {
+            // ignore
+          });
 
         return;
       }
@@ -450,7 +551,7 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
 
             const items = normalizeItemsToArray(data?.responseObject?.item);
-            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "team" }> =
+            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; sport?: "basketball" | "football" | "cricket" | "tennis"; kind: "team" }> =
               items.length
                 ? items.slice(0, 10).map((t: any) => {
                     return {
@@ -458,6 +559,7 @@ export const PageHeader = () => {
                       name: String(t?.name ?? t?.team_name ?? t?.team?.name ?? "Unknown"),
                       country: String(t?.country ?? ""),
                       image: t?.image_url ?? undefined,
+                      sport: "football",
                       kind: "team",
                     };
                   })
@@ -484,7 +586,7 @@ export const PageHeader = () => {
             if (requestId !== searchRequestIdRef.current) return;
 
             const items = normalizeItemsToArray(data?.responseObject?.item);
-            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; kind: "league" }> =
+            const normalized: Array<{ id?: string | number; name: string; country: string; image?: string; sport?: "basketball" | "football" | "cricket" | "tennis"; kind: "league" }> =
               items.length
                 ? items.slice(0, 10).map((l: any) => {
                     return {
@@ -492,6 +594,7 @@ export const PageHeader = () => {
                       name: String(l?.name ?? "Unknown"),
                       country: String(l?.category ?? ""),
                       image: l?.image_url ?? l?.image ?? undefined,
+                      sport: "football",
                       kind: "league",
                     };
                   })
@@ -770,6 +873,29 @@ export const PageHeader = () => {
             ))}
           </div>
         </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-semibold theme-text md:text-white">Basketball Leagues</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {QUICK_BASKETBALL_LEAGUE_IDS.map((id) => (
+              quickBasketballLeaguesById[String(id)]?.name ? (
+                <button
+                  key={`quick-bb-league-${id}`}
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-snow-200/60 dark:border-snow-100/10 bg-white/60 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold theme-text hover:bg-snow-100 dark:hover:bg-white/10 transition-colors"
+                  onClick={() => navigate(`/basketball/league/${encodeURIComponent(String(id))}`)}
+                >
+                  <GetBasketballLeagueLogo leagueId={id} alt={quickBasketballLeaguesById[String(id)]?.name ?? "League"} className="h-4 w-4 object-contain" />
+                  <span className="max-w-[180px] truncate">
+                    {quickBasketballLeaguesById[String(id)]?.name}
+                  </span>
+                </button>
+              ) : (
+                renderQuickPickSkeleton(`quick-bb-league-skel-${id}`, "")
+              )
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -879,6 +1005,17 @@ export const PageHeader = () => {
                     >
                       {r.name}
                     </span>
+                    {r.sport ? (
+                      <span
+                        className={`inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          isDark
+                            ? "bg-white/10 text-white/70"
+                            : "bg-snow-100 text-neutral-n4"
+                        }`}
+                      >
+                        {r.sport}
+                      </span>
+                    ) : null}
                     {r.kind === "player" && r.position ? (
                       <span className={`truncate text-xs ${isDark ? "text-white/70" : "text-neutral-n4"}`}>
                         {r.position}

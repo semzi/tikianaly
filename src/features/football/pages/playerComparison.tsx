@@ -1,6 +1,6 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { getPlayerById, getPlayerByName, getPlayersStats } from "@/lib/api/endpoints";
+import { getPlayerById, getPlayerByName } from "@/lib/api/endpoints";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
@@ -103,6 +103,8 @@ const toNumber = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+
 const formatAxiosishError = (err: any): string => {
   const status = err?.response?.status;
   const statusText = err?.response?.statusText;
@@ -138,6 +140,13 @@ const playerDisplayName = (p?: PlayerApiItem | null) => {
 
 const playerImageUrl = (p?: PlayerApiItem | null) => {
   return p?.image_url ?? "/loading-state/player.svg";
+};
+
+const resolvePlayerImage = (raw?: unknown): string | undefined => {
+  if (typeof raw !== "string" || !raw) return undefined;
+  if (raw.startsWith("data:image")) return raw;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `data:image/png;base64,${raw}`;
 };
 
 const formatCurrencyEUR = (value?: number): string => {
@@ -180,7 +189,7 @@ const getTeamOptionsForPlayer = (p: PlayerApiItem | null) => {
     map.set(String(p.team_id), String(p.team ?? "").trim() || "Current team");
   }
 
-  (p.transfers ?? []).forEach((t) => {
+  asArray(p.transfers).forEach((t) => {
     const fromId = t?.from_id;
     const toId = t?.to_id;
     const fromName = String(t?.from ?? "").trim();
@@ -201,7 +210,7 @@ const inferTeamForSeason = (p: PlayerApiItem | null, season: string) => {
   if (!p || !season) return null as null | { teamId?: string; name?: string };
   const targetTs = seasonStartDateTs(season);
   type TransferLite = { ts: number; toId: number; to: string };
-  const transfers = (p.transfers ?? [])
+  const transfers = asArray<{ date?: string; from?: string; from_id?: number; to?: string; to_id?: number; type?: string; price?: string }>(p.transfers)
     .reduce((acc: TransferLite[], t) => {
       const ts = parseTransferDate(t?.date);
       const toId = t?.to_id;
@@ -256,7 +265,7 @@ const countClubsPlayed = (p?: PlayerApiItem | null): number => {
   if (!p) return 0;
   const ids = new Set<string>();
   if (typeof p.team_id === "number") ids.add(String(p.team_id));
-  (p.transfers ?? []).forEach((t) => {
+  asArray<{ date?: string; from?: string; from_id?: number; to?: string; to_id?: number; type?: string; price?: string }>(p.transfers).forEach((t) => {
     if (typeof t?.to_id === "number") ids.add(String(t.to_id));
     if (typeof t?.from_id === "number") ids.add(String(t.from_id));
   });
@@ -265,7 +274,7 @@ const countClubsPlayed = (p?: PlayerApiItem | null): number => {
 
 const countTrophies = (p?: PlayerApiItem | null): number => {
   if (!p) return 0;
-  return (p.trophies ?? []).reduce((acc, t) => {
+  return asArray<{ count?: number; seasons?: string[] }>(p.trophies).reduce((acc, t) => {
     if (typeof t?.count === "number") return acc + (t.count ?? 0);
     if (Array.isArray(t?.seasons)) return acc + t.seasons.length;
     return acc + 1;
@@ -280,10 +289,10 @@ const seasonStartYear = (season?: string): number => {
 
 const uniqSeasonsFromPlayer = (p?: PlayerApiItem | null) => {
   const rows = [
-    ...(p?.statistics?.clubs ?? []),
-    ...(p?.statistics?.cups ?? []),
-    ...(p?.statistics?.cups_intl ?? []),
-    ...(p?.statistics?.intl ?? []),
+    ...asArray<PlayerSeasonRow>(p?.statistics?.clubs),
+    ...asArray<PlayerSeasonRow>(p?.statistics?.cups),
+    ...asArray<PlayerSeasonRow>(p?.statistics?.cups_intl),
+    ...asArray<PlayerSeasonRow>(p?.statistics?.intl),
   ];
   const seasons = Array.from(new Set(rows.map((r) => String(r?.season ?? "").trim()).filter(Boolean)));
   seasons.sort((a, b) => seasonStartYear(b) - seasonStartYear(a));
@@ -293,10 +302,10 @@ const uniqSeasonsFromPlayer = (p?: PlayerApiItem | null) => {
 const getFilteredSeasonRows = (p: PlayerApiItem | null, season: string, leagueId?: string) => {
   if (!p || !season) return [] as PlayerSeasonRow[];
   const rows = [
-    ...(p.statistics?.clubs ?? []),
-    ...(p.statistics?.cups ?? []),
-    ...(p.statistics?.cups_intl ?? []),
-    ...(p.statistics?.intl ?? []),
+    ...asArray<PlayerSeasonRow>(p.statistics?.clubs),
+    ...asArray<PlayerSeasonRow>(p.statistics?.cups),
+    ...asArray<PlayerSeasonRow>(p.statistics?.cups_intl),
+    ...asArray<PlayerSeasonRow>(p.statistics?.intl),
   ].filter((r) => String(r?.season ?? "") === season);
 
   const lid = String(leagueId ?? "").trim();
@@ -398,42 +407,6 @@ const radarMetricsFromSeason = (p: PlayerApiItem | null, season: string, leagueI
   };
 };
 
-const extractXgFromPlayersStatsResponse = (statsRes: any, playerId: string, season: string): number | null => {
-  if (!statsRes || !playerId || !season) return null;
-
-  const root = statsRes?.responseObject?.item ?? statsRes?.responseObject ?? statsRes?.item ?? statsRes;
-  const items = Array.isArray(root) ? root : root ? [root] : [];
-
-  const matchById = (obj: any) => {
-    const pid = obj?.player_id ?? obj?.id ?? obj?.pid ?? obj?.playerId;
-    return String(pid ?? "") === String(playerId);
-  };
-
-  const cand = items.find(matchById);
-  if (!cand) return null;
-
-  const seasonRows =
-    cand?.statistics?.clubs ??
-    cand?.clubs ??
-    cand?.statistics ??
-    cand?.seasons ??
-    [];
-
-  const rows = Array.isArray(seasonRows) ? seasonRows : [];
-  const row = rows.find((r: any) => String(r?.season ?? r?.year ?? "") === String(season));
-  if (!row) return null;
-
-  const raw =
-    row?.expected_goals ??
-    row?.xg ??
-    row?.expectedGoals ??
-    row?.xGoals ??
-    row?.xG;
-
-  const xg = toNumber(raw);
-  return xg > 0 ? xg : 0;
-};
-
 export default function PlayerComparison() {
   const [searchParams] = useSearchParams();
   const [slots, setSlots] = useState<PlayerSlot[]>([
@@ -483,28 +456,12 @@ export default function PlayerComparison() {
           const res: any = await getPlayerById(id);
           const item = res?.responseObject?.item;
           const p = Array.isArray(item) ? item[0] : item;
-          
-          // Debug: Log the structure of the player response
-          console.log(`Quick player ${id} response:`, {
-            id: p?.id,
-            player_id: p?.player_id,
-            firstname: p?.firstname,
-            lastname: p?.lastname,
-            common_name: p?.common_name,
-            allKeys: p ? Object.keys(p) : 'null'
-          });
-          
+
           const name =
             [p?.firstname, p?.lastname].filter(Boolean).join(" ") ||
             String(p?.common_name ?? "").trim() ||
             "Player";
-          const rawImage = p?.image;
-          const image =
-            typeof rawImage === "string" && rawImage.length
-              ? rawImage.startsWith("data:image")
-                ? rawImage
-                : `data:image/png;base64,${rawImage}`
-              : undefined;
+          const image = resolvePlayerImage(p?.image_url ?? p?.image);
           return {
             id: String(p?.player_id ?? p?.id ?? id),
             name: String(name),
@@ -732,42 +689,13 @@ export default function PlayerComparison() {
     });
   };
 
-  const [playersStatsApi, setPlayersStatsApi] = useState<any>(null);
-  useEffect(() => {
-    const ids = selectedIds;
-    if (ids.length < 2) {
-      setPlayersStatsApi(null);
-      return;
-    }
-
-    const run = async () => {
-      try {
-        const res = await getPlayersStats({ playerIds: ids });
-        setPlayersStatsApi(res);
-      } catch {
-        setPlayersStatsApi(null);
-      }
-    };
-
-    run();
-  }, [selectedIds]);
-
   const seasonTotalsBySlot = useMemo(() => {
     return slots.map((s) => {
       const season = String(s.filterSeason ?? "");
       const leagueId = String(s.filterLeagueId ?? "");
-      const base = sumSeasonTotals(s.player ?? null, season, leagueId);
-
-      if (s.playerId && playersStatsApi && season) {
-        const fromApi = extractXgFromPlayersStatsResponse(playersStatsApi, s.playerId, season);
-        if (fromApi != null) {
-          return { ...base, xg: fromApi };
-        }
-      }
-
-      return base;
+      return sumSeasonTotals(s.player ?? null, season, leagueId);
     });
-  }, [slots, playersStatsApi]);
+  }, [slots]);
 
   const differencesBySlot = useMemo(() => {
     const base = seasonTotalsBySlot[0] ?? { goals: 0, assists: 0, xg: 0 };
@@ -844,7 +772,7 @@ export default function PlayerComparison() {
   const transferFeeSeriesBySlot = useMemo(() => {
     return slots.map((s) => {
       const p = s.player ?? null;
-      const points: TransferFeePoint[] = (p?.transfers ?? [])
+      const points: TransferFeePoint[] = asArray<{ date?: string; price?: string }>(p?.transfers)
         .map((t) => {
           const ts = parseTransferDate(t?.date);
           const fee = parseFeeToNumber(t?.price);

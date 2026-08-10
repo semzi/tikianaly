@@ -165,13 +165,83 @@ export const getBasketballPlayers = async (page: number = 1) => {
 };
 
 /**
- * Fetch a basketball player by ID or name
- * @param filter - Player ID or name
+ * Fetch a basketball player by ID
+ * @param filter - Player ID
  */
 export const getBasketballPlayerDetail = async (filter: string | number) => {
   const endpoint = `/api/v1/basketball/players/${filter}`;
   const response = await apiClient.get(endpoint);
   return response.data;
+};
+
+/**
+ * Search basketball players by name.
+ * Tries the exact-name/ID detail endpoint first, then falls back to a
+ * bounded client-side substring search over the paginated players list.
+ * @param query - Player name search term
+ * @param maxPages - Max pages of the players list to scan in the fallback
+ */
+export const searchBasketballPlayers = async (
+  query: string,
+  maxPages: number = 8
+) => {
+  const q = String(query).trim();
+  if (!q) return [];
+
+  const normalize = (p: any) => ({
+    player_id: p?.player_id,
+    player_name: p?.player_name,
+    image_url: p?.image_url,
+  });
+
+  const seen = new Set<string>();
+
+  try {
+    const res: any = await getBasketballPlayerDetail(q);
+    const raw = res?.responseObject?.item ?? res?.responseObject?.items;
+    const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    const exact = items
+      .map(normalize)
+      .filter((p: any) => p.player_id && p.player_name);
+    if (exact.length) {
+      return exact.slice(0, 10);
+    }
+  } catch {
+    // not a valid ID / no exact match -> fall back to paginated search
+  }
+
+  const lower = q.toLowerCase();
+  const results: Array<{ player_id?: number; player_name?: string; image_url?: string | null }> =
+    [];
+  let scanned = 0;
+
+  for (let page = 1; page <= maxPages; page++) {
+    let res: any;
+    try {
+      res = await getBasketballPlayers(page);
+    } catch {
+      break;
+    }
+    const items: any[] = res?.responseObject?.items ?? [];
+    const totalPages = res?.responseObject?.totalPages ?? page;
+
+    for (const p of items) {
+      const name = String(p?.player_name ?? "");
+      if (!name.toLowerCase().includes(lower)) continue;
+      const id = String(p?.player_id ?? "");
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      results.push(normalize(p));
+      if (results.length >= 10) return results;
+    }
+
+    scanned += items.length;
+    if (scanned >= totalPages * res?.responseObject?.limit || page >= totalPages) {
+      break;
+    }
+  }
+
+  return results;
 };
 
 /**

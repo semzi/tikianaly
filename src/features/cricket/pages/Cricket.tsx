@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { format, isToday } from "date-fns";
 import {
   ChevronDownIcon,
@@ -6,6 +6,7 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
+import { useSearchParams } from "react-router-dom";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
 import ReturnToToday from "@/components/ui/ReturnToToday";
 import { SportLayout } from "@/components/layout/SportLayout";
@@ -29,8 +30,53 @@ const readFavorites = (): Record<string, boolean> => {
 };
 
 const CricketPage = () => {
-  const [activeTab, setActiveTab] = useState<CricketTab>("live");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<CricketTab>("fixtures");
+  
+  const [selectedDate, _setSelectedDate] = useState<Date | null>(() => {
+    try {
+      const dateParam = searchParams.get("date");
+      if (dateParam) {
+        const d = new Date(dateParam);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+      return new Date();
+    } catch {
+      return new Date();
+    }
+  });
+
+  const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
+    _setSelectedDate(prev => {
+      const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
+      
+      setSearchParams(prevParams => {
+        if (newDate && !isToday(newDate)) {
+          prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
+        } else {
+          prevParams.delete("date");
+        }
+        return prevParams;
+      }, { replace: false });
+      
+      return newDate;
+    });
+  }, [setSearchParams]);
+
+  // Sync state with URL when navigating back/forward
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const d = new Date(dateParam);
+      if (!Number.isNaN(d.getTime())) {
+        _setSelectedDate(d);
+        setActiveTab("fixtures");
+        return;
+      }
+    }
+    _setSelectedDate(new Date());
+  }, [searchParams]);
+
   const [favorites, setFavorites] = useState<Record<string, boolean>>(readFavorites);
   const [favoritesOpen, setFavoritesOpen] = useState(true);
   const [collapsedLeagues, setCollapsedLeagues] = useState<Record<string, boolean>>({});
@@ -66,10 +112,18 @@ const CricketPage = () => {
 
   const matches = useMemo(() => {
     let rawItems: any[] = [];
-    if (activeTab === "live") {
-      rawItems = liveQuery.data?.responseObject?.items || [];
-    } else {
-      rawItems = fixturesQuery.data?.responseObject?.items || [];
+    const responseObj = activeTab === "live" 
+      ? liveQuery.data?.responseObject 
+      : fixturesQuery.data?.responseObject;
+      
+    if (responseObj) {
+      if (Array.isArray(responseObj)) {
+        rawItems = responseObj;
+      } else if (Array.isArray(responseObj.items)) {
+        rawItems = responseObj.items;
+      } else if (typeof responseObj === "object") {
+        rawItems = Object.values(responseObj).flat();
+      }
     }
     
     return rawItems.map(mapCricketMatch);

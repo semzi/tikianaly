@@ -1233,7 +1233,7 @@ export const gameInfo = () => {
 
       ? (matchInfo as any)?.teams?.home?.score?.goals
 
-      : (liveFixture as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.score ?? ""
+      : (liveFixture as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.goals ?? (fixtureDetails as any)?.localteam?.score ?? ""
 
   ).trim();
 
@@ -1243,7 +1243,7 @@ export const gameInfo = () => {
 
       ? (matchInfo as any)?.teams?.away?.score?.goals
 
-      : (liveFixture as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.score ?? ""
+      : (liveFixture as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.goals ?? (fixtureDetails as any)?.visitorteam?.score ?? ""
 
   ).trim();
 
@@ -3357,6 +3357,42 @@ export const gameInfo = () => {
 
 
 
+    // Fallback: extract goals from fixtureDetails.events when goals field is null
+
+    const restGoalsFromEvents = (() => {
+
+      if (restGoals.length > 0) return [];
+
+      const events = (fixtureDetails as any)?.events;
+
+      if (!Array.isArray(events)) return [];
+
+      return events
+
+        .filter(
+
+          (e: any) =>
+
+            String(e?.type ?? "").toLowerCase() === "goal" &&
+
+            String(e?.team ?? "") === teamKey
+
+        )
+
+        .map((e: any) => ({
+
+          player: String(e?.player ?? ""),
+
+          minute: String(e?.minute ?? "").trim(),
+
+        }))
+
+        .filter((g: any) => String(g.player).trim());
+
+    })() as Array<{ player: string; minute: string }>;
+
+
+
     const restMatchInfoGoals = (() => {
 
       if (!isFullTimeMatchInfo) return [] as Array<{ player: string; minute: string }>;
@@ -3395,13 +3431,17 @@ export const gameInfo = () => {
 
         ? restMatchInfoGoals
 
-        : restGoals
+        : restGoals.length > 0
 
-            .filter((g) => g?.team === teamKey)
+          ? restGoals
 
-            .map((g) => ({ player: String(g.player ?? ""), minute: String(g.minute ?? "").trim() }))
+              .filter((g) => g?.team === teamKey)
 
-            .filter((g) => String(g.player).trim());
+              .map((g) => ({ player: String(g.player ?? ""), minute: String(g.minute ?? "").trim() }))
+
+              .filter((g) => String(g.player).trim())
+
+          : restGoalsFromEvents;
 
 
 

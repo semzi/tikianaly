@@ -31,7 +31,7 @@ export const getUpcomingCricketFixtures = async (page?: string | number, limit?:
   if (limit) params.limit = limit;
   if (date) params.date = date;
   
-  const response = await apiClient.post("/api/v1/cricket/upcoming", null, { params });
+  const response = await apiClient.get("/api/v1/cricket/upcoming", { params });
   return response.data;
 };
 

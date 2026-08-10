@@ -85,6 +85,9 @@ const BasketballLeagueProfile = lazy(
 const BasketballLeagues = lazy(
   () => import("./features/basketball/pages/BasketballLeagues"),
 );
+const BasketballPlayerProfile = lazy(
+  () => import("./features/basketball/pages/BasketballPlayerProfile"),
+);
 const CricketPage = lazy(() => import("./features/cricket/pages/Cricket"));
 const CricketLeagues = lazy(
   () => import("./features/cricket/pages/CricketLeagues"),
@@ -331,6 +334,20 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <BasketballLeagueProfile />
+                </m.div>
+              }
+            />
+            <Route
+              path="/basketball/player/:playerId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <BasketballPlayerProfile />
                 </m.div>
               }
             />

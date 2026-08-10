@@ -1,0 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tikianaly.tikianaly",
+      "sha256_cert_fingerprints": [
+        "85:85:79:2D:43:76:77:77:6D:11:9C:F6:9D:35:8C:CC:65:03:4B:FE:66:38:66:BB:23:C3:E6:17:D5:CD:69:43",
+        "4A:BB:C3:99:47:D5:57:36:CF:81:BA:C1:E4:17:37:95:CC:19:54:F1:FE:A8:A8:68:87:6E:28:58:78:5E:D9:A8",
+        "98:73:74:97:BF:AB:25:3A:B5:82:77:E0:57:B9:9A:55:1C:14:56:BB:21:BA:B0:A4:65:1B:B7:88:D9:96:00:64"
+      ]
+    }
+  }
+]
