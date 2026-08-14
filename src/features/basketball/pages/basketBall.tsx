@@ -784,7 +784,7 @@ const BasketballPage = () => {
               ))
             ) : (
               <div className="block-style text-center py-12">
-                <div className="text-4xl mb-4">ðŸ€</div>
+                <div className="text-4xl mb-4">🏀</div>
                 <p className="text-lg font-semibold theme-text mb-2">
                   No {activeTab} matches
                 </p>
