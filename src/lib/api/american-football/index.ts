@@ -10,9 +10,6 @@ import type {
   AmericanFootballStandingsTeam,
 } from "@/features/american-football/data/mockAmericanFootballStandings";
 
-export const isAmericanFootballApiEnabled =
-  import.meta.env.VITE_ENABLE_AMERICAN_FOOTBALL_API === "true";
-
 type UnknownRecord = Record<string, unknown>;
 
 const asRecord = (value: unknown): UnknownRecord =>

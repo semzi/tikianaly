@@ -5,12 +5,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import {
-  mockAmericanFootballAllLeagues,
-  mockAmericanFootballPopularLeagues,
-} from "../data/mockAmericanFootball";
-import {
   getAmericanFootballLeagues,
-  isAmericanFootballApiEnabled,
   normalizeAmericanFootballLeagues,
 } from "@/lib/api/american-football";
 import { navigate } from "@/lib/router/navigate";
@@ -29,18 +24,13 @@ export const AmericanFootballLeftBar = ({
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
   const leaguesQuery = useQuery({
     queryKey: ["american-football", "coverage"],
-    enabled: isAmericanFootballApiEnabled,
     queryFn: async () =>
       normalizeAmericanFootballLeagues(await getAmericanFootballLeagues()),
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  const allLeagues = leaguesQuery.data?.length
-    ? leaguesQuery.data
-    : mockAmericanFootballAllLeagues;
-  const popularLeagues = leaguesQuery.data?.length
-    ? leaguesQuery.data.slice(0, 6)
-    : mockAmericanFootballPopularLeagues;
+  const allLeagues = leaguesQuery.data ?? [];
+  const popularLeagues = leaguesQuery.data?.slice(0, 6) ?? [];
 
   const leaguesByRegion = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

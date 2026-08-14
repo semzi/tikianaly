@@ -22,14 +22,11 @@ import ReturnToToday from "@/components/ui/ReturnToToday";
 import { navigate } from "@/lib/router/navigate";
 import { AmericanFootballLeftBar } from "../components/AmericanFootballLeftBar";
 import {
-  mockAmericanFootballLiveMatches,
-  mockAmericanFootballUpcomingMatches,
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
 import {
   getAmericanFootballFixturesByDate,
   getAmericanFootballLiveMatches,
-  isAmericanFootballApiEnabled,
   normalizeAmericanFootballMatches,
 } from "@/lib/api/american-football";
 
@@ -232,7 +229,6 @@ const AmericanFootballPage = () => {
       activeTab,
       selectedDate ? format(selectedDate, "yyyy-MM-dd") : null,
     ],
-    enabled: isAmericanFootballApiEnabled,
     queryFn: async () => {
       const payload =
         activeTab === "live"
@@ -247,12 +243,8 @@ const AmericanFootballPage = () => {
   });
 
   const allMatches = useMemo(() => {
-    const fallback =
-      activeTab === "live"
-        ? mockAmericanFootballLiveMatches
-        : mockAmericanFootballUpcomingMatches;
-    return matchesQuery.data?.length ? matchesQuery.data : fallback;
-  }, [activeTab, matchesQuery.data]);
+    return matchesQuery.data ?? [];
+  }, [matchesQuery.data]);
 
   const matches = useMemo(() => {
     if (!selectedLeagueName) return allMatches;

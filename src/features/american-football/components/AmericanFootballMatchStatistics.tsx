@@ -11,18 +11,6 @@ type DisplayRow = {
   winner: Winner;
 };
 
-/**
- * Fallback stats shown while a match is live but the backend has not
- * delivered any real stat lines yet (mirrors the old inline fallback).
- */
-const fallbackLiveStats: AmericanFootballStat[] = [
-  { label: "Total Yards", home: 238, away: 261 },
-  { label: "Passing Yards", home: 156, away: 184 },
-  { label: "Rushing Yards", home: 82, away: 77 },
-  { label: "First Downs", home: 14, away: 16 },
-  { label: "Time of Possession", home: 28, away: 32 },
-];
-
 /** Stats where a lower value is better (fewer penalties / turnovers). */
 const isLowerBetter = (label: string) => /penalt|turnover/i.test(label);
 
@@ -40,16 +28,14 @@ const AmericanFootballMatchStatistics = ({
   stats,
   homeTeamName,
   awayTeamName,
-  isLive,
 }: {
   stats?: AmericanFootballStat[];
   homeTeamName?: string;
   awayTeamName?: string;
-  isLive: boolean;
 }) => {
   const source = useMemo<AmericanFootballStat[]>(
-    () => (stats?.length ? stats : isLive ? fallbackLiveStats : []),
-    [stats, isLive],
+    () => stats ?? [],
+    [stats],
   );
 
   const rows = useMemo<DisplayRow[]>(
