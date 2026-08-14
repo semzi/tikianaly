@@ -26,6 +26,9 @@ import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
 
+// Number of league groups fetched per request in date mode. Kept below the
+// API max (100) so the list loads progressively as the user scrolls.
+const DATE_FIXTURES_PAGE_SIZE = 40;
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
@@ -851,7 +854,12 @@ export const dashboard = () => {
             // 2. Fetch fresh data in the background and update UI seamlessly
             const response = await queryClient.fetchQuery<any>({
               queryKey: ["footballFixturesByDate", formattedDate],
-              queryFn: () => getFootballFixturesByDate(formattedDate, 1, 100),
+              queryFn: () =>
+                getFootballFixturesByDate(
+                  formattedDate,
+                  1,
+                  DATE_FIXTURES_PAGE_SIZE
+                ),
               staleTime: 0, // Always fetch to ensure we check for updates
             });
 
@@ -906,7 +914,11 @@ export const dashboard = () => {
     dateLoadingMoreRef.current = true;
     setDateLoadingMore(true);
     try {
-      const response = await getFootballFixturesByDate(formattedDate, page, 100);
+      const response = await getFootballFixturesByDate(
+        formattedDate,
+        page,
+        DATE_FIXTURES_PAGE_SIZE
+      );
       const leagues = response?.responseObject?.leagues;
       if (response?.success && Array.isArray(leagues)) {
         let addedAny = false;
@@ -927,7 +939,8 @@ export const dashboard = () => {
         if (addedAny) flushFixturesToState();
         // The API returns at most `limit` groups per page; a full page means
         // more pages may exist. Stop when a page is not full or adds nothing new.
-        dateHasMoreRef.current = leagues.length >= 100 && addedAny;
+        dateHasMoreRef.current =
+          leagues.length >= DATE_FIXTURES_PAGE_SIZE && addedAny;
         dateNextPageRef.current = page + 1;
       } else {
         dateHasMoreRef.current = false;
