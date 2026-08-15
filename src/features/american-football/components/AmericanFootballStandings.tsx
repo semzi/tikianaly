@@ -4,12 +4,10 @@ import type {
   AmericanFootballStandingsGroup,
   AmericanFootballStandingsTeam,
 } from "../data/mockAmericanFootballStandings";
-import { mockLeagueStandings } from "../data/mockAmericanFootballStandings";
 import { teamInitials } from "../statUtils";
 import {
   AF_LEAGUE_CODE_TO_MOCK_ID,
   getAllStandingsAsMockShape,
-  isAmericanFootballApiEnabled,
 } from "@/lib/api/american-football";
 
 /** "NFL" -> "nfl", "NCAA FBS" -> "ncaa-fbs", "CFL" -> "cfl", ... */
@@ -46,16 +44,13 @@ const AmericanFootballStandings = ({
 
   const standingsQuery = useQuery({
     queryKey: ["american-football", "standings", "all"],
-    enabled: isAmericanFootballApiEnabled,
     queryFn: getAllStandingsAsMockShape,
     staleTime: 5 * 60 * 1000,
   });
 
   const groups = useMemo<AmericanFootballStandingsGroup[]>(() => {
     if (!standingsKey) return [];
-    return standingsQuery.data?.[standingsKey]?.length
-      ? standingsQuery.data[standingsKey]
-      : (mockLeagueStandings[standingsKey] ?? []);
+    return standingsQuery.data?.[standingsKey] ?? [];
   }, [standingsKey, standingsQuery.data]);
 
   const rowHighlight = (team: AmericanFootballStandingsTeam) => {

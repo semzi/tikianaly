@@ -19,7 +19,7 @@ import type { AmericanFootballMatch } from "../data/mockAmericanFootball";
 import { teamInitials, toNumeric } from "../statUtils";
 
 const SectionTitle = ({ children }: { children: ReactNode }) => (
-  <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-4">
+  <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 dark:text-snow-200 mb-4">
     {children}
   </p>
 );
@@ -126,7 +126,7 @@ const AmericanFootballMatchOverview = ({
                     <span className="text-sm font-bold theme-text tabular-nums">
                       {row.home}
                     </span>
-                    <span className="text-[11px] uppercase tracking-wide text-neutral-n4">
+                    <span className="text-[11px] uppercase tracking-wide text-neutral-n4 dark:text-snow-200">
                       {row.label}
                     </span>
                     <span className="text-sm font-bold theme-text tabular-nums">
@@ -147,7 +147,7 @@ const AmericanFootballMatchOverview = ({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-neutral-n4">
+            <p className="text-sm text-neutral-n4 dark:text-snow-200">
               Team statistics will appear when the game begins.
             </p>
           )}
@@ -177,7 +177,7 @@ const AmericanFootballMatchOverview = ({
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-sm text-neutral-n4">
+            <p className="text-sm text-neutral-n4 dark:text-snow-200">
               Score progression will appear once the game starts.
             </p>
           )}
@@ -194,7 +194,7 @@ const AmericanFootballMatchOverview = ({
                 key={card.category}
                 className="rounded-xl border border-snow-200 dark:border-[#1F2937] p-3"
               >
-                <p className="text-[11px] uppercase font-bold tracking-wide text-neutral-n4 mb-3">
+                <p className="text-[11px] uppercase font-bold tracking-wide text-neutral-n4 dark:text-snow-200 mb-3">
                   {card.category}
                 </p>
                 {[
@@ -208,7 +208,7 @@ const AmericanFootballMatchOverview = ({
                     }`}
                   >
                     <span className="flex items-center gap-2 min-w-0">
-                      <span className="h-6 w-6 rounded-full bg-snow-200 dark:bg-white/10 flex items-center justify-center text-[9px] font-bold text-neutral-n4 shrink-0">
+                      <span className="h-6 w-6 rounded-full bg-snow-200 dark:bg-white/10 flex items-center justify-center text-[9px] font-bold text-neutral-n4 dark:text-snow-200 shrink-0">
                         {teamInitials(entry.team)}
                       </span>
                       <span className="truncate text-sm font-medium theme-text">
@@ -224,7 +224,7 @@ const AmericanFootballMatchOverview = ({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-n4">
+          <p className="text-sm text-neutral-n4 dark:text-snow-200">
             Match leaders will appear when the game begins.
           </p>
         )}
@@ -247,17 +247,17 @@ const AmericanFootballMatchOverview = ({
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm theme-text">{lastEvent.event}</p>
-                <p className="text-xs text-neutral-n4 mt-1">{lastEvent.time}</p>
+                <p className="text-xs text-neutral-n4 dark:text-snow-200 mt-1">{lastEvent.time}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-bold theme-text tabular-nums">
                   {match.score}
                 </p>
-                <p className="text-xs text-neutral-n4">{statusText}</p>
+                <p className="text-xs text-neutral-n4 dark:text-snow-200">{statusText}</p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-neutral-n4">
+            <p className="text-sm text-neutral-n4 dark:text-snow-200">
               {match.highlight || "No plays recorded yet."}
             </p>
           )}
@@ -267,8 +267,8 @@ const AmericanFootballMatchOverview = ({
           <SectionTitle>Game Info</SectionTitle>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <TrophyIcon className="h-4 w-4 text-neutral-n4 shrink-0" />
-              <span className="text-xs uppercase tracking-wide text-neutral-n4 w-20">
+              <TrophyIcon className="h-4 w-4 text-neutral-n4 dark:text-snow-200 shrink-0" />
+              <span className="text-xs uppercase tracking-wide text-neutral-n4 dark:text-snow-200 w-20">
                 League
               </span>
               <span className="text-sm font-semibold theme-text">
@@ -276,8 +276,8 @@ const AmericanFootballMatchOverview = ({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <CalendarDaysIcon className="h-4 w-4 text-neutral-n4 shrink-0" />
-              <span className="text-xs uppercase tracking-wide text-neutral-n4 w-20">
+              <CalendarDaysIcon className="h-4 w-4 text-neutral-n4 dark:text-snow-200 shrink-0" />
+              <span className="text-xs uppercase tracking-wide text-neutral-n4 dark:text-snow-200 w-20">
                 Kickoff
               </span>
               <span className="text-sm font-semibold theme-text">
@@ -285,8 +285,8 @@ const AmericanFootballMatchOverview = ({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <MapPinIcon className="h-4 w-4 text-neutral-n4 shrink-0" />
-              <span className="text-xs uppercase tracking-wide text-neutral-n4 w-20">
+              <MapPinIcon className="h-4 w-4 text-neutral-n4 dark:text-snow-200 shrink-0" />
+              <span className="text-xs uppercase tracking-wide text-neutral-n4 dark:text-snow-200 w-20">
                 Venue
               </span>
               <span className="text-sm font-semibold theme-text">
@@ -294,8 +294,8 @@ const AmericanFootballMatchOverview = ({
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <ClockIcon className="h-4 w-4 text-neutral-n4 shrink-0" />
-              <span className="text-xs uppercase tracking-wide text-neutral-n4 w-20">
+              <ClockIcon className="h-4 w-4 text-neutral-n4 dark:text-snow-200 shrink-0" />
+              <span className="text-xs uppercase tracking-wide text-neutral-n4 dark:text-snow-200 w-20">
                 Status
               </span>
               <span className="text-sm font-semibold theme-text">

@@ -988,7 +988,7 @@ export default function LineupBuilder({
               const totalRows = homeRows.length;
               const x = getX("home", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
-                const y = getY(indexInRow, row.length);
+                const y = getY(row.length - 1 - indexInRow, row.length);
                 const subOff = homeSubOut.get(String(player.player_id));
                 return (
                   <div
@@ -1006,7 +1006,7 @@ export default function LineupBuilder({
               const totalRows = awayRows.length;
               const x = getX("away", rowIndex, totalRows);
               return row.map((player, indexInRow) => {
-                const y = getY(indexInRow, row.length);
+                const y = getY(row.length - 1 - indexInRow, row.length);
                 const subOff = awaySubOut.get(String(player.player_id));
                 return (
                   <div

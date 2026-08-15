@@ -17,14 +17,11 @@ import AmericanFootballMatchStatistics from "../components/AmericanFootballMatch
 import AmericanFootballStandings from "../components/AmericanFootballStandings";
 import { teamInitials } from "../statUtils";
 import {
-  mockAmericanFootballLiveMatches,
-  mockAmericanFootballUpcomingMatches,
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
 import {
   getAmericanFootballFixtureById,
   getAmericanFootballPlayByPlay,
-  isAmericanFootballApiEnabled,
   normalizeAmericanFootballMatchDetail,
   normalizeAmericanFootballTimeline,
 } from "@/lib/api/american-football";
@@ -102,12 +99,9 @@ const AmericanFootballMatchDetail = () => {
   const [activeTab, setActiveTab] = useState<MatchTab>("overview");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
-  // Check if this is a mock ID (all mock IDs start with "af-")
-  const isMockMatchId = Boolean(matchId?.startsWith("af-"));
-
   const detailQuery = useQuery({
     queryKey: ["american-football", "match", matchId],
-    enabled: isAmericanFootballApiEnabled && Boolean(matchId) && !isMockMatchId,
+    enabled: Boolean(matchId),
     queryFn: async () =>
       normalizeAmericanFootballMatchDetail(
         await getAmericanFootballFixtureById(String(matchId)),
@@ -118,11 +112,7 @@ const AmericanFootballMatchDetail = () => {
 
   const playByPlayQuery = useQuery({
     queryKey: ["american-football", "match", matchId, "play-by-play"],
-    enabled:
-      isAmericanFootballApiEnabled &&
-      Boolean(matchId) &&
-      !isMockMatchId &&
-      activeTab === "timeline",
+    enabled: Boolean(matchId) && activeTab === "timeline",
     queryFn: async () =>
       normalizeAmericanFootballTimeline(
         await getAmericanFootballPlayByPlay(String(matchId)),
@@ -132,15 +122,9 @@ const AmericanFootballMatchDetail = () => {
   });
 
   const match = useMemo<AmericanFootballMatch>(() => {
-    const fromMock = [
-      ...mockAmericanFootballLiveMatches,
-      ...mockAmericanFootballUpcomingMatches,
-    ].find((item) => item.id === matchId);
-
     return (
       detailQuery.data ??
-      state.match ??
-      fromMock ?? {
+      state.match ?? {
         id: String(matchId ?? "american-football-game"),
         league: "American Football",
         homeTeam: "Home Team",
@@ -300,7 +284,7 @@ const AmericanFootballMatchDetail = () => {
         </div>
       </section>
 
-      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
+      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-gray-800 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
         <div className="flex md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -309,7 +293,7 @@ const AmericanFootballMatchDetail = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 flex items-center gap-1 ${activeTab === tab.id ? "text-orange-500 font-medium border-b-2 border-orange-500" : "text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}
+                className={`py-2 px-1.5 sm:px-4 text-xs md:text-sm transition-colors flex-shrink-0 flex items-center gap-1 ${activeTab === tab.id ? "text-orange-500 font-medium border-b-2 border-orange-500" : "text-gray-600 hover:text-gray-800 dark:text-gray-800 dark:hover:text-gray-900"}`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
@@ -336,7 +320,6 @@ const AmericanFootballMatchDetail = () => {
                 stats={match.stats}
                 homeTeamName={match.homeTeam}
                 awayTeamName={match.awayTeam}
-                isLive={isLive}
               />
             </div>
           </div>
@@ -355,7 +338,7 @@ const AmericanFootballMatchDetail = () => {
                   key={`${row.time}-${index}`}
                   className="flex items-start gap-3 rounded-lg border border-snow-200 dark:border-[#1F2937] p-3"
                 >
-                  <div className="w-16 text-xs font-bold text-neutral-n4">
+                  <div className="w-16 text-xs font-bold text-neutral-n4 dark:text-snow-200">
                     {row.time}
                   </div>
                   <div
@@ -371,17 +354,17 @@ const AmericanFootballMatchDetail = () => {
         {activeTab === "info" ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div className="block-style">
-              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 dark:text-snow-200 mb-2">
                 League
               </p>
               <p className="text-lg font-semibold theme-text">{match.league}</p>
-              <p className="text-sm text-neutral-n4 mt-1">
+              <p className="text-sm text-neutral-n4 dark:text-snow-200 mt-1">
                 Status: {match.status}{" "}
                 {isLive ? `• ${match.period}, ${match.clock}` : ""}
               </p>
             </div>
             <div className="block-style">
-              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 dark:text-snow-200 mb-2">
                 Game Details
               </p>
               <p className="text-sm theme-text">Venue: {match.venue}</p>
@@ -409,7 +392,7 @@ const AmericanFootballMatchDetail = () => {
               <p className="text-sm theme-text">Game ID: {match.id}</p>
             </div>
             <div className="block-style md:col-span-2">
-              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 mb-2">
+              <p className="text-xs uppercase font-bold tracking-wide text-neutral-n4 dark:text-snow-200 mb-2">
                 Preview
               </p>
               <p className="text-sm theme-text">{match.highlight}</p>

@@ -26,6 +26,9 @@ import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
 
+// Number of league groups fetched per request in date mode. Kept below the
+// API max (100) so the list loads progressively as the user scrolls.
+const DATE_FIXTURES_PAGE_SIZE = 40;
 
 // Shimmer skeleton loader component with sleek animation
 const Skeleton = ({ className = "" }) => (
@@ -98,6 +101,11 @@ export const dashboard = () => {
   const liveEventSourceRef = useRef<EventSource | null>(null);
   const leagueFixturesMapRef = useRef<Map<number, any[]>>(new Map());
   const flushFixturesTimeoutRef = useRef<number | null>(null);
+  // Infinite scroll pagination for date-mode fixtures
+  const dateNextPageRef = useRef<number>(2);
+  const dateHasMoreRef = useRef<boolean>(true);
+  const dateLoadingMoreRef = useRef<boolean>(false);
+  const [dateLoadingMore, setDateLoadingMore] = useState(false);
   const latestSseUpdatesRef = useRef<{
     byStaticId: Map<string, any>;
     byMatchId: Map<string, any>;
@@ -550,6 +558,60 @@ export const dashboard = () => {
     return m;
   }, [topLeagueIds]);
 
+  // Fixture merge helpers (shared by the main fetch effect and the infinite-scroll
+  // "load more" fetcher). Kept at component level so both can use them.
+  const patchWithLatestSse = useCallback((games: any[]) => {
+    const { byStaticId, byMatchId, byFixtureId } = latestSseUpdatesRef.current;
+    if (!byStaticId.size && !byMatchId.size && !byFixtureId.size) return games;
+    return games.map((game: any) => {
+      const staticIdKey = game?.static_id ? String(game.static_id) : "";
+      const matchIdKey = game?.match_id ? String(game.match_id) : "";
+      const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
+      const update =
+        (staticIdKey && byStaticId.get(staticIdKey)) ||
+        (matchIdKey && byMatchId.get(matchIdKey)) ||
+        (fixtureIdKey && byFixtureId.get(fixtureIdKey));
+      return update ? { ...game, ...update } : game;
+    });
+  }, []);
+
+  const flushFixturesToState = useCallback(() => {
+    const blocks = Array.from(leagueFixturesMapRef.current.entries()).map(([leagueId, fx]) => ({
+      leagueId,
+      fixtures: fx,
+    }));
+
+    if (fixturesMode === "date") {
+      blocks.sort(
+        (a, b) =>
+          (topLeagueOrder.get(a.leagueId) ?? 999999) -
+          (topLeagueOrder.get(b.leagueId) ?? 999999)
+      );
+    } else {
+      blocks.sort((a, b) => a.leagueId - b.leagueId);
+    }
+
+    setFixtures(blocks);
+  }, [topLeagueOrder, fixturesMode]);
+
+  const scheduleFlushFixtures = useCallback(() => {
+    if (flushFixturesTimeoutRef.current !== null) return;
+    flushFixturesTimeoutRef.current = window.setTimeout(() => {
+      flushFixturesTimeoutRef.current = null;
+      flushFixturesToState();
+    }, 80);
+  }, [flushFixturesToState]);
+
+  const upsertLeagueFixtures = useCallback(
+    (leagueId: number, leagueFixtures: any[]) => {
+      const fixturesToInsert =
+        fixturesMode === "date" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
+      leagueFixturesMapRef.current.set(leagueId, sortFixturesLiveFirst(fixturesToInsert));
+      scheduleFlushFixtures();
+    },
+    [fixturesMode, patchWithLatestSse, scheduleFlushFixtures]
+  );
+
   const fixturesByLeagueId = useMemo(() => {
     const m = new Map<number, any>();
     for (const block of fixtures) {
@@ -558,6 +620,17 @@ export const dashboard = () => {
     }
     return m;
   }, [fixtures]);
+
+  // In date mode, render the preferred/top leagues first, then any additional
+  // league groups already loaded. Additional leagues are appended at the bottom
+  // as more pages are fetched on scroll.
+  const dateRenderLeagueIds = useMemo(() => {
+    if (fixturesMode !== "date") return [] as number[];
+    const additional = fixtures
+      .filter((block) => !topLeagueOrder.has(block.leagueId))
+      .map((block) => block.leagueId);
+    return [...topLeagueIds, ...additional];
+  }, [fixtures, fixturesMode, topLeagueIds, topLeagueOrder]);
 
   const extraLiveLeagueBlocks = useMemo(() => {
     void sseRevision;
@@ -626,6 +699,11 @@ export const dashboard = () => {
         setLoading(true);
         setFixtures([]); // Clear previous fixtures immediately when date/mode changes
         leagueFixturesMapRef.current = new Map();
+        // Reset infinite-scroll pagination for the new date/mode
+        dateNextPageRef.current = 2;
+        dateHasMoreRef.current = true;
+        dateLoadingMoreRef.current = false;
+        setDateLoadingMore(false);
         if (flushFixturesTimeoutRef.current !== null) {
           window.clearTimeout(flushFixturesTimeoutRef.current);
           flushFixturesTimeoutRef.current = null;
@@ -637,54 +715,8 @@ export const dashboard = () => {
         }
         const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'); // Use selectedDate, default to today if null
 
-        const patchWithLatestSse = (games: any[]) => {
-          const { byStaticId, byMatchId, byFixtureId } = latestSseUpdatesRef.current;
-          if (!byStaticId.size && !byMatchId.size && !byFixtureId.size) return games;
-          return games.map((game: any) => {
-            const staticIdKey = game?.static_id ? String(game.static_id) : "";
-            const matchIdKey = game?.match_id ? String(game.match_id) : "";
-            const fixtureIdKey = game?.fixture_id ? String(game.fixture_id) : "";
-            const update =
-              (staticIdKey && byStaticId.get(staticIdKey)) ||
-              (matchIdKey && byMatchId.get(matchIdKey)) ||
-              (fixtureIdKey && byFixtureId.get(fixtureIdKey));
-            return update ? { ...game, ...update } : game;
-          });
-        };
-
-        const flushFixturesToState = () => {
-          const blocks = Array.from(leagueFixturesMapRef.current.entries()).map(([leagueId, fx]) => ({
-            leagueId,
-            fixtures: fx,
-          }));
-
-          if (fixturesMode === "date") {
-            blocks.sort(
-              (a, b) =>
-                (topLeagueOrder.get(a.leagueId) ?? 999999) -
-                (topLeagueOrder.get(b.leagueId) ?? 999999)
-            );
-          } else {
-            blocks.sort((a, b) => a.leagueId - b.leagueId);
-          }
-
-          setFixtures(blocks);
-        };
-
-        const scheduleFlushFixtures = () => {
-          if (flushFixturesTimeoutRef.current !== null) return;
-          flushFixturesTimeoutRef.current = window.setTimeout(() => {
-            flushFixturesTimeoutRef.current = null;
-            flushFixturesToState();
-          }, 80);
-        };
-
-        const upsertLeagueFixtures = (leagueId: number, leagueFixtures: any[]) => {
-          const fixturesToInsert =
-            fixturesMode === "date" ? patchWithLatestSse(leagueFixtures) : leagueFixtures;
-          leagueFixturesMapRef.current.set(leagueId, sortFixturesLiveFirst(fixturesToInsert));
-          scheduleFlushFixtures();
-        };
+        // patchWithLatestSse / flushFixturesToState / scheduleFlushFixtures /
+        // upsertLeagueFixtures are defined at component level above.
 
         const markLeagueDone = (leagueId: number) => {
           setLoadingLeagueIds((prev) => {
@@ -822,7 +854,12 @@ export const dashboard = () => {
             // 2. Fetch fresh data in the background and update UI seamlessly
             const response = await queryClient.fetchQuery<any>({
               queryKey: ["footballFixturesByDate", formattedDate],
-              queryFn: () => getFootballFixturesByDate(formattedDate, 1, 100),
+              queryFn: () =>
+                getFootballFixturesByDate(
+                  formattedDate,
+                  1,
+                  DATE_FIXTURES_PAGE_SIZE
+                ),
               staleTime: 0, // Always fetch to ensure we check for updates
             });
 
@@ -862,6 +899,78 @@ export const dashboard = () => {
       liveEventSourceRef.current = null;
     };
   }, [fixturesMode, selectedDate]);
+
+  // Infinite scroll: fetch the next page of league groups for the selected date
+  // and append any new leagues to the bottom of the list.
+  const loadNextDatePage = useCallback(async () => {
+    if (fixturesMode !== "date") return;
+    if (loading || dateLoadingMoreRef.current || !dateHasMoreRef.current) return;
+
+    const page = dateNextPageRef.current;
+    const formattedDate = selectedDate
+      ? format(selectedDate, "yyyy-MM-dd")
+      : format(new Date(), "yyyy-MM-dd");
+
+    dateLoadingMoreRef.current = true;
+    setDateLoadingMore(true);
+    try {
+      const response = await getFootballFixturesByDate(
+        formattedDate,
+        page,
+        DATE_FIXTURES_PAGE_SIZE
+      );
+      const leagues = response?.responseObject?.leagues;
+      if (response?.success && Array.isArray(leagues)) {
+        let addedAny = false;
+        for (const leagueBlock of leagues) {
+          const leagueId = Number(leagueBlock?.id ?? leagueBlock?.league_id);
+          if (!Number.isFinite(leagueId)) continue;
+          if (leagueFixturesMapRef.current.has(leagueId)) continue;
+          const leagueFixtures = Array.isArray(leagueBlock?.fixtures)
+            ? leagueBlock.fixtures
+            : [];
+          if (leagueFixtures.length === 0) continue;
+          leagueFixturesMapRef.current.set(
+            leagueId,
+            sortFixturesLiveFirst(patchWithLatestSse(leagueFixtures))
+          );
+          addedAny = true;
+        }
+        if (addedAny) flushFixturesToState();
+        // The API returns at most `limit` groups per page; a full page means
+        // more pages may exist. Stop when a page is not full or adds nothing new.
+        dateHasMoreRef.current =
+          leagues.length >= DATE_FIXTURES_PAGE_SIZE && addedAny;
+        dateNextPageRef.current = page + 1;
+      } else {
+        dateHasMoreRef.current = false;
+      }
+    } catch (error) {
+      console.error("Error fetching next page of date fixtures:", error);
+      dateHasMoreRef.current = false;
+    } finally {
+      dateLoadingMoreRef.current = false;
+      setDateLoadingMore(false);
+    }
+  }, [fixturesMode, loading, selectedDate, patchWithLatestSse, flushFixturesToState]);
+
+  // Trigger the next page fetch when the user scrolls near the bottom of the page.
+  useEffect(() => {
+    if (fixturesMode !== "date") return;
+
+    const handleScroll = () => {
+      if (dateLoadingMoreRef.current || !dateHasMoreRef.current) return;
+      const doc = document.documentElement;
+      const scrollTop = window.scrollY || doc.scrollTop;
+      const maxScroll = doc.scrollHeight - window.innerHeight;
+      if (maxScroll > 0 && scrollTop / maxScroll >= 0.8) {
+        loadNextDatePage();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [fixturesMode, loadNextDatePage]);
 
   return (
       <SportLayout 
@@ -1197,7 +1306,7 @@ export const dashboard = () => {
             <div className="hidden md:block space-y-6">
               {(fixturesMode === "live"
                 ? fixtures.map((x) => x.leagueId)
-                : topLeagueIds
+                : dateRenderLeagueIds
               ).map((leagueId, leagueIdx) => {
                 const leagueFixture = fixturesByLeagueId.get(leagueId);
 
@@ -1582,7 +1691,7 @@ export const dashboard = () => {
             {/* Mobile Section */}
             {(fixturesMode === "live"
               ? fixtures.map((x) => x.leagueId)
-              : topLeagueIds
+              : dateRenderLeagueIds
             ).map((leagueId, leagueIdx) => {
               const leagueFixture = fixtures.find((x) => x.leagueId === leagueId);
 
@@ -2037,6 +2146,15 @@ export const dashboard = () => {
                 ))}
               </div>
             ))}
+
+            {fixturesMode === "date" && dateLoadingMore && (
+              <div className="flex items-center justify-center gap-2 py-6">
+                <span className="h-4 w-4 rounded-full border-2 border-snow-200 dark:border-[#1F2937] border-t-brand-secondary animate-spin" />
+                <p className="text-sm text-neutral-n5 dark:text-snow-200/70">
+                  Loading more leagues…
+                </p>
+              </div>
+            )}
 
             {!loading && fixtures.length === 0 && (
               <div className="flex flex-col items-center justify-center min-h-[55vh] w-full">
