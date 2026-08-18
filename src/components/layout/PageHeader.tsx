@@ -124,20 +124,27 @@ export const PageHeader = () => {
           setQuickPlayersById((prev) => ({ ...prev, [id]: stored }));
           return;
         }
-        const res: any = await getPlayerById(id);
-        const item = res?.responseObject?.item;
-        const p = Array.isArray(item) ? item[0] : item;
-        const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || String(p?.common_name ?? "").trim();
-        const image = resolveImage(p?.image_url ?? p?.image);
-        const info: QuickPlayerInfo = {
-          id: Number(id),
-          name: String(name || "Player"),
-          country: String(p?.nationality ?? ""),
-          image,
-        };
-        quickPlayersRef.current[id] = info;
-        writeQuickPickToStorage("player", id, info);
-        setQuickPlayersById((prev) => ({ ...prev, [id]: info }));
+        try {
+          const res: any = await getPlayerById(id);
+          const item = res?.responseObject?.item;
+          const p = Array.isArray(item) ? item[0] : item;
+          if (!p) throw new Error("Not found");
+          const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || String(p?.common_name ?? "").trim();
+          const image = resolveImage(p?.image_url ?? p?.image);
+          const info: QuickPlayerInfo = {
+            id: Number(id),
+            name: String(name || "Player"),
+            country: String(p?.nationality ?? ""),
+            image,
+          };
+          quickPlayersRef.current[id] = info;
+          writeQuickPickToStorage("player", id, info);
+          setQuickPlayersById((prev) => ({ ...prev, [id]: info }));
+        } catch {
+          const info: QuickPlayerInfo = { id: Number(id), name: "Unknown Player" };
+          quickPlayersRef.current[id] = info;
+          writeQuickPickToStorage("player", id, info);
+        }
       });
 
       await batch(teamIds, 6, async (id) => {
@@ -148,19 +155,26 @@ export const PageHeader = () => {
           setQuickTeamsById((prev) => ({ ...prev, [id]: stored }));
           return;
         }
-        const res: any = await getTeamById(id);
-        const item = res?.responseObject?.item;
-        const t = Array.isArray(item) ? item[0] : item;
-        const image = resolveImage(t?.image_url ?? t?.image);
-        const info: QuickTeamInfo = {
-          id: Number(id),
-          name: String(t?.name ?? "Team"),
-          country: String(t?.country ?? ""),
-          image,
-        };
-        quickTeamsRef.current[id] = info;
-        writeQuickPickToStorage("team", id, info);
-        setQuickTeamsById((prev) => ({ ...prev, [id]: info }));
+        try {
+          const res: any = await getTeamById(id);
+          const item = res?.responseObject?.item;
+          const t = Array.isArray(item) ? item[0] : item;
+          if (!t) throw new Error("Not found");
+          const image = resolveImage(t?.image_url ?? t?.image);
+          const info: QuickTeamInfo = {
+            id: Number(id),
+            name: String(t?.name ?? "Team"),
+            country: String(t?.country ?? ""),
+            image,
+          };
+          quickTeamsRef.current[id] = info;
+          writeQuickPickToStorage("team", id, info);
+          setQuickTeamsById((prev) => ({ ...prev, [id]: info }));
+        } catch {
+          const info: QuickTeamInfo = { id: Number(id), name: "Unknown Team" };
+          quickTeamsRef.current[id] = info;
+          writeQuickPickToStorage("team", id, info);
+        }
       });
 
       await batch(leagueIds, 6, async (id) => {
@@ -171,17 +185,24 @@ export const PageHeader = () => {
           setQuickLeaguesById((prev) => ({ ...prev, [id]: stored }));
           return;
         }
-        const res: any = await getLeagueById(id);
-        const item = res?.responseObject?.item;
-        const l = Array.isArray(item) ? item[0] : item;
-        const info: QuickLeagueInfo = {
-          id: Number(id),
-          name: String(l?.name ?? "League"),
-          category: String(l?.category ?? l?.country ?? "") || undefined,
-        };
-        quickLeaguesRef.current[id] = info;
-        writeQuickPickToStorage("league", id, info);
-        setQuickLeaguesById((prev) => ({ ...prev, [id]: info }));
+        try {
+          const res: any = await getLeagueById(id);
+          const item = res?.responseObject?.item;
+          const l = Array.isArray(item) ? item[0] : item;
+          if (!l) throw new Error("Not found");
+          const info: QuickLeagueInfo = {
+            id: Number(id),
+            name: String(l?.name ?? "League"),
+            category: String(l?.category ?? l?.country ?? "") || undefined,
+          };
+          quickLeaguesRef.current[id] = info;
+          writeQuickPickToStorage("league", id, info);
+          setQuickLeaguesById((prev) => ({ ...prev, [id]: info }));
+        } catch {
+          const info: QuickLeagueInfo = { id: Number(id), name: "Unknown League" };
+          quickLeaguesRef.current[id] = info;
+          writeQuickPickToStorage("league", id, info);
+        }
       });
 
       await batch(QUICK_BASKETBALL_LEAGUE_IDS, 6, async (id) => {
@@ -193,17 +214,24 @@ export const PageHeader = () => {
           setQuickBasketballLeaguesById((prev) => ({ ...prev, [key]: stored }));
           return;
         }
-        const res: any = await getBasketballLeagueById(id);
-        const item = res?.responseObject?.item;
-        const l = Array.isArray(item) ? item[0] : item;
-        const info: QuickLeagueInfo = {
-          id: Number(id),
-          name: String(l?.name ?? "League"),
-          category: String(l?.category ?? l?.country_name ?? l?.country ?? "") || undefined,
-        };
-        quickBasketballLeaguesRef.current[key] = info;
-        writeQuickPickToStorage("bb_league", key, info);
-        setQuickBasketballLeaguesById((prev) => ({ ...prev, [key]: info }));
+        try {
+          const res: any = await getBasketballLeagueById(id);
+          const item = res?.responseObject?.item;
+          const l = Array.isArray(item) ? item[0] : item;
+          if (!l) throw new Error("Not found");
+          const info: QuickLeagueInfo = {
+            id: Number(id),
+            name: String(l?.name ?? "League"),
+            category: String(l?.category ?? l?.country_name ?? l?.country ?? "") || undefined,
+          };
+          quickBasketballLeaguesRef.current[key] = info;
+          writeQuickPickToStorage("bb_league", key, info);
+          setQuickBasketballLeaguesById((prev) => ({ ...prev, [key]: info }));
+        } catch {
+          const info: QuickLeagueInfo = { id: Number(id), name: "Unknown League" };
+          quickBasketballLeaguesRef.current[key] = info;
+          writeQuickPickToStorage("bb_league", key, info);
+        }
       });
     };
 

@@ -146,7 +146,7 @@ const mapLeague = (league: any): LeagueItem | null => {
   };
 };
 
-// Fetch all leagues by making concurrent requests for all pages
+// Fetch all leagues sequentially or in chunks to avoid overwhelming the server
 const fetchAllLeagues = async (): Promise<LeagueItem[]> => {
   const limit = 100;
   
@@ -164,26 +164,29 @@ const fetchAllLeagues = async (): Promise<LeagueItem[]> => {
     return firstMapped;
   }
   
-  // Fetch all remaining pages concurrently
-  const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-  const pagePromises = remainingPages.map(page => getAllLeagues(page, limit));
-  
-  const responses = await Promise.all(pagePromises);
-  
-  // Combine all results
   const allLeagues = [...firstMapped];
   const seen = new Set(firstMapped.map(l => l.id));
   
-  for (const res of responses) {
-    const raw = res?.responseObject?.items;
-    const mapped = Array.isArray(raw)
-      ? (raw.map(mapLeague).filter(Boolean) as LeagueItem[])
-      : [];
+  // Fetch remaining pages in small chunks to prevent 429 Too Many Requests
+  const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+  const chunkSize = 3;
+  
+  for (let i = 0; i < remainingPages.length; i += chunkSize) {
+    const chunk = remainingPages.slice(i, i + chunkSize);
+    const chunkPromises = chunk.map(page => getAllLeagues(page, limit));
+    const responses = await Promise.all(chunkPromises);
     
-    for (const league of mapped) {
-      if (!seen.has(league.id)) {
-        seen.add(league.id);
-        allLeagues.push(league);
+    for (const res of responses) {
+      const raw = res?.responseObject?.items;
+      const mapped = Array.isArray(raw)
+        ? (raw.map(mapLeague).filter(Boolean) as LeagueItem[])
+        : [];
+      
+      for (const league of mapped) {
+        if (!seen.has(league.id)) {
+          seen.add(league.id);
+          allLeagues.push(league);
+        }
       }
     }
   }
@@ -203,6 +206,7 @@ export const Leftbar = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    retry: 1, // Don't spam retries on failure
   });
 
   const popularLeagueIds = useMemo(

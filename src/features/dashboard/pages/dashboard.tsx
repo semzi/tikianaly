@@ -20,7 +20,7 @@ import Leftbar from "@/components/layout/LeftBar";
 import { SportLayout } from "@/components/layout/SportLayout";
 import { Link, useSearchParams } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
-import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+
 import Image from "@/components/common/Image";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
 import { navigate } from "@/lib/router/navigate";
@@ -92,14 +92,17 @@ const AnimatedScore = ({
   );
 };
 
+type LeagueBlock = { leagueId: number; fixtures: any[]; image?: string };
+
 export const dashboard = () => {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [fixtures, setFixtures] = useState<any[]>([]);
+  const [fixtures, setFixtures] = useState<LeagueBlock[]>([]);
   const [sseRevision, setSseRevision] = useState(0);
   const liveEventSourceRef = useRef<EventSource | null>(null);
   const leagueFixturesMapRef = useRef<Map<number, any[]>>(new Map());
+  const leagueImagesMapRef = useRef<Map<number, string>>(new Map());
   const flushFixturesTimeoutRef = useRef<number | null>(null);
   // Infinite scroll pagination for date-mode fixtures
   const dateNextPageRef = useRef<number>(2);
@@ -579,6 +582,7 @@ export const dashboard = () => {
     const blocks = Array.from(leagueFixturesMapRef.current.entries()).map(([leagueId, fx]) => ({
       leagueId,
       fixtures: fx,
+      image: leagueImagesMapRef.current.get(leagueId),
     }));
 
     if (fixturesMode === "date") {
@@ -634,8 +638,8 @@ export const dashboard = () => {
 
   const extraLiveLeagueBlocks = useMemo(() => {
     void sseRevision;
-    if (fixturesMode !== "live") return [] as Array<{ leagueId: number; fixtures: any[] }>;
-    if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[] }>;
+    if (fixturesMode !== "live") return [] as Array<{ leagueId: number; fixtures: any[]; image?: string }>;
+    if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[]; image?: string }>;
 
     const existingMatchIds = new Set<string>();
     const existingFixtureIds = new Set<string>();
@@ -671,7 +675,7 @@ export const dashboard = () => {
     }
 
     return Array.from(grouped.entries())
-      .map(([leagueId, fx]) => ({ leagueId, fixtures: sortFixturesLiveFirst(fx) }))
+      .map(([leagueId, fx]) => ({ leagueId, fixtures: sortFixturesLiveFirst(fx), image: leagueImagesMapRef.current.get(leagueId) }))
       .sort((a, b) => a.leagueId - b.leagueId);
   }, [fixtures, fixturesMode, loadingLeagueIds, sseRevision]);
 
@@ -699,6 +703,7 @@ export const dashboard = () => {
         setLoading(true);
         setFixtures([]); // Clear previous fixtures immediately when date/mode changes
         leagueFixturesMapRef.current = new Map();
+        leagueImagesMapRef.current = new Map();
         // Reset infinite-scroll pagination for the new date/mode
         dateNextPageRef.current = 2;
         dateHasMoreRef.current = true;
@@ -846,6 +851,9 @@ export const dashboard = () => {
               leagues.forEach((leagueBlock: any) => {
                 const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
                 if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  if (leagueBlock.image) {
+                    leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+                  }
                   upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
                 }
               });
@@ -868,6 +876,9 @@ export const dashboard = () => {
               leagues.forEach((leagueBlock: any) => {
                 const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
                 if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  if (leagueBlock.image) {
+                    leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+                  }
                   upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
                 }
               });
@@ -930,6 +941,9 @@ export const dashboard = () => {
             ? leagueBlock.fixtures
             : [];
           if (leagueFixtures.length === 0) continue;
+          if (leagueBlock?.image) {
+            leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+          }
           leagueFixturesMapRef.current.set(
             leagueId,
             sortFixturesLiveFirst(patchWithLatestSse(leagueFixtures))
@@ -1350,11 +1364,12 @@ export const dashboard = () => {
                       className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20 cursor-pointer select-none"
                       onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
                     >
-                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                        <GetLeagueLogo
-                          leagueId={leagueFixture.leagueId}
-                          alt={leagueFixture.fixtures[0].league_name}
-                          className="w-6 h-6 object-contain"
+                      {leagueFixture.image && (
+                        <img
+                          src={leagueFixture.image}
+                          alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                          className="w-6 h-6 object-contain flex-shrink-0"
+                          loading="lazy"
                         />
                       )}
                       <div className="flex items-center gap-2">
@@ -1535,11 +1550,12 @@ export const dashboard = () => {
                     className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] cursor-pointer select-none"
                     onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
                   >
-                    {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                      <GetLeagueLogo
-                        leagueId={leagueFixture.leagueId}
-                        alt={leagueFixture.fixtures[0].league_name}
-                        className="w-6 h-6 object-contain"
+                    {leagueFixture.image && (
+                      <img
+                        src={leagueFixture.image}
+                        alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                        className="w-6 h-6 object-contain flex-shrink-0"
+                        loading="lazy"
                       />
                     )}
                     <div className="flex items-center gap-2">
@@ -1747,11 +1763,12 @@ export const dashboard = () => {
                     className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
                     onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
                   >
-                    {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                      <GetLeagueLogo
-                        leagueId={leagueFixture.leagueId}
-                        alt={leagueFixture.fixtures[0].league_name}
-                        className="w-6 h-6 object-contain"
+                    {leagueFixture.image && (
+                      <img
+                        src={leagueFixture.image}
+                        alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                        className="w-6 h-6 object-contain flex-shrink-0"
+                        loading="lazy"
                       />
                     )}
                     <div className="flex items-center gap-2">
@@ -1936,11 +1953,12 @@ export const dashboard = () => {
                   className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 cursor-pointer select-none"
                   onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
                 >
-                  {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                    <GetLeagueLogo
-                      leagueId={leagueFixture.leagueId}
-                      alt={leagueFixture.fixtures[0].league_name}
-                      className="w-6 h-6 object-contain"
+                  {leagueFixture.image && (
+                    <img
+                      src={leagueFixture.image}
+                      alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                      className="w-6 h-6 object-contain flex-shrink-0"
+                      loading="lazy"
                     />
                   )}
                   <div className="flex items-center gap-2">

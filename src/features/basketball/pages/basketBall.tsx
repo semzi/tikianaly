@@ -1,10 +1,8 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { navigate } from "../../../lib/router/navigate";
 import {
   StarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -237,11 +235,13 @@ const BasketballPage = () => {
   // SSE & Live Override state
   const [liveMatches, setLiveMatches] = useState<Record<number, Match>>({});
 
-  // Pagination state
+  // Infinite scroll pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [accumulatedItems, setAccumulatedItems] = useState<Match[]>([]);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const fixturesMode = activeTab === "live" ? "live" : "date";
   // Fetch data with React Query
@@ -308,28 +308,38 @@ const BasketballPage = () => {
 
   // Sync state with React Query response (pagination and loading only)
   useEffect(() => {
-    if (isQueryLoading && Object.keys(liveMatches).length === 0) {
+    if (isQueryLoading && currentPage === 1 && Object.keys(liveMatches).length === 0) {
       setLoading(true);
     } else if (!isQueryFetching) {
       setLoading(false);
+      setIsFetchingMore(false);
     }
 
     if (queryData && queryData.success && queryData.responseObject) {
+      const newItems = queryData.responseObject.items || [];
       setTotalPages(queryData.responseObject.totalPages || 1);
       setHasNextPage(queryData.responseObject.hasNextPage || false);
-      setHasPreviousPage(queryData.responseObject.hasPreviousPage || false);
-    }
-  }, [queryData, isQueryLoading, isQueryFetching]);
 
-  // Combine query data and SSE updates
+      // Accumulate items across pages
+      if (currentPage === 1) {
+        setAccumulatedItems(newItems);
+      } else {
+        setAccumulatedItems((prev) => {
+          // Deduplicate by match_id
+          const existingIds = new Set(prev.map((m) => m.match_id));
+          const deduped = newItems.filter((m) => !existingIds.has(m.match_id));
+          return [...prev, ...deduped];
+        });
+      }
+    }
+  }, [queryData, isQueryLoading, isQueryFetching, currentPage]);
+
+  // Combine accumulated pages + SSE updates
   const matches = useMemo(() => {
-    const baseItems = queryData?.responseObject?.items || [];
+    const baseItems = accumulatedItems;
     const merged = [...baseItems];
 
-    // Apply filters first if needed, or filter later
-    // Let's filter the final list
-
-    // 1. Update/Overwite baseItems with liveMatches
+    // 1. Update/Overwrite baseItems with liveMatches
     const finalItems = merged.map((m) => {
       if (liveMatches[m.match_id]) {
         return { ...m, ...liveMatches[m.match_id] };
@@ -338,18 +348,13 @@ const BasketballPage = () => {
     });
 
     // 2. Add live matches that aren't in the base items (if it's today)
-    if (
-      activeTab === "live" &&
-      isToday(selectedDate || new Date())
-    ) {
+    if (activeTab === "live" && isToday(selectedDate || new Date())) {
       Object.values(liveMatches).forEach((liveMatch) => {
         const alreadyExists = finalItems.some(
           (m) => m.match_id === liveMatch.match_id,
         );
-        if (!alreadyExists) {
-          if (activeTab === "live" && liveMatch) {
-            finalItems.push(liveMatch);
-          }
+        if (!alreadyExists && liveMatch) {
+          finalItems.push(liveMatch);
         }
       });
     }
@@ -376,7 +381,7 @@ const BasketballPage = () => {
     }
 
     return filteredItems;
-  }, [queryData, liveMatches, activeTab, selectedLeagueId, selectedDate]);
+  }, [accumulatedItems, liveMatches, activeTab, selectedLeagueId, selectedDate]);
 
   // Handle SSE for Live matches
   useEffect(() => {
@@ -405,15 +410,37 @@ const BasketballPage = () => {
   // Reset to page 1 when changing tabs
   useEffect(() => {
     setCurrentPage(1);
+    setAccumulatedItems([]);
   }, [activeTab]);
 
   // Reset live overrides when changing date (unless it's today)
   useEffect(() => {
     setCurrentPage(1);
+    setAccumulatedItems([]);
     if (selectedDate && !isToday(selectedDate)) {
       setLiveMatches({});
     }
   }, [selectedDate, selectedLeagueId]);
+
+  // IntersectionObserver — load next page when sentinel scrolls into view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasNextPage && !isQueryFetching && !loading) {
+          setIsFetchingMore(true);
+          setCurrentPage((prev) => prev + 1);
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isQueryFetching, loading]);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -796,45 +823,29 @@ const BasketballPage = () => {
               </div>
             )}
 
-            {/* Pagination (only for fixture) */}
-            {activeTab === "fixture" &&
-              totalPages > 1 && (
-                <div className="flex items-center justify-between block-style">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    disabled={!hasPreviousPage}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                      hasPreviousPage
-                        ? "bg-brand-primary text-white hover:bg-brand-primary/90"
-                        : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
-                    }`}
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                    Previous
-                  </button>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="w-full" />
 
-                  <span className="text-sm theme-text">
-                    Page {currentPage} of {totalPages}
-                  </span>
+            {/* Loading more indicator */}
+            {isFetchingMore && (
+              <div className="flex items-center justify-center py-6 gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
+                <span className="text-sm text-neutral-n4 dark:text-snow-300">
+                  Loading more matches…
+                </span>
+              </div>
+            )}
 
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    disabled={!hasNextPage}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                      hasNextPage
-                        ? "bg-brand-primary text-white hover:bg-brand-primary/90"
-                        : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
-                    }`}
-                  >
-                    Next
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+            {/* End of list indicator */}
+            {!hasNextPage && !loading && matches.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-center py-4 gap-2">
+                <div className="h-px flex-1 bg-snow-200 dark:bg-[#1F2937]" />
+                <span className="text-xs text-neutral-n4 dark:text-snow-400 px-3">
+                  All matches loaded
+                </span>
+                <div className="h-px flex-1 bg-snow-200 dark:bg-[#1F2937]" />
+              </div>
+            )}
           </div>
       </SportLayout>
   );
