@@ -141,16 +141,17 @@ export const RightBar = () => {
             </p>
             <div className="flex flex-col gap-3">
               <img src="\assets\icons\Group 1261157024.png" alt="" />
-              <img
-                src="\assets\icons\Frame 1261157588.png"
-                className="cursor-pointer"
-                alt=""
-              />
-              <img
-                src="\assets\icons\Frame 1261157587.png"
-                className="cursor-pointer"
-                alt=""
-              />
+              <a
+                href="https://play.google.com/store/apps/details?id=com.tikianaly.tikianaly"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="\assets\icons\Frame 1261157588.png"
+                  className="cursor-pointer"
+                  alt="Get it on Google Play"
+                />
+              </a>
             </div>
           </ul>
 
