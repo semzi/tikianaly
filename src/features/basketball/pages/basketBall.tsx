@@ -18,7 +18,7 @@ import {
   subscribeBasketballLiveMatchesStream,
   closeBasketballLiveStream,
 } from "@/lib/api/basketball/livestream";
-import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+import GetBasketballLeagueLogo from "@/components/common/GetBasketballLeagueLogo";
 import GetBasketballTeamLogo from "@/components/common/GetBasketballTeamLogo";
 import { SportLayout } from "@/components/layout/SportLayout";
 import { FixturesDateToggle } from "@/components/ui/FixturesDateToggle";
@@ -422,7 +422,7 @@ const BasketballPage = () => {
   const groupMatchesByLeague = (matchList: Match[]) => {
     const grouped: Record<
       string,
-      { leagueName: string; leagueId: number | string; items: Match[] }
+      { leagueName: string; leagueId: number | string; leagueImageUrl: string | null; items: Match[] }
     > = {};
     matchList.forEach((match) => {
       const lid = match.league_id || match.league_name || "unknown";
@@ -430,6 +430,7 @@ const BasketballPage = () => {
         grouped[lid] = {
           leagueName: match.league_name || "Unknown League",
           leagueId: match.league_id || lid,
+          leagueImageUrl: (match as any).league_image_url || null,
           items: [],
         };
       }
@@ -577,8 +578,9 @@ const BasketballPage = () => {
                 >
                   {/* League Header */}
                   <div className="flex gap-3 border-b px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/20 dark:to-orange-500/20">
-                    <GetLeagueLogo
+                    <GetBasketballLeagueLogo
                       leagueId={group.leagueId}
+                      imageUrl={group.leagueImageUrl}
                       alt={group.leagueName}
                       className="w-6 h-6 object-contain"
                     />
@@ -590,7 +592,7 @@ const BasketballPage = () => {
                       onClick={() =>
                         navigate(`/basketball/league/${group.leagueId}`)
                       }
-                      className="ml-auto text-brand-secondary hover:opacity-80"
+                      className="ml-auto text-brand-secondary hover:opacity-80 cursor-pointer"
                       aria-label="Open league profile"
                     >
                       <ArrowRightIcon className="w-5 h-5" />
@@ -650,6 +652,7 @@ const BasketballPage = () => {
                                 </span>
                                 <GetBasketballTeamLogo
                                   teamId={match?.localteam?.team_id || match?.localteam?.id}
+                                  imageUrl={match?.localteam?.image_url || match?.homeTeam?.image_url}
                                   alt={match?.localteam?.name}
                                   className="w-5 h-5 object-contain"
                                   width={20}
@@ -671,6 +674,7 @@ const BasketballPage = () => {
                               <div className="flex-1 flex items-center justify-start gap-2">
                                 <GetBasketballTeamLogo
                                   teamId={match?.awayteam?.team_id || match?.awayteam?.id}
+                                  imageUrl={match?.awayteam?.image_url || match?.awayTeam?.image_url}
                                   alt={match?.awayteam?.name}
                                   className="w-5 h-5 object-contain"
                                   width={20}
@@ -688,7 +692,7 @@ const BasketballPage = () => {
                                 e.stopPropagation();
                                 toggleFavorite(matchUniqueId);
                               }}
-                              className={`p-1.5 rounded-full transition-all ${
+                              className={`p-1.5 rounded-full transition-all cursor-pointer ${
                                 favorites[matchUniqueId]
                                   ? "bg-brand-primary text-white scale-110 shadow-md"
                                   : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
@@ -726,6 +730,7 @@ const BasketballPage = () => {
                                   <div className="flex items-center gap-2">
                                     <GetBasketballTeamLogo
                                       teamId={match?.localteam?.team_id || match?.localteam?.id}
+                                      imageUrl={match?.localteam?.image_url || match?.homeTeam?.image_url}
                                       alt={match?.localteam?.name}
                                       className="w-5 h-5 object-contain"
                                       width={20}
@@ -745,6 +750,7 @@ const BasketballPage = () => {
                                   <div className="flex items-center gap-2">
                                     <GetBasketballTeamLogo
                                       teamId={match?.awayteam?.team_id || match?.awayteam?.id}
+                                      imageUrl={match?.awayteam?.image_url || match?.awayTeam?.image_url}
                                       alt={match?.awayteam?.name}
                                       className="w-5 h-5 object-contain"
                                       width={20}
@@ -767,7 +773,7 @@ const BasketballPage = () => {
                                 e.stopPropagation();
                                 toggleFavorite(matchUniqueId);
                               }}
-                              className={`p-2 rounded transition-all ${
+                              className={`p-2 rounded transition-all cursor-pointer ${
                                 favorites[matchUniqueId]
                                   ? "bg-brand-primary text-white"
                                   : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
@@ -805,7 +811,7 @@ const BasketballPage = () => {
                       setCurrentPage((prev) => Math.max(1, prev - 1))
                     }
                     disabled={!hasPreviousPage}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition cursor-pointer ${
                       hasPreviousPage
                         ? "bg-brand-primary text-white hover:bg-brand-primary/90"
                         : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"
@@ -824,7 +830,7 @@ const BasketballPage = () => {
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                     }
                     disabled={!hasNextPage}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition cursor-pointer ${
                       hasNextPage
                         ? "bg-brand-primary text-white hover:bg-brand-primary/90"
                         : "bg-snow-200 dark:bg-[#1F2937] text-neutral-n4 cursor-not-allowed"

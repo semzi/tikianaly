@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getBasketballTeamLogoById,
 } from "@/lib/api/basketball/index";
+import Image from "./Image";
 
 interface GetBasketballTeamLogoProps {
   teamId?: string | number;
+  imageUrl?: string | null;
   alt?: string;
   className?: string;
   width?: number;
@@ -16,6 +18,7 @@ interface TeamApiItem {
   team_id?: number;
   logo?: string;
   image?: string;
+  image_url?: string | null;
 }
 
 interface TeamApiResponse {
@@ -29,7 +32,7 @@ const teamLogoFailedCache = new Set<string>();
 const extractImageUrl = (data: TeamApiResponse): string | null => {
   const item = data?.responseObject?.item;
   const team = Array.isArray(item) ? item[0] : item;
-  const rawImage = team?.logo || team?.image || "";
+  const rawImage = team?.logo || team?.image || team?.image_url || "";
 
   if (!rawImage) return null;
 
@@ -38,12 +41,18 @@ const extractImageUrl = (data: TeamApiResponse): string | null => {
     return rawImage;
   }
 
-  // If it's base64 without prefix, add the prefix
+  // If it's already a URL, return as-is
+  if (rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+    return rawImage;
+  }
+
+  // Otherwise assume it's raw base64 and add the prefix
   return `data:image/png;base64,${rawImage}`;
 };
 
 const GetBasketballTeamLogo: React.FC<GetBasketballTeamLogoProps> = ({
   teamId,
+  imageUrl: directImageUrl,
   alt,
   className,
   width = 32,
@@ -52,6 +61,8 @@ const GetBasketballTeamLogo: React.FC<GetBasketballTeamLogoProps> = ({
   const safeAlt = String(alt ?? "").trim() || "Team";
   const id = String(teamId ?? "").trim();
 
+  // Use the direct URL if provided, otherwise fetch from API
+  const shouldFetch = !directImageUrl && id !== "";
   const { data: logoUrl, isLoading: loading } = useQuery({
     queryKey: ["basketball", "team", "logo", id],
     queryFn: async () => {
@@ -79,8 +90,10 @@ const GetBasketballTeamLogo: React.FC<GetBasketballTeamLogoProps> = ({
     refetchOnMount: false,
     refetchOnReconnect: false,
     retry: false,
-    enabled: id !== "",
+    enabled: shouldFetch,
   });
+
+  const resolvedUrl = directImageUrl || logoUrl;
 
   if (loading) {
     return (
@@ -93,23 +106,9 @@ const GetBasketballTeamLogo: React.FC<GetBasketballTeamLogoProps> = ({
     );
   }
 
-  if (!logoUrl) {
-    return (
-      <img
-        src="/loading-state/shield.svg"
-        alt={`${safeAlt} - No Logo`}
-        loading="lazy"
-        decoding="async"
-        width={width}
-        height={height}
-        className={`object-contain ${className ?? ""}`}
-      />
-    );
-  }
-
   return (
-    <img
-      src={logoUrl}
+    <Image
+      src={resolvedUrl}
       alt={safeAlt}
       loading="lazy"
       decoding="async"

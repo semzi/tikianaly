@@ -540,7 +540,7 @@ const BasketballMatchDetail = () => {
         <div className="page-padding-x pt-8 pb-16 md:pb-20 relative z-[2]">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 mb-4 hover:opacity-80 transition"
+            className="flex items-center gap-2 mb-4 hover:opacity-80 transition cursor-pointer"
           >
             <ArrowLeftIcon className="h-5 w-5" />
             <span className="text-sm font-medium">Back</span>
@@ -566,6 +566,7 @@ const BasketballMatchDetail = () => {
                 <div className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28  flex items-center justify-center mb-2 md:mb-3 overflow-hidden shrink-0">
                   <GetBasketballTeamLogo
                     teamId={matchData?.localteam?.team_id || matchData?.localteam?.id}
+                    imageUrl={matchData?.localteam?.image_url || matchData?.homeTeam?.image_url}
                     alt={matchData?.localteam.name}
                     className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain"
                     width={80}
@@ -631,6 +632,7 @@ const BasketballMatchDetail = () => {
                 <div className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28  flex items-center justify-center mb-2 md:mb-3 overflow-hidden shrink-0">
                   <GetBasketballTeamLogo
                     teamId={matchData?.awayteam?.team_id || matchData?.awayteam?.id}
+                    imageUrl={matchData?.awayteam?.image_url || matchData?.awayTeam?.image_url}
                     alt={matchData?.awayteam.name}
                     className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain"
                     width={80}
@@ -747,7 +749,7 @@ const BasketballMatchDetail = () => {
                 <button
                   key={quarter}
                   onClick={() => setSelectedQuarter(quarter)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
                     selectedQuarter === quarter
                       ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
                       : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"

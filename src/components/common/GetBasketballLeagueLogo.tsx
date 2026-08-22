@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getBasketballLeagueLogoById,
 } from "@/lib/api/basketball/index";
+import Image from "./Image";
 
 interface GetBasketballLeagueLogoProps {
   leagueId?: string | number;
+  imageUrl?: string | null;
   alt?: string;
   className?: string;
   width?: number;
@@ -39,12 +41,18 @@ const extractImageUrl = (data: LeagueApiResponse): string | null => {
     return rawImage;
   }
 
-  // If it's base64 without prefix, add the prefix
+  // If it's already a URL, return as-is
+  if (rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+    return rawImage;
+  }
+
+  // Otherwise assume it's raw base64 and add the prefix
   return `data:image/png;base64,${rawImage}`;
 };
 
 const GetBasketballLeagueLogo: React.FC<GetBasketballLeagueLogoProps> = ({
   leagueId,
+  imageUrl: directImageUrl,
   alt,
   className,
   width = 32,
@@ -53,6 +61,8 @@ const GetBasketballLeagueLogo: React.FC<GetBasketballLeagueLogoProps> = ({
   const safeAlt = String(alt ?? "").trim() || "League";
   const id = String(leagueId ?? "").trim();
 
+  // Use the direct URL if provided, otherwise fetch from API
+  const shouldFetch = !directImageUrl && id !== "";
   const { data: logoUrl, isLoading: loading } = useQuery({
     queryKey: ["basketball", "league", "logo", id],
     queryFn: async () => {
@@ -80,37 +90,23 @@ const GetBasketballLeagueLogo: React.FC<GetBasketballLeagueLogoProps> = ({
     refetchOnMount: false,
     refetchOnReconnect: false,
     retry: false,
-    enabled: id !== "",
+    enabled: shouldFetch,
   });
+
+  const resolvedUrl = directImageUrl || logoUrl;
 
   if (loading) {
     return (
       <div
-        className={`relative overflow-hidden bg-gray-300 dark:bg-[#1F2937] rounded ${className ?? ""}`}
-        style={{ width, height }}
-      >
-        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
-      </div>
-    );
-  }
-
-  if (!logoUrl) {
-    return (
-      <img
-        src="/loading-state/shield.svg"
-        alt={`${safeAlt} - No Logo`}
-        loading="lazy"
-        decoding="async"
-        width={width}
-        height={height}
-        className={`object-contain ${className ?? ""}`}
+        className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`}
+        style={{ minWidth: width, minHeight: height }}
       />
     );
   }
 
   return (
-    <img
-      src={logoUrl}
+    <Image
+      src={resolvedUrl}
       alt={safeAlt}
       loading="lazy"
       decoding="async"

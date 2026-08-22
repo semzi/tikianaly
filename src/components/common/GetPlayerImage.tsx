@@ -24,11 +24,14 @@ interface PlayerApiResponse {
 const extractImageUrl = (data: PlayerApiResponse): string | null => {
   const item = data?.responseObject?.item;
   const player = Array.isArray(item) ? item[0] : item;
-  const rawImage = player?.image ? String(player.image).trim() : "";
+  const rawImage = (player?.image || player?.image_url || "") as string;
 
   if (!rawImage) return null;
-  
-  return rawImage.startsWith("data:image") ? rawImage : `data:image/png;base64,${rawImage}`;
+n  if (rawImage.startsWith("data:image") || rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+    return rawImage;
+  }
+
+  return `data:image/png;base64,${rawImage}`;
 };
 
 const GetPlayerImage: React.FC<GetPlayerImageProps> = ({

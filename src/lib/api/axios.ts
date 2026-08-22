@@ -44,7 +44,7 @@ if (typeof window !== "undefined") {
 }
 
 const apiClient = axios.create({
-    baseURL: 'https://api.tikianaly.com/',
+    baseURL: 'https://api-dev.tikianaly.com/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -62,7 +62,7 @@ export { API };
 // end of blog url
 
 const authApiClient = axios.create({
-  baseURL: 'https://communityapi.tikianaly.com/',
+  baseURL: 'https://communityapi-dev.tikianaly.com/',
   headers: {
     'Content-Type': 'application/json',
   },

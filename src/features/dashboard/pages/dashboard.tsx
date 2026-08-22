@@ -221,22 +221,26 @@ export const dashboard = () => {
       return new Date();
     }
   });
+  const selectedDateRef = useRef(selectedDate);
+  selectedDateRef.current = selectedDate;
 
   const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
-    _setSelectedDate(prev => {
-      const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
-      
+    const prev = selectedDateRef.current;
+    const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
+    
+    _setSelectedDate(newDate);
+    
+    if (newDate && !isToday(newDate)) {
       setSearchParams(prevParams => {
-        if (newDate && !isToday(newDate)) {
-          prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
-        } else {
-          prevParams.delete("date");
-        }
+        prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
         return prevParams;
       }, { replace: false });
-      
-      return newDate;
-    });
+    } else {
+      setSearchParams(prevParams => {
+        prevParams.delete("date");
+        return prevParams;
+      }, { replace: false });
+    }
   }, [setSearchParams]);
 
   // Sync state with URL when navigating back/forward

@@ -246,7 +246,7 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
               </p>
               <button
                 type="button"
-                className="ml-auto"
+                className="ml-auto cursor-pointer"
                 onClick={() => setSearchOpen((v) => !v)}
                 aria-label="Search leagues"
               >
