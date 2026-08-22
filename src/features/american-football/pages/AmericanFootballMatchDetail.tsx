@@ -17,14 +17,11 @@ import AmericanFootballMatchStatistics from "../components/AmericanFootballMatch
 import AmericanFootballStandings from "../components/AmericanFootballStandings";
 import { teamInitials } from "../statUtils";
 import {
-  mockAmericanFootballLiveMatches,
-  mockAmericanFootballUpcomingMatches,
   type AmericanFootballMatch,
 } from "../data/mockAmericanFootball";
 import {
   getAmericanFootballFixtureById,
   getAmericanFootballPlayByPlay,
-  isAmericanFootballApiEnabled,
   normalizeAmericanFootballMatchDetail,
   normalizeAmericanFootballTimeline,
 } from "@/lib/api/american-football";
@@ -102,12 +99,9 @@ const AmericanFootballMatchDetail = () => {
   const [activeTab, setActiveTab] = useState<MatchTab>("overview");
   const state = (location.state as MatchLocationState | undefined) ?? {};
 
-  // Check if this is a mock ID (all mock IDs start with "af-")
-  const isMockMatchId = Boolean(matchId?.startsWith("af-"));
-
   const detailQuery = useQuery({
     queryKey: ["american-football", "match", matchId],
-    enabled: isAmericanFootballApiEnabled && Boolean(matchId) && !isMockMatchId,
+    enabled: Boolean(matchId),
     queryFn: async () =>
       normalizeAmericanFootballMatchDetail(
         await getAmericanFootballFixtureById(String(matchId)),
@@ -118,11 +112,7 @@ const AmericanFootballMatchDetail = () => {
 
   const playByPlayQuery = useQuery({
     queryKey: ["american-football", "match", matchId, "play-by-play"],
-    enabled:
-      isAmericanFootballApiEnabled &&
-      Boolean(matchId) &&
-      !isMockMatchId &&
-      activeTab === "timeline",
+    enabled: Boolean(matchId) && activeTab === "timeline",
     queryFn: async () =>
       normalizeAmericanFootballTimeline(
         await getAmericanFootballPlayByPlay(String(matchId)),
@@ -132,15 +122,9 @@ const AmericanFootballMatchDetail = () => {
   });
 
   const match = useMemo<AmericanFootballMatch>(() => {
-    const fromMock = [
-      ...mockAmericanFootballLiveMatches,
-      ...mockAmericanFootballUpcomingMatches,
-    ].find((item) => item.id === matchId);
-
     return (
       detailQuery.data ??
-      state.match ??
-      fromMock ?? {
+      state.match ?? {
         id: String(matchId ?? "american-football-game"),
         league: "American Football",
         homeTeam: "Home Team",
@@ -300,7 +284,7 @@ const AmericanFootballMatchDetail = () => {
         </div>
       </section>
 
-      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-brand-p2 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
+      <div className="flex h-12 w-full overflow-x-auto bg-brand-p3/30 dark:bg-gray-800 backdrop-blur-2xl sticky top-0 z-20 hide-scrollbar">
         <div className="flex md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -336,7 +320,6 @@ const AmericanFootballMatchDetail = () => {
                 stats={match.stats}
                 homeTeamName={match.homeTeam}
                 awayTeamName={match.awayTeam}
-                isLive={isLive}
               />
             </div>
           </div>

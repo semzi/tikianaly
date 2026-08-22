@@ -190,6 +190,7 @@ export const BasketballLeftBar: React.FC<BasketballLeftBarProps> = ({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    retry: 1, // Don't spam retries on failure
   });
 
   // Filter and sort popular leagues based on specific IDs

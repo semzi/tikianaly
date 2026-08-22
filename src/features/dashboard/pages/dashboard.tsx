@@ -20,9 +20,10 @@ import Leftbar from "@/components/layout/LeftBar";
 import { SportLayout } from "@/components/layout/SportLayout";
 import { Link, useSearchParams } from "react-router-dom";
 // import { AfconBanner } from "@/features/dashboard/components/AfconBanner";
-import GetLeagueLogo from "@/components/common/GetLeagueLogo";
+
 import Image from "@/components/common/Image";
 import { getMatchUiInfo } from "@/lib/matchStatusUi";
+import { getFlagUrl } from "@/data/categoryFlags";
 import { navigate } from "@/lib/router/navigate";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -92,14 +93,18 @@ const AnimatedScore = ({
   );
 };
 
+type LeagueBlock = { leagueId: number; fixtures: any[]; image?: string; category?: string };
+
 export const dashboard = () => {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [fixtures, setFixtures] = useState<any[]>([]);
+  const [fixtures, setFixtures] = useState<LeagueBlock[]>([]);
   const [sseRevision, setSseRevision] = useState(0);
   const liveEventSourceRef = useRef<EventSource | null>(null);
   const leagueFixturesMapRef = useRef<Map<number, any[]>>(new Map());
+  const leagueImagesMapRef = useRef<Map<number, string>>(new Map());
+  const leagueCategoriesMapRef = useRef<Map<number, string>>(new Map());
   const flushFixturesTimeoutRef = useRef<number | null>(null);
   // Infinite scroll pagination for date-mode fixtures
   const dateNextPageRef = useRef<number>(2);
@@ -583,6 +588,8 @@ export const dashboard = () => {
     const blocks = Array.from(leagueFixturesMapRef.current.entries()).map(([leagueId, fx]) => ({
       leagueId,
       fixtures: fx,
+      image: leagueImagesMapRef.current.get(leagueId),
+      category: leagueCategoriesMapRef.current.get(leagueId),
     }));
 
     if (fixturesMode === "date") {
@@ -638,8 +645,8 @@ export const dashboard = () => {
 
   const extraLiveLeagueBlocks = useMemo(() => {
     void sseRevision;
-    if (fixturesMode !== "live") return [] as Array<{ leagueId: number; fixtures: any[] }>;
-    if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[] }>;
+    if (fixturesMode !== "live") return [] as Array<{ leagueId: number; fixtures: any[]; image?: string; category?: string }>;
+    if (loadingLeagueIds.size > 0) return [] as Array<{ leagueId: number; fixtures: any[]; image?: string; category?: string }>;
 
     const existingMatchIds = new Set<string>();
     const existingFixtureIds = new Set<string>();
@@ -675,7 +682,7 @@ export const dashboard = () => {
     }
 
     return Array.from(grouped.entries())
-      .map(([leagueId, fx]) => ({ leagueId, fixtures: sortFixturesLiveFirst(fx) }))
+      .map(([leagueId, fx]) => ({ leagueId, fixtures: sortFixturesLiveFirst(fx), image: leagueImagesMapRef.current.get(leagueId), category: leagueCategoriesMapRef.current.get(leagueId) }))
       .sort((a, b) => a.leagueId - b.leagueId);
   }, [fixtures, fixturesMode, loadingLeagueIds, sseRevision]);
 
@@ -703,6 +710,7 @@ export const dashboard = () => {
         setLoading(true);
         setFixtures([]); // Clear previous fixtures immediately when date/mode changes
         leagueFixturesMapRef.current = new Map();
+        leagueImagesMapRef.current = new Map();
         // Reset infinite-scroll pagination for the new date/mode
         dateNextPageRef.current = 2;
         dateHasMoreRef.current = true;
@@ -850,6 +858,12 @@ export const dashboard = () => {
               leagues.forEach((leagueBlock: any) => {
                 const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
                 if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  if (leagueBlock.image) {
+                    leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+                  }
+                  if (leagueBlock.category) {
+                    leagueCategoriesMapRef.current.set(leagueId, leagueBlock.category);
+                  }
                   upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
                 }
               });
@@ -872,6 +886,12 @@ export const dashboard = () => {
               leagues.forEach((leagueBlock: any) => {
                 const leagueId = Number(leagueBlock.id || leagueBlock.league_id);
                 if (Number.isFinite(leagueId) && leagueBlock.fixtures?.length > 0) {
+                  if (leagueBlock.image) {
+                    leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+                  }
+                  if (leagueBlock.category) {
+                    leagueCategoriesMapRef.current.set(leagueId, leagueBlock.category);
+                  }
                   upsertLeagueFixtures(leagueId, leagueBlock.fixtures);
                 }
               });
@@ -934,6 +954,12 @@ export const dashboard = () => {
             ? leagueBlock.fixtures
             : [];
           if (leagueFixtures.length === 0) continue;
+          if (leagueBlock?.image) {
+            leagueImagesMapRef.current.set(leagueId, leagueBlock.image);
+          }
+          if (leagueBlock?.category) {
+            leagueCategoriesMapRef.current.set(leagueId, leagueBlock.category);
+          }
           leagueFixturesMapRef.current.set(
             leagueId,
             sortFixturesLiveFirst(patchWithLatestSse(leagueFixtures))
@@ -1351,29 +1377,38 @@ export const dashboard = () => {
                 return (
                   <div key={leagueFixture.leagueId + "-" + leagueIdx} className="block-style !p-0">
                     <div 
-                      className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20 cursor-pointer select-none"
+                      className="flex items-center gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-priary/20 dark:to-orange-500/20 cursor-pointer select-none"
                       onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
                     >
-                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                        <GetLeagueLogo
-                          leagueId={leagueFixture.leagueId}
-                          alt={leagueFixture.fixtures[0].league_name}
-                          className="w-6 h-6 object-contain"
+                      {leagueFixture.image && (
+                        <img
+                          src={leagueFixture.image}
+                          alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                          className="w-6 h-6 object-contain flex-shrink-0"
+                          loading="lazy"
                         />
                       )}
-                      <div className="flex items-center gap-2">
-                        <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
-                          {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
-                        </p>
-                        {fixtureCount >= 10 ? (
-                          <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
-                            <span className="text-xs font-medium">{fixtureCount}</span>
-                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
+                            {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
+                          </p>
+                          {fixtureCount >= 10 ? (
+                            <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                              <span className="text-xs font-medium">{fixtureCount}</span>
+                              <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                            </div>
+                          ) : (
+                            <ChevronDownIcon
+                              className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
+                            />
+                          )}
+                        </div>
+                        {leagueFixture.category && (
+                          <div className="flex items-center gap-1.5">
+                            <img src={getFlagUrl(leagueFixture.category, 20)} alt={leagueFixture.category} className="w-3.5 h-[10px] object-cover rounded-[1px]" />
+                            <span className="text-[11px] text-neutral-n5 dark:text-snow-200/70 capitalize">{leagueFixture.category}</span>
                           </div>
-                        ) : (
-                          <ChevronDownIcon
-                            className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
-                          />
                         )}
                       </div>
                       <button
@@ -1536,31 +1571,40 @@ export const dashboard = () => {
               {fixturesMode === "date" && loadingLeagueIds.size === 0 && extraLiveLeagueBlocks.map((leagueFixture, leagueIdx) => (
                 <div key={`extra-live-${leagueFixture.leagueId}-${leagueIdx}`} className="block-style">
                   <div 
-                    className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] cursor-pointer select-none"
+                    className="flex items-center gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] cursor-pointer select-none"
                     onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
                   >
-                    {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                      <GetLeagueLogo
-                        leagueId={leagueFixture.leagueId}
-                        alt={leagueFixture.fixtures[0].league_name}
-                        className="w-6 h-6 object-contain"
+                    {leagueFixture.image && (
+                      <img
+                        src={leagueFixture.image}
+                        alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                        className="w-6 h-6 object-contain flex-shrink-0"
+                        loading="lazy"
                       />
                     )}
-                    <div className="flex items-center gap-2">
-                      <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
-                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
-                          ? leagueFixture.fixtures[0].league_name
-                          : `League ${leagueFixture.leagueId}`}
-                      </p>
-                      {leagueFixture.fixtures.length >= 10 ? (
-                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
-                          <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
-                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <p className="font-[500] text-[#23272A] dark:text-neutral-m6  text-[14px] md:text-base">
+                          {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
+                            ? leagueFixture.fixtures[0].league_name
+                            : `League ${leagueFixture.leagueId}`}
+                        </p>
+                        {leagueFixture.fixtures.length >= 10 ? (
+                          <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                            <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
+                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                          </div>
+                        ) : (
+                          <ChevronDownIcon
+                            className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
+                          />
+                        )}
+                      </div>
+                      {leagueFixture.category && (
+                        <div className="flex items-center gap-1.5">
+                          <img src={getFlagUrl(leagueFixture.category, 20)} alt={leagueFixture.category} className="w-3.5 h-[10px] object-cover rounded-[1px]" />
+                          <span className="text-[11px] text-neutral-n5 dark:text-snow-200/70 capitalize">{leagueFixture.category}</span>
                         </div>
-                      ) : (
-                        <ChevronDownIcon
-                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
-                        />
                       )}
                     </div>
                     <button
@@ -1748,29 +1792,38 @@ export const dashboard = () => {
                   className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded overflow-hidden"
                 >
                   <div 
-                    className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
+                    className="flex items-center gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
                     onClick={() => toggleLeagueCollapse(leagueId, fixtureCount)}
                   >
-                    {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                      <GetLeagueLogo
-                        leagueId={leagueFixture.leagueId}
-                        alt={leagueFixture.fixtures[0].league_name}
-                        className="w-6 h-6 object-contain"
+                    {leagueFixture.image && (
+                      <img
+                        src={leagueFixture.image}
+                        alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                        className="w-6 h-6 object-contain flex-shrink-0"
+                        loading="lazy"
                       />
                     )}
-                    <div className="flex items-center gap-2">
-                      <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
-                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
-                      </p>
-                      {fixtureCount >= 10 ? (
-                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
-                          <span className="text-xs font-medium">{fixtureCount}</span>
-                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
+                          {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name ? leagueFixture.fixtures[0].league_name : `League ${leagueFixture.leagueId}`}
+                        </p>
+                        {fixtureCount >= 10 ? (
+                          <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                            <span className="text-xs font-medium">{fixtureCount}</span>
+                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                          </div>
+                        ) : (
+                          <ChevronDownIcon
+                            className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
+                          />
+                        )}
+                      </div>
+                      {leagueFixture.category && (
+                        <div className="flex items-center gap-1.5">
+                          <img src={getFlagUrl(leagueFixture.category, 20)} alt={leagueFixture.category} className="w-3.5 h-[10px] object-cover rounded-[1px]" />
+                          <span className="text-[11px] text-neutral-n5 dark:text-snow-200/70 capitalize">{leagueFixture.category}</span>
                         </div>
-                      ) : (
-                        <ChevronDownIcon
-                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
-                        />
                       )}
                     </div>
                     <button
@@ -1937,31 +1990,40 @@ export const dashboard = () => {
                 className="bg-white text-sm dark:bg-[#161B22] dark:border-[#1F2937] border-1 block md:hidden h-fit flex-col border-snow-200 rounded"
               >
                 <div 
-                  className="flex gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 cursor-pointer select-none"
+                  className="flex items-center gap-3 border-b-1 px-5 py-3 dark:border-[#1F2937] border-snow-200 cursor-pointer select-none"
                   onClick={() => toggleLeagueCollapse(leagueFixture.leagueId, leagueFixture.fixtures.length)}
                 >
-                  {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name && (
-                    <GetLeagueLogo
-                      leagueId={leagueFixture.leagueId}
-                      alt={leagueFixture.fixtures[0].league_name}
-                      className="w-6 h-6 object-contain"
+                  {leagueFixture.image && (
+                    <img
+                      src={leagueFixture.image}
+                      alt={leagueFixture.fixtures[0]?.league_name || "League"}
+                      className="w-6 h-6 object-contain flex-shrink-0"
+                      loading="lazy"
                     />
                   )}
-                  <div className="flex items-center gap-2">
-                    <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
-                      {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
-                        ? leagueFixture.fixtures[0].league_name
-                        : `League ${leagueFixture.leagueId}`}
-                    </p>
-                    {leagueFixture.fixtures.length >= 10 ? (
-                      <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
-                        <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
-                        <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
+                        {leagueFixture.fixtures.length > 0 && leagueFixture.fixtures[0].league_name
+                          ? leagueFixture.fixtures[0].league_name
+                          : `League ${leagueFixture.leagueId}`}
+                      </p>
+                      {leagueFixture.fixtures.length >= 10 ? (
+                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                          <span className="text-xs font-medium">{leagueFixture.fixtures.length}</span>
+                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`} />
+                        </div>
+                      ) : (
+                        <ChevronDownIcon
+                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
+                        />
+                      )}
+                    </div>
+                    {leagueFixture.category && (
+                      <div className="flex items-center gap-1.5">
+                        <img src={getFlagUrl(leagueFixture.category, 20)} alt={leagueFixture.category} className="w-3.5 h-[10px] object-cover rounded-[1px]" />
+                        <span className="text-[11px] text-neutral-n5 dark:text-snow-200/70 capitalize">{leagueFixture.category}</span>
                       </div>
-                    ) : (
-                      <ChevronDownIcon
-                        className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${isLeagueCollapsed(leagueFixture.leagueId, leagueFixture.fixtures.length) ? "" : "rotate-180"}`}
-                      />
                     )}
                   </div>
                   <button

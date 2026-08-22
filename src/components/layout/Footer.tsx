@@ -1,5 +1,5 @@
 // import  footerLinks  from '/data/footerLink'
-import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { EnvelopeIcon, PencilSquareIcon, UserIcon } from "@heroicons/react/24/outline";
 import apiClient from "../../lib/api/axios";
 import { useToast } from "../../context/ToastContext";
@@ -12,7 +12,6 @@ const footerLinks = [
 ];
 
 export const FooterComp = () => {
-  const [showMobileAppPopup, setShowMobileAppPopup] = useState(false);
   const toast = useToast();
 
   const [fullName, setFullName] = useState("");
@@ -48,28 +47,6 @@ export const FooterComp = () => {
     } finally {
       setIsSubmittingFeedback(false);
     }
-  };
-
-  useEffect(() => {
-    if (!showMobileAppPopup) return;
-
-    const onKeyDown = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") setShowMobileAppPopup(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [showMobileAppPopup]);
-
-  const openMobileAppPopup = (ev: MouseEvent) => {
-    ev.preventDefault();
-    setShowMobileAppPopup(true);
   };
 
   return (
@@ -366,23 +343,14 @@ export const FooterComp = () => {
           </div>
             <div className="flex gap-3">
               <a
-                href=""
-                onClick={openMobileAppPopup}
+                href="https://play.google.com/store/apps/details?id=com.tikianaly.tikianaly"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <img
                   src="\assets\icons\play_store.png"
                   className="h-10"
                   alt="Google Play Store"
-                />
-              </a>
-              <a
-                href=""
-                onClick={openMobileAppPopup}
-              >
-                <img
-                  src="\assets\icons\apple_store.png"
-                  className="h-10"
-                  alt="Apple App Store"
                 />
               </a>
             </div>
@@ -409,48 +377,7 @@ export const FooterComp = () => {
         </p>
       </div>
 
-      {showMobileAppPopup && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowMobileAppPopup(false)}
-            aria-label="Close"
-          />
-          <div className="relative w-full max-w-md rounded-xl bg-white p-6 text-slate-900 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-lg font-semibold">Mobile app coming soon</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  For now we stick with the Web version.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                onClick={() => setShowMobileAppPopup(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                className="rounded-lg bg-brand-secondary px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
-                onClick={() => setShowMobileAppPopup(false)}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

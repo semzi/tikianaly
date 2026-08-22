@@ -3057,19 +3057,25 @@ export const gameInfo = () => {
 
 
 
-  const upcomingTimeLabel = String(
-
-    (liveFixture as any)?.time ??
-
-    (fixtureDetails as any)?.time ??
-
-    (fixtureDetails as any)?.starting_at ??
-
-    (fixtureDetails as any)?.date ??
-
-    ""
-
-  ).trim();
+  const upcomingTimeLabel = (() => {
+    // Prefer the full date field (which includes timezone info) over bare time strings
+    const rawDate = (liveFixture as any)?.date ?? (fixtureDetails as any)?.date;
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!Number.isNaN(d.getTime())) return format(d, "HH:mm");
+    }
+    // Fallback to bare time string (may be UTC, shown as-is)
+    const rawTime = String(
+      (liveFixture as any)?.time ??
+      (fixtureDetails as any)?.time ??
+      (fixtureDetails as any)?.starting_at ??
+      ""
+    ).trim();
+    // If it looks like "HH:mm:ss" or "HH:mm", just return the HH:mm portion
+    const timeMatch = rawTime.match(/^(\d{2}:\d{2})/);
+    if (timeMatch) return timeMatch[1];
+    return rawTime;
+  })();
 
 
 

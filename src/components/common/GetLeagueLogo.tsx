@@ -1,89 +1,27 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getLeagueById } from "@/lib/api/endpoints";
-import Image from "./Image";
 
 interface GetLeagueLogoProps {
-  leagueId: string | number;
-  alt: string;
+  leagueId?: string | number;
+  alt?: string;
   className?: string;
   width?: number;
   height?: number;
-}
-
-interface LeagueApiItem {
-  id?: number;
-  league_id?: number;
   image?: string;
-  logo?: string;
-  image_path?: string;
 }
-
-interface LeagueApiResponse {
-  responseObject?: {
-    item?: LeagueApiItem | LeagueApiItem[];
-  };
-}
-
-const extractImageUrl = (data: LeagueApiResponse): string | null => {
-  const item = data?.responseObject?.item;
-  const league = (Array.isArray(item) ? item[0] : item) as any;
-
-  const rawImage = String(
-    league?.image_url ??
-      league?.image ??
-      league?.logo ??
-      league?.image_path ??
-      ""
-  ).trim();
-
-  if (!rawImage) return null;
-  
-  if (rawImage.startsWith("http") || rawImage.startsWith("data:image")) {
-    return rawImage;
-  }
-  
-  return `data:image/png;base64,${rawImage}`;
-};
 
 const GetLeagueLogo: React.FC<GetLeagueLogoProps> = ({
-  leagueId,
   alt,
   className,
   width = 32,
   height = 32,
+  image,
+  leagueId,
 }) => {
-  const id = String(leagueId);
-  
-  const { data: logoUrl, isLoading: loading} = useQuery({
-    queryKey: ["league", "logo", id],
-    queryFn: async () => {
-      const res = await getLeagueById(id) as LeagueApiResponse;
-      return extractImageUrl(res);
-    },
-    staleTime: 7 * 24 * 60 * 60 * 1000, 
-    gcTime: 7 * 24 * 60 * 60 * 1000, 
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    retry: 3,
-    retryDelay: (attemptIndex) => 250 * Math.pow(2, attemptIndex),
-    enabled: !!leagueId && String(leagueId).trim() !== "",
-  });
-
-  if (loading) {
-    return (
-      <div
-        className={`animate-pulse bg-gray-300 rounded-full object-contain ${className ?? ""}`}
-        style={{ minWidth: width, minHeight: height }}
-      />
-    );
-  }
-
+  const src = image || (leagueId ? `https://cdn.tikianaly.com/soccer/league/${leagueId}.png` : "/loading-state/shield.svg");
   return (
-    <Image
-      src={logoUrl}
-      alt={alt}
+    <img
+      src={src}
+      alt={alt || "League"}
       loading="lazy"
       decoding="async"
       width={width}

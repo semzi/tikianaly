@@ -27,7 +27,14 @@ import Lottie from "lottie-react";
 // import { BackendStatusBanner } from "@/components/layout/BackendStatusBanner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1, // Reduce from default 3 to 1 to avoid spamming endpoints on failure
+      refetchOnWindowFocus: false, // Prevent refetching everything when switching browser tabs
+    },
+  },
+});
 
 const Reset = lazy(() => import("./features/auth/pages/reset_password"));
 const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
