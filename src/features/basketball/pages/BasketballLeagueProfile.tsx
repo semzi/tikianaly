@@ -342,7 +342,7 @@ const BasketballLeagueProfile = () => {
                       e.stopPropagation();
                       toggleFavorite(matchUniqueId);
                     }}
-                    className={`p-1.5 rounded-full transition-all ${
+                    className={`p-1.5 rounded-full transition-all cursor-pointer ${
                       favorites[matchUniqueId]
                         ? "bg-brand-primary text-white scale-110 shadow-md"
                         : "text-neutral-n4 hover:bg-snow-200 dark:hover:bg-white/10"
@@ -401,7 +401,7 @@ const BasketballLeagueProfile = () => {
               <div className="flex flex-col md:flex-row items-center gap-6 w-full">
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors flex-shrink-0"
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors flex-shrink-0 cursor-pointer"
                 >
                   <ArrowLeftIcon className="w-5 h-5" />
                 </button>
@@ -447,7 +447,7 @@ const BasketballLeagueProfile = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`pb-2 text-sm font-medium transition-colors relative ${
+                    className={`pb-2 text-sm font-medium transition-colors relative cursor-pointer ${
                       activeTab === tab.id
                         ? "text-brand-primary"
                         : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -473,7 +473,7 @@ const BasketballLeagueProfile = () => {
                       !!selectedDate &&
                       isToday(selectedDate)
                     }
-                    className={`p-1 transition-colors ${
+                    className={`p-1 transition-colors cursor-pointer ${
                       activeTab === "fixtures" &&
                       selectedDate &&
                       isToday(selectedDate)
@@ -523,7 +523,7 @@ const BasketballLeagueProfile = () => {
                       !!selectedDate &&
                       isToday(selectedDate)
                     }
-                    className={`p-1 transition-colors ${
+                    className={`p-1 transition-colors cursor-pointer ${
                       activeTab === "results" &&
                       selectedDate &&
                       isToday(selectedDate)
@@ -544,7 +544,7 @@ const BasketballLeagueProfile = () => {
                   <div className="relative">
                     <button
                       onClick={() => setShowSeasonPicker(!showSeasonPicker)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-snow-100 dark:bg-white/5 border border-snow-200 dark:border-white/10 text-sm theme-text hover:bg-snow-200 dark:hover:bg-white/10 transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-snow-100 dark:bg-white/5 border border-snow-200 dark:border-white/10 text-sm theme-text hover:bg-snow-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       <span>Season: {selectedSeason}</span>
                       <CalendarIcon className="w-4 h-4" />
@@ -558,7 +558,7 @@ const BasketballLeagueProfile = () => {
                               setSelectedSeason(season);
                               setShowSeasonPicker(false);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-snow-100 dark:hover:bg-white/5 transition-colors ${selectedSeason === season ? "text-brand-primary font-bold" : "theme-text"}`}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-snow-100 dark:hover:bg-white/5 transition-colors cursor-pointer ${selectedSeason === season ? "text-brand-primary font-bold" : "theme-text"}`}
                           >
                             {season}
                           </button>
@@ -622,7 +622,7 @@ const BasketballLeagueProfile = () => {
                       setCurrentPage((prev) => Math.max(1, prev - 1))
                     }
                     disabled={!hasPreviousPage}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                       hasPreviousPage
                         ? "bg-brand-primary text-white hover:bg-brand-primary/90"
                         : "bg-snow-200 dark:bg-white/5 text-neutral-n4 cursor-not-allowed"
@@ -638,7 +638,7 @@ const BasketballLeagueProfile = () => {
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                     }
                     disabled={!hasNextPage}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                       hasNextPage
                         ? "bg-brand-primary text-white hover:bg-brand-primary/90"
                         : "bg-snow-200 dark:bg-white/5 text-neutral-n4 cursor-not-allowed"

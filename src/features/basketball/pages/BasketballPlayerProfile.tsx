@@ -141,7 +141,7 @@ const BasketballPlayerProfile: React.FC = () => {
         <div className="page-padding-x py-12 relative z-10">
           <button
             onClick={() => navigate(-1)}
-            className="mb-8 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-110 flex items-center justify-center w-10 h-10 border border-white/10"
+            className="mb-8 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-110 flex items-center justify-center w-10 h-10 border border-white/10 cursor-pointer"
             aria-label="Go back"
           >
             <ArrowLeftIcon className="w-5 h-5" />

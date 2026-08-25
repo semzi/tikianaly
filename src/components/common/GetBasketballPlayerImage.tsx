@@ -30,7 +30,7 @@ const playerImageFailedCache = new Set<string>();
 const extractImageUrl = (data: PlayerApiResponse): string | null => {
   const item = data?.responseObject?.item;
   const player = Array.isArray(item) ? item[0] : item;
-  const rawImage = player?.image || player?.photo || player?.image_path || "";
+  const rawImage = player?.image || player?.photo || player?.image_path || player?.image_url || "";
 
   if (!rawImage) return null;
 
@@ -39,7 +39,12 @@ const extractImageUrl = (data: PlayerApiResponse): string | null => {
     return rawImage;
   }
 
-  // If it's base64 without prefix, add the prefix
+  // If it's already a URL, return as-is
+  if (rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+    return rawImage;
+  }
+
+  // Otherwise assume it's raw base64 and add the prefix
   return `data:image/png;base64,${rawImage}`;
 };
 

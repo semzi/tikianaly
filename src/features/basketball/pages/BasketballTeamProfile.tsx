@@ -120,7 +120,7 @@ const BasketballTeamProfile = () => {
         <div className="page-padding-x py-12 relative z-10">
           <button
             onClick={() => navigate(-1)}
-            className="mb-8 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-110 flex items-center justify-center w-10 h-10 border border-white/10"
+            className="mb-8 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-110 flex items-center justify-center w-10 h-10 border border-white/10 cursor-pointer"
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
@@ -197,7 +197,7 @@ const BasketballTeamProfile = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-5 px-1 font-medium text-sm transition-all flex items-center gap-2.5 relative whitespace-nowrap ${
+              className={`pb-5 px-1 font-medium text-sm transition-all flex items-center gap-2.5 relative whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? "text-orange-500"
                   : "text-neutral-n4 dark:text-snow-300 hover:text-orange-400 opacity-60 hover:opacity-100"
@@ -416,7 +416,7 @@ const BasketballTeamProfile = () => {
                       Detailed player performance and availability data will be
                       synchronized in the next update.
                     </p>
-                    <button className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-orange-500/20 active:scale-95">
+                    <button className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-orange-500/20 active:scale-95 cursor-pointer">
                       Notify Me
                     </button>
                   </div>

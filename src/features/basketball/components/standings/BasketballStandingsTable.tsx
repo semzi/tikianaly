@@ -243,7 +243,7 @@ export const BasketballStandingsTable = ({ leagueId, season }: Props) => {
           <div className="flex bg-snow-100 dark:bg-white/5 p-1 rounded-lg border border-snow-200 dark:border-white/10">
             <button
               onClick={() => setIsShortView(true)}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 isShortView
                   ? "bg-white dark:bg-[#1F2937] text-brand-primary shadow-sm"
                   : "text-neutral-n4 dark:text-snow-200 hover:text-brand-primary"
@@ -253,7 +253,7 @@ export const BasketballStandingsTable = ({ leagueId, season }: Props) => {
             </button>
             <button
               onClick={() => setIsShortView(false)}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 !isShortView
                   ? "bg-white dark:bg-[#1F2937] text-brand-primary shadow-sm"
                   : "text-neutral-n4 dark:text-snow-200 hover:text-brand-primary"
