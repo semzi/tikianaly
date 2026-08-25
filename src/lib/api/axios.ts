@@ -62,7 +62,7 @@ export { API };
 // end of blog url
 
 const authApiClient = axios.create({
-  baseURL: 'https://communityapi.tikianaly.com/',
+  baseURL: 'https://communityapi-dev.tikianaly.com/',
   headers: {
     'Content-Type': 'application/json',
   },

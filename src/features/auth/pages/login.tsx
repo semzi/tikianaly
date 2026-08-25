@@ -63,6 +63,7 @@ function Login({ onForgotPassword }: LoginProps) {
       const payload = {
         email: formValues.email.trim(),
         password: formValues.password,
+        platform: "WEB",
       };
 
       const response = await login(payload);

@@ -27,13 +27,15 @@ const teamLogoFailedCache = new Set<string>();
 const extractImageUrl = (data: TeamApiResponse): string | null => {
   const item = data?.responseObject?.item;
   const team = Array.isArray(item) ? item[0] : item;
-  const rawImage = team?.image ? String(team.image).trim() : "";
+  const rawImage = (team?.image || team?.logo || team?.image_url || "") as string;
 
   if (!rawImage) return null;
 
-  return rawImage.startsWith("data:image")
-    ? rawImage
-    : `data:image/png;base64,${rawImage}`;
+  if (rawImage.startsWith("data:image") || rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+    return rawImage;
+  }
+
+  return `data:image/png;base64,${rawImage}`;
 };
 
 const GetTeamLogo: React.FC<GetTeamLogoProps> = ({

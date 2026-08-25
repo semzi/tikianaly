@@ -409,6 +409,7 @@ function Signup() {
         password: formValues.password,
         phone: formValues.phone.trim(),
         countryCode: selectedCountry.dialCode,
+        platform: "WEB",
       };
 
       await addUser(payload);
