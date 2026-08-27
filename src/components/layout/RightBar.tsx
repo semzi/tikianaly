@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { getAllPosts } from "@/lib/api/news/newsEndpoint";
 
 const SkeletonBlock = ({ className = "" }: { className?: string }) => (
@@ -33,6 +35,7 @@ const fetchNews = async () => {
 };
 
 export const RightBar = () => {
+  const [showIosModal, setShowIosModal] = useState(false);
   const { data: posts = [], isLoading: loading } = useQuery({
     queryKey: ["news", "latest"],
     queryFn: fetchNews,
@@ -140,18 +143,32 @@ export const RightBar = () => {
               Download our Mobile App
             </p>
             <div className="flex flex-col gap-3">
-              <img src="\assets\icons\Group 1261157024.png" alt="" />
-              <a
-                href="https://play.google.com/store/apps/details?id=com.tikianaly.tikianaly"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="\assets\icons\Frame 1261157588.png"
-                  className="cursor-pointer"
-                  alt="Get it on Google Play"
-                />
-              </a>
+              <img src="/assets/icons/Group 1261157024.png" alt="QR code to download app" className="w-full h-auto object-contain" />
+              <div className="flex flex-col gap-2">
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.tikianaly.tikianaly"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <img
+                    src="/icons/google-play.png"
+                    className="w-full h-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    alt="Get it on Google Play"
+                  />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowIosModal(true)}
+                  className="block w-full"
+                >
+                  <img
+                    src="/icons/app-store.png"
+                    className="w-full h-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    alt="Download on the App Store"
+                  />
+                </button>
+              </div>
             </div>
           </ul>
 
@@ -172,6 +189,40 @@ export const RightBar = () => {
           </div>
         </div>
       </div>
+
+      {/* iOS Coming Soon Modal */}
+      {showIosModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowIosModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#161B22] rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={() => setShowIosModal(false)}
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
+            </button>
+            <div className="flex flex-col items-center text-center gap-3 pt-2">
+              <img src="/icons/app-store.png" alt="" className="h-12 w-auto object-contain opacity-90" />
+              <h3 className="text-lg font-bold theme-text dark:text-white">iOS Coming Soon</h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                Our iOS app is on the way. For now, please stick with the web and Android app.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowIosModal(false)}
+              className="w-full mt-2 rounded-full bg-[#0D1117] dark:bg-white text-white dark:text-black py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

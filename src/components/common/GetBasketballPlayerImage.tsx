@@ -17,6 +17,7 @@ interface PlayerApiItem {
   image?: string;
   photo?: string;
   image_path?: string;
+  image_url?: string;
 }
 
 interface PlayerApiResponse {

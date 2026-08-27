@@ -144,6 +144,7 @@ interface Team {
   q3: string | number;
   q4: string | number;
   ot: string | number;
+  image_url?: string;
 }
 
 interface Match {
@@ -152,6 +153,8 @@ interface Match {
   match_id: number;
   localteam: Team;
   awayteam: Team;
+  homeTeam?: Team;
+  awayTeam?: Team;
   status: string;
   period?: string;
   timer?: string;
@@ -159,6 +162,7 @@ interface Match {
   time?: string;
   league_name: string;
   league_id: number;
+  league_image_url?: string;
   venue?: string;
   season?: string;
   stage?: string;
@@ -457,7 +461,7 @@ const BasketballPage = () => {
         grouped[lid] = {
           leagueName: match.league_name || "Unknown League",
           leagueId: match.league_id || lid,
-          leagueImageUrl: (match as any).league_image_url || null,
+          leagueImageUrl: match.league_image_url || null,
           items: [],
         };
       }

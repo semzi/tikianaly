@@ -152,41 +152,37 @@ export default function LineupChangeSummary(props: Props) {
   const visibleText = isExpanded ? summary : lines.slice(0, collapsedLines).join("\n");
 
   return (
-    <div className="block-style p-4 md:p-6 mb-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="theme-text font-semibold text-base">Lineup change summary</p>
-          <p className="text-xs text-neutral-m6 mt-1">Compared to each team’s last played match</p>
+    <div className="w-full p-0 overflow-hidden rounded-xl">
+      <div className="relative p-4">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FDE68A]/35 via-[#F5C542]/20 to-transparent" />
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[#F59E0B]/20 blur-3xl" />
         </div>
-        <span
-          className="text-neutral-m6 shrink-0"
-          title="This summary is generated from lineup/formation data and may not reflect tactical nuances."
-        >
-          <InformationCircleIcon className="w-5 h-5" />
-        </span>
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="theme-text font-medium text-sm">Lineup change summary</p>
+            <p className="text-xs text-neutral-m6 mt-1">Compared to each team’s last played match</p>
+          </div>
+          <span
+            className="text-neutral-m6 shrink-0 relative"
+            title="This summary is generated from lineup/formation data and may not reflect tactical nuances."
+          >
+            <InformationCircleIcon className="w-5 h-5" />
+          </span>
+        </div>
+        <div className="relative mt-3 whitespace-pre-line text-sm text-neutral-m6">
+          {visibleText}
+        </div>
+        {hasMore ? (
+          <button
+            type="button"
+            className="relative mt-3 text-sm font-medium text-brand-secondary hover:underline"
+            onClick={() => setIsExpanded((s) => !s)}
+          >
+            {isExpanded ? "Show less" : "Show more"}
+          </button>
+        ) : null}
       </div>
-
-      <div className="mt-3 whitespace-pre-line text-sm text-neutral-m6">
-        {visibleText}
-      </div>
-
-      {hasMore ? (
-
-        <button
-
-          type="button"
-
-          className="mt-3 text-sm font-medium text-brand-secondary hover:underline"
-
-          onClick={() => setIsExpanded((s) => !s)}
-
-        >
-
-          {isExpanded ? "Show less" : "Show more"}
-
-        </button>
-
-      ) : null}
     </div>
   );
 }

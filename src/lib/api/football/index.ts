@@ -524,10 +524,11 @@ export const getPlayerImageById = async (playerId: string | number) => {
   return response.data;
 };
 
-// Team Fixtures Endpoint
-export const getTeamFixtures = async (teamId: string | number, season: string = "2025/2026") => {
+// Team Fixtures Endpoint — season is dynamic, fetched via standing/seasons?leagueId (most recent)
+export const getTeamFixtures = async (teamId: string | number, season?: string) => {
   const endpoint = "/api/v1/football/fixture/team";
-  const params = { teamId, season };
+  const params: Record<string, string | number> = { teamId };
+  if (season) params.season = season;
   
   // Cache for 30 minutes
   const cached = apiCache.get(endpoint, params);

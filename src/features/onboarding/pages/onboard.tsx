@@ -1,20 +1,102 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import Lottie from "lottie-react";
+import type { ReactElement } from "react";
+import LottiePrimitive from "lottie-react";
+import type { LottieOptions } from "lottie-react";
+import { AnimatePresence, m } from "framer-motion";
+
+// lottie-react types hardcode the "svg" renderer via its generic default even
+// though the runtime supports canvas; retype for canvas so these heavy
+// animations render to a bitmap instead of thousands of live SVG DOM nodes.
+const Lottie = LottiePrimitive as unknown as (
+  props: LottieOptions<"canvas">
+) => ReactElement;
+
+// Module-level cache so navigating /login <-> /signup (which remounts Onboard)
+// reuses already-fetched animation data instead of re-downloading ~6MB of JSON.
+const animationDataCache = new Map<string, unknown>();
+const animationRequestCache = new Map<string, Promise<unknown>>();
+
+const loadAnimationData = (url: string): Promise<unknown> => {
+  const cached = animationDataCache.get(url);
+  if (cached) return Promise.resolve(cached);
+
+  let request = animationRequestCache.get(url);
+  if (!request) {
+    request = fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        animationDataCache.set(url, data);
+        animationRequestCache.delete(url);
+        return data;
+      })
+      .catch((err) => {
+        animationRequestCache.delete(url);
+        throw err;
+      });
+    animationRequestCache.set(url, request);
+  }
+  return request;
+};
+
+const ONBOARDING_ANIMATIONS = [
+  "/onboarding/Robot-screen.json",
+  "/onboarding/Analytics-screen.json",
+  "/onboarding/Banter-screen.json",
+  "/onboarding/Sports-hub-screen.json",
+];
+
+type ApiErrorLike = {
+  response?: { data?: { message?: string; error?: string } };
+  message?: string;
+};
+
+const extractApiErrorMessage = (error: unknown, fallback: string): string => {
+  const apiError = error as ApiErrorLike;
+  return (
+    apiError?.response?.data?.message ||
+    apiError?.response?.data?.error ||
+    apiError?.message ||
+    fallback
+  );
+};
 
 const LottieAnimation = ({ url }: { url: string }) => {
-  const [animationData, setAnimationData] = useState<any>(null);
+  const [animationData, setAnimationData] = useState<unknown>(
+    () => animationDataCache.get(url) ?? null
+  );
 
   useEffect(() => {
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => setAnimationData(data))
-      .catch((err) => console.error("Failed to load animation:", err));
+    if (animationDataCache.has(url)) {
+      setAnimationData(animationDataCache.get(url));
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      loadAnimationData(url)
+        .then((data) => {
+          if (!cancelled) setAnimationData(data);
+        })
+        .catch((err) => console.error("Failed to load animation:", err));
+    }, 3000); // Defer loading by 3 seconds to ensure input responsiveness
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [url]);
 
   if (!animationData) return <div className="animate-pulse bg-white/20 w-64 h-64 rounded-xl"></div>;
 
-  return <Lottie animationData={animationData} loop={true} className="max-w-full max-h-[80%] object-contain" />;
+  return (
+    <Lottie
+      animationData={animationData}
+      loop={true}
+      renderer="canvas"
+      className="max-w-full max-h-[80%] object-contain"
+    />
+  );
 };
 import Login from "@/features/auth/pages/login";
 import Signup from "@/features/auth/pages/signup";
@@ -46,12 +128,6 @@ function Onboard() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   
   const [currentSlide, setCurrentSlide] = useState(0);
-  const onboardingAnimations = [
-    "/onboarding/Robot-screen.json",
-    "/onboarding/Analytics-screen.json", 
-    "/onboarding/Banter-screen.json",
-    "/onboarding/Sports-hub-screen.json"
-  ];
 
   const slideContent = [
     {
@@ -91,11 +167,11 @@ function Onboard() {
   // Auto-slide functionality
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % onboardingAnimations.length);
-    }, 6000); // Change slide every 4 seconds
+      setCurrentSlide((prev) => (prev + 1) % ONBOARDING_ANIMATIONS.length);
+    }, 6000); // Change slide every 6 seconds
 
     return () => clearInterval(interval);
-  }, [onboardingAnimations.length]);
+  }, []);
 
   useEffect(() => {
     if (isOnboard) navigate("/signup");
@@ -135,12 +211,11 @@ function Onboard() {
       setOtpToken(nextOtpToken);
       setAuthView("verify");
       setAuthStatus({ type: "success", message: "OTP sent. Please check your email." });
-    } catch (error: any) {
-      const apiMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Unable to request OTP right now.";
+    } catch (error) {
+      const apiMessage = extractApiErrorMessage(
+        error,
+        "Unable to request OTP right now."
+      );
       setAuthStatus({ type: "error", message: apiMessage });
     } finally {
       setAuthSubmitting(false);
@@ -183,13 +258,12 @@ function Onboard() {
       setResetToken(JSON.stringify({ resetId: otpToken, otp }));
       setAuthStatus({ type: "success", message: "OTP Verified. Please reset your password." });
       navigate("/reset-password");
-    } catch (error: any) {
+    } catch (error) {
       setLastVerifiedOtp("");
-      const apiMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Unable to verify OTP right now.";
+      const apiMessage = extractApiErrorMessage(
+        error,
+        "Unable to verify OTP right now."
+      );
       setAuthStatus({ type: "error", message: apiMessage });
     } finally {
       setAuthSubmitting(false);
@@ -351,16 +425,18 @@ function Onboard() {
           {/* Fixed slide container at top */}
           <div className="flex-1 flex items-center justify-center pt-20">
             <div className="relative w-full h-full flex items-center justify-center">
-              {onboardingAnimations.map((animUrl, index) => (
-                <div
-                  key={index}
-                  className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
-                    index === currentSlide ? 'opacity-100' : 'opacity-0'
-                  }`}
+              <AnimatePresence mode="sync">
+                <m.div
+                  key={currentSlide}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 flex items-center justify-center"
                 >
-                  <LottieAnimation url={animUrl} />
-                </div>
-              ))}
+                  <LottieAnimation url={ONBOARDING_ANIMATIONS[currentSlide]} />
+                </m.div>
+              </AnimatePresence>
             </div>
           </div>
 
@@ -378,7 +454,7 @@ function Onboard() {
 
             {/* Navigation dots */}
             <div className="flex gap-1 justify-center items-center">
-              {onboardingAnimations.map((_, index) => (
+              {ONBOARDING_ANIMATIONS.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}

@@ -25,17 +25,15 @@ import {
 
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { navigate } from "@/lib/router/navigate";
 
-import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingsByLeagueId, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
+import { FOOTBALL_COMMENTARY_SSE_URL, getFixtureDetails, getMatchCommentary, getMatchInfo, getPlayerById, getStandingSeasonsByLeagueId, getStandingsByLeagueId, getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
 
 import { useLocation, useParams } from "react-router-dom";
 
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
-
-import GetVenueImage from "@/components/common/GetVenueImage";
 
 import LineupBuilder from "@/features/football/components/lineupBuilder";
 
@@ -273,6 +271,8 @@ export const gameInfo = () => {
 
   const [liveEvents, setLiveEvents] = useState<LiveStreamEvent[]>([]);
 
+  const [liveRawMatch, setLiveRawMatch] = useState<any>(null);
+
   const [commentaryComments, setCommentaryComments] = useState<CommentaryComment[]>([]);
 
   const [, setStandingsData] = useState<any>(null);
@@ -303,11 +303,19 @@ export const gameInfo = () => {
 
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
 
+  // Shared team data for both TeamComparison and lineup squad images — SINGLE getTeamById batch reused
+  const [sharedTeamData, setSharedTeamData] = useState<{ localTeam: any; visitorTeam: any } | null>(null);
+  const sharedTeamCacheKeyRef = useRef<string>("");
+
   const [matchLoadError, setMatchLoadError] = useState<string>("");
 
   const [homeRecentForm, setHomeRecentForm] = useState<Array<"W" | "D" | "L">>([]);
 
   const [awayRecentForm, setAwayRecentForm] = useState<Array<"W" | "D" | "L">>([]);
+
+  // Last 5 played fixtures per team (from same getTeamFixtures call used for recent lineups) — passed to HeadToHead Recent Form tab, no recall
+  const [homeRecentFixtures, setHomeRecentFixtures] = useState<any[]>([]);
+  const [awayRecentFixtures, setAwayRecentFixtures] = useState<any[]>([]);
 
   type RecentLineupPlayer = {
 
@@ -513,7 +521,7 @@ export const gameInfo = () => {
 
 
 
-    const url = FOOTBALL_COMMENTARY_SSE_URL;
+    const url = `${FOOTBALL_COMMENTARY_SSE_URL}?matchId=${encodeURIComponent(String(fixtureIdForRest).trim())}`;
 
     const matchIdNum = Number(String(fixtureIdForRest).trim());
 
@@ -1324,7 +1332,7 @@ export const gameInfo = () => {
 
 
   const overviewRefereeName =
-
+    liveRawMatch?.match?.venue?.referee ??
     (matchInfo as any)?.venue?.referee?.name ??
 
     (matchInfo as any)?.venue?.referee ??
@@ -1342,7 +1350,7 @@ export const gameInfo = () => {
 
 
   const overviewAttendanceRaw =
-
+    liveRawMatch?.match?.venue?.attendance ??
     (matchInfo as any)?.venue?.attendance ??
 
     (matchInfo as any)?.attendance ??
@@ -1380,7 +1388,7 @@ export const gameInfo = () => {
   const overviewVenueAddress =
 
     String(
-
+      liveRawMatch?.match?.venue?.address ??
       (matchInfo as any)?.venue?.address ??
 
         (matchInfo as any)?.match?.venue?.address ??
@@ -1396,7 +1404,7 @@ export const gameInfo = () => {
   const overviewVenueCity =
 
     String(
-
+      liveRawMatch?.match?.venue?.city ??
       (matchInfo as any)?.venue?.city ??
 
         (matchInfo as any)?.match?.venue?.city ??
@@ -1412,7 +1420,8 @@ export const gameInfo = () => {
   const overviewVenueName =
 
     String(
-
+      liveRawMatch?.match?.venue?.stadium ??
+      liveRawMatch?.match?.venue?.name ??
       (matchInfo as any)?.venue?.name ??
 
         (matchInfo as any)?.match?.venue?.name ??
@@ -1513,9 +1522,9 @@ export const gameInfo = () => {
 
   const topRatedPlayer = useMemo(() => {
 
-    const bucketHome = fixtureDetails?.player_stats?.home ?? matchInfo?.player_stats?.home;
+    const bucketHome = liveRawMatch?.player_stats?.home ?? fixtureDetails?.player_stats?.home ?? matchInfo?.player_stats?.home;
 
-    const bucketAway = fixtureDetails?.player_stats?.away ?? matchInfo?.player_stats?.away;
+    const bucketAway = liveRawMatch?.player_stats?.away ?? fixtureDetails?.player_stats?.away ?? matchInfo?.player_stats?.away;
 
     const all = [
 
@@ -1749,9 +1758,9 @@ export const gameInfo = () => {
 
 
 
-    const bucketHome = matchInfo?.player_stats?.home ?? fixtureDetails?.player_stats?.home;
+    const bucketHome = liveRawMatch?.player_stats?.home ?? matchInfo?.player_stats?.home ?? fixtureDetails?.player_stats?.home;
 
-    const bucketAway = matchInfo?.player_stats?.away ?? fixtureDetails?.player_stats?.away;
+    const bucketAway = liveRawMatch?.player_stats?.away ?? matchInfo?.player_stats?.away ?? fixtureDetails?.player_stats?.away;
 
     const all = [
 
@@ -2180,29 +2189,24 @@ export const gameInfo = () => {
 
 
     const pickLatestPlayed = (played: any[], teamId: string) => {
-
       const items = Array.isArray(played) ? played : [];
-
       const filtered = items
-
         .filter((fx) => {
-
           const fxId = String(fx?.fixture_id ?? fx?.match_id ?? fx?.id ?? "").trim();
-
           if (currentFixtureId && fxId && fxId === currentFixtureId) return false;
-
           const lt = String(fx?.localteam?.id ?? "").trim();
-
           const vt = String(fx?.visitorteam?.id ?? "").trim();
-
           return lt === teamId || vt === teamId;
-
         })
-
         .sort((a, b) => toTs(b?.date) - toTs(a?.date));
-
+      // Prefer a fixture where this team's side actually has a lineup (fixes @ not showing)
+      for (const fx of filtered) {
+        const lt = String(fx?.localteam?.id ?? "").trim();
+        const sideKey = lt === teamId ? "localteam" : "visitorteam";
+        const players = (fx as any)?.lineups?.[sideKey]?.player;
+        if (Array.isArray(players) && players.length > 0) return fx;
+      }
       return filtered[0] ?? null;
-
     };
 
 
@@ -2226,8 +2230,11 @@ export const gameInfo = () => {
       const opp = isLocal ? fixture?.visitorteam : fixture?.localteam;
 
       const opponentId = String(opp?.id ?? "").trim();
-
-      const opponentName = String(opp?.name ?? "").trim() || "Opponent";
+      let opponentName = String(opp?.name ?? "").trim() || "Opponent";
+      // Guard against corrupted name being an icon path like "public/icons/team-fill-1.svg"
+      if (opponentName.includes("/") || opponentName.includes(".svg") || opponentName.includes(".png")) {
+        opponentName = "Opponent";
+      }
 
       const lineupBucket = fixture?.lineups?.[sideKey];
 
@@ -2269,12 +2276,21 @@ export const gameInfo = () => {
 
         setRecentLineupsError("");
 
+        // Do not hardcode season — fetch most recent via standing/seasons?leagueId (e.g. 1204 → ["2026/2027","2025/2026"] → "2026/2027")
+        let season: string | undefined;
+        try {
+          const leagueIdForSeason = String((fixtureDetails as any)?.league_id ?? (displayLeagueId as any) ?? "").trim();
+          if (leagueIdForSeason) {
+            const sRes: any = await getStandingSeasonsByLeagueId(leagueIdForSeason);
+            const items: any = sRes?.responseObject?.item;
+            if (Array.isArray(items) && items.length > 0) season = String(items[0]).trim();
+            else if (typeof items === "string" && items) season = String(items).trim();
+          }
+        } catch { /* fallback to backend default season */ }
+
         const [homeFx, awayFx] = await Promise.all([
-
-          getTeamFixtures(homeId),
-
-          getTeamFixtures(awayId),
-
+          getTeamFixtures(homeId, season),
+          getTeamFixtures(awayId, season),
         ]);
 
         if (isCancelled) return;
@@ -2282,6 +2298,28 @@ export const gameInfo = () => {
         const homePlayed = (homeFx as any)?.responseObject?.played;
 
         const awayPlayed = (awayFx as any)?.responseObject?.played;
+
+        // Last 5 played for Recent Form tab (no recall — reuse same endpoint data)
+        const toTs2 = (d: any) => { try { return new Date(String(d ?? "")).getTime() || 0; } catch { return 0; } };
+        const homeSorted = Array.isArray(homePlayed) ? [...homePlayed].sort((a: any, b: any) => toTs2(b.date) - toTs2(a.date)) : [];
+        const awaySorted = Array.isArray(awayPlayed) ? [...awayPlayed].sort((a: any, b: any) => toTs2(b.date) - toTs2(a.date)) : [];
+        const homeLast5 = homeSorted.slice(0, 5);
+        const awayLast5 = awaySorted.slice(0, 5);
+        setHomeRecentFixtures(homeLast5);
+        setAwayRecentFixtures(awayLast5);
+        const deriveForm = (fixtures: any[], teamId: string): Array<"W" | "D" | "L"> => fixtures.map((f: any) => {
+          const isHome = String(f.localteam?.id) === teamId;
+          const hs = Number(String(f.localteam?.score ?? f.localteam?.ft_score ?? "").trim());
+          const as = Number(String(f.visitorteam?.score ?? f.visitorteam?.ft_score ?? "").trim());
+          if (!Number.isFinite(hs) || !Number.isFinite(as)) return "D" as const;
+          const teamScore = isHome ? hs : as;
+          const oppScore = isHome ? as : hs;
+          if (teamScore > oppScore) return "W" as const;
+          if (teamScore < oppScore) return "L" as const;
+          return "D" as const;
+        });
+        setHomeRecentForm(deriveForm(homeLast5, homeId));
+        setAwayRecentForm(deriveForm(awayLast5, awayId));
 
         const homeLatest = pickLatestPlayed(homePlayed, homeId);
 
@@ -2302,6 +2340,11 @@ export const gameInfo = () => {
         setHomeRecentLineup(null);
 
         setAwayRecentLineup(null);
+
+        setHomeRecentFixtures([]);
+        setAwayRecentFixtures([]);
+        setHomeRecentForm([]);
+        setAwayRecentForm([]);
 
         setRecentLineupsError(String(e?.message ?? "Failed to load recent lineups"));
 
@@ -3252,61 +3295,30 @@ export const gameInfo = () => {
 
 
   useEffect(() => {
-
     if (!matchKey) return;
-
-
-
     let isClosed = false;
-
     let eventSource: EventSource | null = null;
-
-
-
     eventSource = createFootballLiveStream<LiveStreamFixture[]>({
-
       useFastJsonPatch: true,
-
       onMessage: (fixtures: any) => {
-
         if (isClosed) return;
-
-        const safeFixtures: LiveStreamFixture[] = Array.isArray(fixtures)
-
-          ? (fixtures as LiveStreamFixture[])
-
-          : [];
-
+        const safeFixtures: LiveStreamFixture[] = Array.isArray(fixtures) ? (fixtures as LiveStreamFixture[]) : [];
         const fixture =
-
           safeFixtures.find(
-
             (f) =>
-
               String((f as any)?.static_id) === String(matchKey) ||
-
               String((f as any)?.fixture_id) === String(fixtureIdForRest) ||
-
               String((f as any)?.match_id) === String(fixtureIdForRest)
-
           ) ?? null;
-
-
-
         setLiveFixture(fixture);
-
         setLiveEvents(fixture?.events ?? []);
 
       },
 
       onError: (ev) => {
-
         if (isClosed) return;
-
         console.warn("GameInfo live SSE error:", ev);
-
       },
-
     });
 
 
@@ -3319,7 +3331,69 @@ export const gameInfo = () => {
 
     };
 
-  }, [matchKey]);
+  }, [matchKey, fixtureIdForRest]);
+
+  // Dedicated match-info SSE with ?matchId= — overrides detailed UI (lineup, venue, teams, stats) when active, keeps normal live-stream for events/scores
+  useEffect(() => {
+    if (!fixtureIdForRest) return;
+    let isClosed = false;
+    const url = `https://api.tikianaly.com/api/v1/football/sse/stream-match-info?matchId=${encodeURIComponent(String(fixtureIdForRest).trim())}`;
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(url);
+      es.onmessage = (ev) => {
+        if (isClosed) return;
+        try {
+          const data = JSON.parse(String(ev.data ?? "{}"));
+          const m = (data as any)?.match ?? data;
+          if (!m || !m.teams) return;
+          setLiveRawMatch(m);
+          const mapped: any = {
+            match_id: String(m.match_id ?? m.static_id ?? ""),
+            fixture_id: String(m.match_id ?? ""),
+            static_id: String(m.static_id ?? ""),
+            league_id: String(m.league_id ?? ""),
+            league_name: "",
+            is_cup: false,
+            file_group: "",
+            localteam: {
+              id: String(m.teams?.home?.id ?? ""),
+              name: String(m.teams?.home?.name ?? ""),
+              goals: String(m.teams?.home?.score?.goals ?? m.teams?.home?.score?.full_time ?? ""),
+              teamImageUrl: m.teams?.home?.id ? `https://cdn.tikianaly.com/soccer/team/${m.teams.home.id}.png` : undefined,
+            },
+            visitorteam: {
+              id: String(m.teams?.away?.id ?? ""),
+              name: String(m.teams?.away?.name ?? ""),
+              goals: String(m.teams?.away?.score?.goals ?? m.teams?.away?.score?.full_time ?? ""),
+              teamImageUrl: m.teams?.away?.id ? `https://cdn.tikianaly.com/soccer/team/${m.teams.away.id}.png` : undefined,
+            },
+            covered_live: true,
+            venue: m.match?.venue,
+            date: String(m.match?.date ?? ""),
+            timer: 0,
+            time: 0,
+            status: String(m.match?.status ?? ""),
+            injury_time: 0,
+            injury_minute: 0,
+            commentary_available: false,
+            halfTimeScore: "",
+            fullTimeScore: "",
+            extraTimeScore: "",
+            events: [],
+            lastUpdatedAt: Date.now(),
+            _raw: m,
+          };
+          setLiveFixture((prev) => (prev ? ({ ...prev, ...mapped, events: (prev as any).events } as any) : (mapped as LiveStreamFixture)));
+        } catch {}
+      };
+      es.onerror = () => {};
+    } catch {}
+    return () => {
+      isClosed = true;
+      try { es?.close(); } catch {}
+    };
+  }, [fixtureIdForRest]);
 
 
 
@@ -3573,21 +3647,28 @@ export const gameInfo = () => {
 
   }, [tabs]);
 
-  // Fetch team squad data to get player images (avoids per-player API calls)
+  // Team logos come from getFixtureDetails (fixtureDetails.homeTeam.image_url / awayTeam.image_url) — no GetTeamLogo.
+  // SINGLE shared getTeamById batch for BOTH TeamComparison (detailed_stats) and lineup squad images (squad[].playerImageUrl)
+  // — 1 effect, 2 parallel calls deduped, cached by team-pair key, reused across tabs. No per-component duplicate calls.
   useEffect(() => {
-    if (!displayHomeTeamId && !displayAwayTeamId) return;
     const homeId = String(displayHomeTeamId ?? "").trim();
     const awayId = String(displayAwayTeamId ?? "").trim();
-    const controller = new AbortController();
-
-    const fetchTeamSquads = async () => {
-      const ids = [homeId, awayId].filter(Boolean);
-      if (!ids.length) return;
+    if (!homeId || !awayId) return;
+    const cacheKey = `${homeId}-${awayId}`;
+    if (sharedTeamCacheKeyRef.current === cacheKey && sharedTeamData) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const results = await Promise.all(ids.map((id) => getTeamById(id)));
+        const [homeRes, awayRes] = await Promise.all([getTeamById(homeId), getTeamById(awayId)] as const);
+        if (cancelled) return;
+        const homeItem: any = (homeRes as any)?.responseObject?.item;
+        const awayItem: any = (awayRes as any)?.responseObject?.item;
+        const homeTeam = Array.isArray(homeItem) ? homeItem[0] : homeItem;
+        const awayTeam = Array.isArray(awayItem) ? awayItem[0] : awayItem;
+        // Build playerImages map from both squads
         const map: Record<string, string> = {};
-        for (const res of results) {
-          const squad = (res as any)?.responseObject?.item?.squad;
+        for (const team of [homeTeam, awayTeam]) {
+          const squad = (team as any)?.squad;
           if (!Array.isArray(squad)) continue;
           for (const p of squad) {
             const pid = String(p?.id ?? "").trim();
@@ -3595,15 +3676,17 @@ export const gameInfo = () => {
             if (pid && url) map[pid] = url;
           }
         }
-        if (!controller.signal.aborted) setPlayerImages(map);
+        if (!cancelled) {
+          sharedTeamCacheKeyRef.current = cacheKey;
+          setSharedTeamData({ localTeam: homeTeam, visitorTeam: awayTeam });
+          setPlayerImages((prev) => ({ ...prev, ...map }));
+        }
       } catch {
-        // silently fail; player images will fall back to placeholders
+        // silently fail; UI will show placeholders / fallback
       }
-    };
-
-    fetchTeamSquads();
-    return () => controller.abort();
-  }, [displayHomeTeamId, displayAwayTeamId]);
+    })();
+    return () => { cancelled = true; };
+  }, [displayHomeTeamId, displayAwayTeamId, sharedTeamData]);
 
   // Update URL hash when tab changes (without navigation)
 
@@ -4784,25 +4867,15 @@ export const gameInfo = () => {
                       <p className="text-neutral-m6">Date:</p>
 
                       <p className="theme-text">
-
-                        {/* Try to use a formatted date if available */}
-
-                        {fixtureDetails?.date 
-
-                          ? new Date(fixtureDetails.date).toLocaleString(undefined, {
-
+                        {/* Live overrides if active */}
+                        {(liveRawMatch?.match?.date ?? fixtureDetails?.date)
+                          ? new Date((liveRawMatch?.match?.date ?? fixtureDetails.date) as string).toLocaleString(undefined, {
                               year: 'numeric',
-
                               month: 'short',
-
                               day: 'numeric',
-
                               hour: '2-digit',
-
                               minute: '2-digit'
-
                             })
-
                           : "--"}
 
                       </p>
@@ -4979,14 +5052,10 @@ export const gameInfo = () => {
 
 
 
-                <GetVenueImage
-
-                  teamId={fixtureDetails?.localteam?.id}
-
+                <img
+                  src="/icons/stadium.png"
                   alt={`${fixtureDetails?.localteam?.name ?? ""} venue`}
-
                   className="w-full h-full max-h-[260px] object-cover rounded"
-
                 />
 
                 </div>
@@ -5008,11 +5077,14 @@ export const gameInfo = () => {
             <div className="grid grid-cols-1   gap-8">
 
               <TeamComparison
-
               localTeamId={fixtureDetails?.localteam?.id}
-
               visitorTeamId={fixtureDetails?.visitorteam?.id}
-
+              localTeamImageUrl={fixtureDetails?.homeTeam?.image_url || (liveFixture as any)?.localteam?.teamImageUrl}
+              visitorTeamImageUrl={fixtureDetails?.awayTeam?.image_url || (liveFixture as any)?.visitorteam?.teamImageUrl}
+              localTeamName={fixtureDetails?.localteam?.name}
+              visitorTeamName={fixtureDetails?.visitorteam?.name}
+              localTeamData={sharedTeamData?.localTeam}
+              visitorTeamData={sharedTeamData?.visitorTeam}
             />
 
             </div>
@@ -5205,11 +5277,36 @@ export const gameInfo = () => {
 
           {(() => {
 
-            const lineupPayload = matchInfo?.lineup ?? (fixtureDetails as any)?.lineup;
+            const lineupPayload = liveRawMatch?.lineup ? {
+              home: {
+                players: (liveRawMatch.lineup.home?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+                coach: liveRawMatch.lineup.home?.coach,
+                substitutes: (liveRawMatch.lineup.home?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.home?.substitutions ?? [],
+              },
+              away: {
+                players: (liveRawMatch.lineup.away?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+                coach: liveRawMatch.lineup.away?.coach,
+                substitutes: (liveRawMatch.lineup.away?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.away?.substitutions ?? [],
+              },
+            } as any : (matchInfo?.lineup ?? (fixtureDetails as any)?.lineup);
 
-            const localLineup = (fixtureDetails as any)?.lineups?.localteam;
+            const localLineup = liveRawMatch?.lineup?.home ? {
+              player: (liveRawMatch.lineup.home.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.home ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.home.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.home.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.localteam;
 
-            const visitorLineup = (fixtureDetails as any)?.lineups?.visitorteam;
+            const visitorLineup = liveRawMatch?.lineup?.away ? {
+              player: (liveRawMatch.lineup.away.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.away ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.away.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.away.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.visitorteam;
 
             const hasOfficialLineup =
 
@@ -5309,11 +5406,36 @@ export const gameInfo = () => {
 
           {(() => {
 
-            const lineupPayload = matchInfo?.lineup ?? (fixtureDetails as any)?.lineup;
+            const lineupPayload = liveRawMatch?.lineup ? {
+              home: {
+                players: (liveRawMatch.lineup.home?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+                coach: liveRawMatch.lineup.home?.coach,
+                substitutes: (liveRawMatch.lineup.home?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.home?.substitutions ?? [],
+              },
+              away: {
+                players: (liveRawMatch.lineup.away?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+                coach: liveRawMatch.lineup.away?.coach,
+                substitutes: (liveRawMatch.lineup.away?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.away?.substitutions ?? [],
+              },
+            } as any : (matchInfo?.lineup ?? (fixtureDetails as any)?.lineup);
 
-            const localLineup = (fixtureDetails as any)?.lineups?.localteam;
+            const localLineup = liveRawMatch?.lineup?.home ? {
+              player: (liveRawMatch.lineup.home.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.home ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.home.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.home.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.localteam;
 
-            const visitorLineup = (fixtureDetails as any)?.lineups?.visitorteam;
+            const visitorLineup = liveRawMatch?.lineup?.away ? {
+              player: (liveRawMatch.lineup.away.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.away ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.away.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.away.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.visitorteam;
 
             const hasOfficialLineup =
 
@@ -5485,11 +5607,36 @@ export const gameInfo = () => {
 
           {(() => {
 
-            const lineupPayload = matchInfo?.lineup ?? (fixtureDetails as any)?.lineup;
+            const lineupPayload = liveRawMatch?.lineup ? {
+              home: {
+                players: (liveRawMatch.lineup.home?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+                coach: liveRawMatch.lineup.home?.coach,
+                substitutes: (liveRawMatch.lineup.home?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.home?.substitutions ?? [],
+              },
+              away: {
+                players: (liveRawMatch.lineup.away?.players ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? "") })),
+                formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+                coach: liveRawMatch.lineup.away?.coach,
+                substitutes: (liveRawMatch.lineup.away?.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+                substitutions: liveRawMatch.lineup.away?.substitutions ?? [],
+              },
+            } as any : (matchInfo?.lineup ?? (fixtureDetails as any)?.lineup);
 
-            const localLineup = (fixtureDetails as any)?.lineups?.localteam;
+            const localLineup = liveRawMatch?.lineup?.home ? {
+              player: (liveRawMatch.lineup.home.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.home ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.home?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.home.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.home.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.localteam;
 
-            const visitorLineup = (fixtureDetails as any)?.lineups?.visitorteam;
+            const visitorLineup = liveRawMatch?.lineup?.away ? {
+              player: (liveRawMatch.lineup.away.players ?? []).map((p: any) => { const pid = String(p.id ?? ""); const stat = [...(liveRawMatch.player_stats?.away ?? []), ...(liveRawMatch.player_stats?.ratings ?? [])].find((s: any) => String(s.id ?? s.playerId ?? "") === pid); return { id: pid, name: String(p.name ?? ""), number: String(p.number ?? ""), booking: String(p.booking ?? ""), pos: String(p.pos ?? ""), formation_pos: String(p.formation_pos ?? ""), rating: stat && stat.rating !== "" ? Number(stat.rating) : undefined }; }),
+              formation: String(liveRawMatch.teams?.away?.formation ?? ""),
+              substitutes: (liveRawMatch.lineup.away.substitutes ?? []).map((p: any) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), number: String(p.number ?? ""), pos: String(p.pos ?? "") })),
+              substitutions: liveRawMatch.lineup.away.substitutions ?? [],
+            } as any : (fixtureDetails as any)?.lineups?.visitorteam;
 
 
 
@@ -5614,19 +5761,12 @@ export const gameInfo = () => {
                 {hasPrevious && currentHome && currentAway ? (
 
                   <LineupChangeSummary
-
                     previousHome={previousHome}
-
                     previousAway={previousAway}
-
                     currentHome={currentHome}
-
                     currentAway={currentAway}
-
-                    homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
-
-                    awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
-
+                    homeTeamName={liveRawMatch?.teams?.home?.name ?? matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+                    awayTeamName={liveRawMatch?.teams?.away?.name ?? matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
                   />
 
                 ) : null}
@@ -5635,17 +5775,31 @@ export const gameInfo = () => {
 
                   lineup={lineupPayload}
 
-                  substitutions={matchInfo?.substitutions ?? (fixtureDetails as any)?.substitutions}
+                  substitutions={
+                    liveRawMatch?.lineup
+                      ? {
+                          localteam: liveRawMatch.lineup.home?.substitutions ?? [],
+                          visitorteam: liveRawMatch.lineup.away?.substitutions ?? [],
+                        }
+                      : matchInfo?.substitutions ?? (fixtureDetails as any)?.substitutions
+                  }
 
-                  coaches={matchInfo?.coaches ?? (fixtureDetails as any)?.coaches}
+                  coaches={
+                    liveRawMatch?.lineup
+                      ? {
+                          localteam: liveRawMatch.lineup.home?.coach,
+                          visitorteam: liveRawMatch.lineup.away?.coach,
+                        }
+                      : matchInfo?.coaches ?? (fixtureDetails as any)?.coaches
+                  }
 
-                  playerStats={matchInfo?.player_stats}
+                  playerStats={liveRawMatch?.player_stats ?? matchInfo?.player_stats}
 
-                  summary={matchInfo?.summary}
+                  summary={liveRawMatch?.summary ?? matchInfo?.summary}
 
-                  homeFormation={matchInfo?.teams?.home?.formation}
+                  homeFormation={String(liveRawMatch?.teams?.home?.formation ?? (matchInfo as any)?.teams?.home?.formation ?? "").trim()}
 
-                  awayFormation={matchInfo?.teams?.away?.formation}
+                  awayFormation={String(liveRawMatch?.teams?.away?.formation ?? (matchInfo as any)?.teams?.away?.formation ?? "").trim()}
 
                   localteam={localLineup}
 
@@ -5654,11 +5808,8 @@ export const gameInfo = () => {
                   playerImages={playerImages}
 
                   onPlayerClick={({ playerId, playerName }) => openPlayerSheet({ playerId, playerName })}
-
-                  homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
-
-                  awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
-
+                  homeTeamName={liveRawMatch?.teams?.home?.name ?? matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+                  awayTeamName={liveRawMatch?.teams?.away?.name ?? matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
                 />
 
               </>
@@ -5686,13 +5837,9 @@ export const gameInfo = () => {
           <div className="my-8">
 
             <MatchStatisticsPanel
-
-              stats={matchInfo?.stats}
-
-              homeTeamName={matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
-
-              awayTeamName={matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
-
+              stats={liveRawMatch?.stats ?? matchInfo?.stats}
+              homeTeamName={liveRawMatch?.teams?.home?.name ?? matchInfo?.teams?.home?.name ?? fixtureDetails?.localteam?.name}
+              awayTeamName={liveRawMatch?.teams?.away?.name ?? matchInfo?.teams?.away?.name ?? fixtureDetails?.visitorteam?.name}
             />
 
           </div>
@@ -5712,15 +5859,14 @@ export const gameInfo = () => {
         {activeTab === "headtohead" && (
 
           <HeadToHeadSection
-
             teamAId={headToHeadTeamAId}
-
             teamBId={headToHeadTeamBId}
-
             teamAName={headToHeadTeamAName}
-
             teamBName={headToHeadTeamBName}
-
+            teamAImageUrl={fixtureDetails?.homeTeam?.image_url || (liveFixture as any)?.localteam?.teamImageUrl || (displayFixture as any)?.homeTeam?.image_url}
+            teamBImageUrl={fixtureDetails?.awayTeam?.image_url || (liveFixture as any)?.visitorteam?.teamImageUrl || (displayFixture as any)?.awayTeam?.image_url}
+            recentHomeFixtures={homeRecentFixtures}
+            recentAwayFixtures={awayRecentFixtures}
           />
 
         )}

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import GetTeamLogo from "@/components/common/GetTeamLogo";
-import { getTeamById } from "@/lib/api/endpoints";
+import Image from "@/components/common/Image";
 
 type TeamStatsTotals = {
   win: number;
@@ -78,10 +77,23 @@ const parseDetailedStats = (detailedStats: any[]): TeamStatsBreakdown => {
 export default function TeamComparison({
   localTeamId,
   visitorTeamId,
+  localTeamImageUrl,
+  visitorTeamImageUrl,
+  localTeamName,
+  visitorTeamName,
+  localTeamData,
+  visitorTeamData,
 }: {
   localTeamId?: string | number;
   visitorTeamId?: string | number;
+  localTeamImageUrl?: string;
+  visitorTeamImageUrl?: string;
+  localTeamName?: string;
+  visitorTeamName?: string;
+  localTeamData?: any;
+  visitorTeamData?: any;
 }) {
+  // No getTeamById calls here — team logos come from fixture homeTeam/awayTeam.image_url (gameInfo requirement: don't use any getTeam team)
   const [localTeam, setLocalTeam] = useState<any>(null);
   const [visitorTeam, setVisitorTeam] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -105,28 +117,14 @@ export default function TeamComparison({
   }, []);
 
   useEffect(() => {
-    const run = async (localId: string | number, visitorId: string | number) => {
-      setLoading(true);
+    // Use shared pre-fetched team data from gameInfo (single getTeamById batch for both comparison + lineup) if provided
+    if (localTeamData && visitorTeamData) {
+      setLocalTeam(localTeamData);
+      setVisitorTeam(visitorTeamData);
+      setLoading(false);
       setError(null);
-
-      try {
-        const [localRes, visitorRes] = await Promise.all([
-          getTeamById(localId),
-          getTeamById(visitorId),
-        ]);
-
-        const localItem = (localRes as TeamApiResponse)?.responseObject?.item;
-        const visitorItem = (visitorRes as TeamApiResponse)?.responseObject?.item;
-
-        setLocalTeam(Array.isArray(localItem) ? localItem[0] : localItem);
-        setVisitorTeam(Array.isArray(visitorItem) ? visitorItem[0] : visitorItem);
-      } catch (e: any) {
-        setError(String(e?.message ?? "Failed to load teams"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
+      return;
+    }
     if (!localTeamId || !visitorTeamId) {
       setLocalTeam(null);
       setVisitorTeam(null);
@@ -134,11 +132,20 @@ export default function TeamComparison({
       setError(null);
       return;
     }
-
-    const localId = localTeamId;
-    const visitorId = visitorTeamId;
-    run(localId, visitorId);
-  }, [localTeamId, visitorTeamId]);
+    // Fallback when not on gameInfo — build minimal objects from fixture props (no API call)
+    setLocalTeam({
+      name: localTeamName || "Local team",
+      image_url: localTeamImageUrl || "",
+      detailed_stats: [],
+    });
+    setVisitorTeam({
+      name: visitorTeamName || "Visitor team",
+      image_url: visitorTeamImageUrl || "",
+      detailed_stats: [],
+    });
+    setLoading(false);
+    setError(null);
+  }, [localTeamId, visitorTeamId, localTeamImageUrl, visitorTeamImageUrl, localTeamName, visitorTeamName, localTeamData, visitorTeamData]);
 
   const localName = String(localTeam?.name ?? "Local team");
   const visitorName = String(visitorTeam?.name ?? "Visitor team");
@@ -283,8 +290,10 @@ export default function TeamComparison({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="rounded-lg border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#161B22] p-4">
           <div className="flex items-center gap-3 mb-4 min-w-0">
-            {hasData ? (
-              <GetTeamLogo teamId={displayLocalId} alt={displayLocalName} className="w-10 h-10 rounded-full object-cover" />
+            {hasData && (localTeamImageUrl || localTeam?.image_url) ? (
+              <Image src={localTeamImageUrl || localTeam?.image_url} alt={displayLocalName} className="w-10 h-10 rounded-full object-cover" />
+            ) : hasData ? (
+              <div className="w-10 h-10 rounded-full bg-snow-100 dark:bg-[#0D1117] border border-snow-200 dark:border-[#1F2937]" />
             ) : (
               <div className="w-10 h-10 rounded-full bg-snow-100 dark:bg-[#0D1117] border border-snow-200 dark:border-[#1F2937]" />
             )}
@@ -308,8 +317,10 @@ export default function TeamComparison({
 
         <div className="rounded-lg border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#161B22] p-4">
           <div className="flex items-center gap-3 mb-4 min-w-0">
-            {hasData ? (
-              <GetTeamLogo teamId={displayVisitorId} alt={displayVisitorName} className="w-10 h-10 rounded-full object-cover" />
+            {hasData && (visitorTeamImageUrl || visitorTeam?.image_url) ? (
+              <Image src={visitorTeamImageUrl || visitorTeam?.image_url} alt={displayVisitorName} className="w-10 h-10 rounded-full object-cover" />
+            ) : hasData ? (
+              <div className="w-10 h-10 rounded-full bg-snow-100 dark:bg-[#0D1117] border border-snow-200 dark:border-[#1F2937]" />
             ) : (
               <div className="w-10 h-10 rounded-full bg-snow-100 dark:bg-[#0D1117] border border-snow-200 dark:border-[#1F2937]" />
             )}

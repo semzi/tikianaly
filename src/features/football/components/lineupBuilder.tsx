@@ -124,9 +124,9 @@ export default function LineupBuilder({
         {/* Formation + Coach */}
         <div className="flex items-center justify-between px-0.5">
           <span className="text-[11px] text-neutral-m6">
-            Coach: <span className="theme-text font-medium">{activeCoach || "—"}</span>
+            Coach: <span className="theme-text font-medium">{String(activeCoach ?? "").trim() || "—"}</span>
           </span>
-          <span className="text-xs font-bold italic theme-text">{activeFormation}</span>
+          <span className="text-xs font-bold italic theme-text">{String(activeFormation ?? "").trim()}</span>
         </div>
 
         {/* Sub list header */}
@@ -500,11 +500,13 @@ export default function LineupBuilder({
   const summaryHome = buildSummaryCounts("home");
   const summaryAway = buildSummaryCounts("away");
 
-  const homeCoachName = coaches?.localteam?.name ?? coaches?.localteam ?? undefined;
-  const awayCoachName = coaches?.visitorteam?.name ?? coaches?.visitorteam ?? undefined;
+  const homeCoachName = typeof coaches?.localteam?.name === "string" && coaches.localteam.name.trim() ? coaches.localteam.name.trim() : typeof coaches?.localteam === "string" ? coaches.localteam : undefined;
+  const awayCoachName = typeof coaches?.visitorteam?.name === "string" && coaches.visitorteam.name.trim() ? coaches.visitorteam.name.trim() : typeof coaches?.visitorteam === "string" ? coaches.visitorteam : undefined;
 
-  const homeFormation = String(homeFormationProp ?? homeDemo?.formation ?? homeApi?.formation ?? "4-4-2");
-  const awayFormation = String(awayFormationProp ?? awayDemo?.formation ?? awayApi?.formation ?? "4-4-2");
+  const rawHomeFormation = homeFormationProp ?? (homeDemo as any)?.formation ?? (homeApi as any)?.formation;
+  const rawAwayFormation = awayFormationProp ?? (awayDemo as any)?.formation ?? (awayApi as any)?.formation;
+  const homeFormation = typeof rawHomeFormation === "string" && rawHomeFormation.trim() ? rawHomeFormation.trim() : "4-4-2";
+  const awayFormation = typeof rawAwayFormation === "string" && rawAwayFormation.trim() ? rawAwayFormation.trim() : "4-4-2";
 
   const homeStartingPlayers: RenderPlayer[] = (homeDemo?.starting ?? homeApi?.starting ?? []).map((p: any) => ({
     player_id: String(p.player_id ?? p.id ?? ""),

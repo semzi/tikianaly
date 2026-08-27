@@ -322,6 +322,7 @@ interface Team {
   ot: string | number;
   logo?: string;
   image_path?: string;
+  image_url?: string;
   possession?: boolean;
   team_fouls?: number;
   timeouts_left?: number;
@@ -376,6 +377,8 @@ interface MatchDetail {
   match_id: number;
   localteam: Team;
   awayteam: Team;
+  homeTeam?: Team;
+  awayTeam?: Team;
   status: string;
   period?: string;
   timer?: string;

@@ -13,6 +13,7 @@ interface GetPlayerImageProps {
 interface PlayerApiItem {
   player_id?: number;
   image?: string;
+  image_url?: string;
 }
 
 interface PlayerApiResponse {
@@ -27,7 +28,7 @@ const extractImageUrl = (data: PlayerApiResponse): string | null => {
   const rawImage = (player?.image || player?.image_url || "") as string;
 
   if (!rawImage) return null;
-n  if (rawImage.startsWith("data:image") || rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
+  if (rawImage.startsWith("data:image") || rawImage.startsWith("http://") || rawImage.startsWith("https://")) {
     return rawImage;
   }
 

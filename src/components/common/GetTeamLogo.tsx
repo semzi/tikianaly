@@ -14,6 +14,8 @@ interface GetTeamLogoProps {
 interface TeamApiItem {
   team_id?: number;
   image?: string;
+  logo?: string;
+  image_url?: string;
 }
 
 interface TeamApiResponse {

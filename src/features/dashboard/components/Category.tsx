@@ -41,8 +41,6 @@ const posLabel: Record<string, string> = {
   D: "Defender",
 };
 
-type TopPlayer = { name: string; position: string; rating: string; image: string };
-
 type RatingEntry = {
   rating: number;
   matchId: number;
@@ -51,12 +49,6 @@ type RatingEntry = {
   playerImageUrl: string | null;
   pos: string;
 };
-
-const fallbackPlayers: TopPlayer[] = [
-  { name: "L. Messi", position: "Forward", rating: "9.7", image: "https://cdn.tikianaly.com/soccer/player/119.png" },
-  { name: "L. James", position: "Small Forward", rating: "9.5", image: "https://cdn.tikianaly.com/soccer/player/119.png" },
-  { name: "P. Mahomes", position: "Quarterback", rating: "9.3", image: "https://cdn.tikianaly.com/soccer/player/119.png" },
-];
 
 const getRatingStyle = (rating: number): { bg: string; text: string } => {
   if (rating >= 8) return { bg: "#3b82f6", text: "#fff" };    // Blue
@@ -68,7 +60,6 @@ const getRatingStyle = (rating: number): { bg: string; text: string } => {
 export const Category = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [allRatings, setAllRatings] = useState<RatingEntry[]>([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -80,35 +71,15 @@ export const Category = () => {
       try {
         const res: any = await getPlayerRatings();
         const ratings: RatingEntry[] = res?.responseObject?.item?.ratings ?? [];
-
         if (!cancelled) setAllRatings(ratings);
-
-        const withImage = ratings.filter((p) => p.playerImageUrl);
-        const seen = new Set<string>();
-        const unique: TopPlayer[] = [];
-        for (const p of withImage) {
-          if (seen.has(p.playerImageUrl!)) continue;
-          seen.add(p.playerImageUrl!);
-          unique.push({
-            name: p.playerName ?? "Unknown",
-            position: posLabel[p.pos] ?? p.pos ?? "N/A",
-            rating: String(p.rating ?? ""),
-            image: p.playerImageUrl!,
-          });
-          if (unique.length === 3) break;
-        }
-        if (!cancelled) setTopPlayers(unique);
       } catch {
         if (!cancelled) {
-          setTopPlayers([]);
           setAllRatings([]);
         }
       }
     })();
     return () => { cancelled = true; };
   }, []);
-
-  const displayPlayers = topPlayers.length === 3 ? topPlayers : fallbackPlayers;
 
   const openModal = useCallback(() => setShowModal(true), []);
   const closeModal = useCallback(() => setShowModal(false), []);
@@ -158,15 +129,8 @@ export const Category = () => {
                 onClick={openModal}
                 className="flex items-center gap-1.5 rounded-full bg-brand-secondary pl-1.5 pr-1 py-0.5 h-fit shrink-0 cursor-pointer transition-transform active:scale-95"
               >
-                <div className="flex items-center">
-                  {displayPlayers.map((player, i) => (
-                    <img
-                      key={player.name}
-                      src={player.image}
-                      alt={player.name}
-                      className={`h-6 w-6 rounded-full object-cover bg-white/20 ring-1 ring-brand-secondary ${i > 0 ? "-ml-1.5" : ""}`}
-                    />
-                  ))}
+                <div className="h-6 w-6 rounded-full bg-white/20 ring-1 ring-white/30 flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-white" />
                 </div>
                 <span className="text-[10px] font-semibold text-white whitespace-nowrap leading-none">Top Rated Players</span>
                 <div className="h-7 w-7 rounded-full bg-white flex items-center justify-center">
@@ -180,17 +144,13 @@ export const Category = () => {
                 to="/player/compare"
                 className="flex items-center gap-1.5 rounded-full bg-black dark:bg-white pl-1.5 pr-1 py-0.5 h-fit shrink-0"
               >
-                <img
-                  src={displayPlayers[0].image}
-                  alt={displayPlayers[0].name}
-                  className="h-6 w-6 rounded-full object-cover bg-white/20 ring-1 ring-black dark:ring-white"
-                />
+                <div className="h-6 w-6 rounded-full bg-white/15 ring-1 ring-white/20 dark:bg-black/10 dark:ring-black/10 flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-white dark:text-black" />
+                </div>
                 <GitCompareArrows className="h-3.5 w-3.5 text-white/70 dark:text-black/70" />
-                <img
-                  src={displayPlayers[1].image}
-                  alt={displayPlayers[1].name}
-                  className="h-6 w-6 rounded-full object-cover bg-white/20 ring-1 ring-black dark:ring-white"
-                />
+                <div className="h-6 w-6 rounded-full bg-white/15 ring-1 ring-white/20 dark:bg-black/10 dark:ring-black/10 flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-white dark:text-black" />
+                </div>
                 <span className="text-[10px] font-semibold text-white dark:text-black whitespace-nowrap leading-none">Compare Players</span>
                 <div className="h-7 w-7 rounded-full bg-white dark:bg-black flex items-center justify-center">
                   <svg className="h-3.5 w-3.5 text-black dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -209,7 +169,7 @@ export const Category = () => {
       <AnimatePresence>
         {showModal && (
           <motion.div
-            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -224,46 +184,39 @@ export const Category = () => {
               exit={{ opacity: 0 }}
             />
 
-            {/* Panel */}
+            {/* Panel - matches iOS modal style */}
             <motion.div
-              className="relative w-full sm:max-w-md max-h-[85vh] bg-white dark:bg-[#161B22] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="relative w-full max-w-sm bg-white dark:bg-[#161B22] rounded-2xl shadow-2xl p-6 flex flex-col gap-4 max-h-[85vh]"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
             >
-              {/* Drag indicator (mobile) */}
-              <div className="flex justify-center pt-3 sm:hidden">
-                <div className="w-10 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="absolute top-3 right-3 h-8 w-8 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4 text-neutral-600 dark:text-neutral-300" />
+              </button>
 
               {/* Header */}
-              <div className="flex items-center justify-between px-5 pt-4 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-brand-secondary/15 flex items-center justify-center">
-                    <Star className="h-4.5 w-4.5 text-brand-secondary" fill="currentColor" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold theme-text leading-tight">Top Rated Players</h2>
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-tight mt-0.5">
-                      {allRatings.length} players • Highest ratings
-                    </p>
-                  </div>
+              <div className="flex flex-col items-center text-center gap-2 pt-2">
+                <div className="h-12 w-12 rounded-xl bg-brand-secondary/15 flex items-center justify-center">
+                  <Star className="h-6 w-6 text-brand-secondary" fill="currentColor" />
                 </div>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors cursor-pointer"
-                >
-                  <X className="h-4 w-4 theme-text" />
-                </button>
+                <h2 className="text-lg font-bold theme-text dark:text-white leading-tight">Top Rated Players</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-tight">
+                  {allRatings.length} players • Highest ratings
+                </p>
               </div>
 
               {/* Divider */}
-              <div className="h-px bg-neutral-200 dark:bg-white/10 mx-5" />
+              <div className="h-px bg-neutral-200 dark:bg-white/10" />
 
               {/* Player List */}
-              <div className="overflow-y-auto flex-1 px-4 py-2">
+              <div className="overflow-y-auto flex-1 -mx-2 px-2 py-1">
                 {allRatings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-neutral-400 dark:text-neutral-500">
                     <User className="h-10 w-10 mb-3 opacity-50" />
@@ -372,6 +325,14 @@ export const Category = () => {
                   })
                 )}
               </div>
+
+              <button
+                type="button"
+                onClick={closeModal}
+                className="w-full mt-1 rounded-full bg-brand-secondary text-white py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Close
+              </button>
             </motion.div>
           </motion.div>
         )}
