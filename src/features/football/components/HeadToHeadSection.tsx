@@ -220,207 +220,12 @@ export const HeadToHeadSection = ({ teamAId, teamBId, teamAName, teamBName, team
   };
   const formatRecentDate = (d: any) => {
     try {
-  const [data, setData] = useState<FootballHeadToHeadItem | null>(null);
-
-  const canFetch = String(teamAId ?? "").trim() !== "" && String(teamBId ?? "").trim() !== "";
-
-  useEffect(() => {
-    if (!canFetch) return;
-    const key = h2hKey(teamAId, teamBId);
-    // Serve from cache instantly — no network when revisiting tab
-    if (h2hCache.has(key)) {
-      setData(h2hCache.get(key) ?? null);
-      setError(h2hErrorCache.get(key) ?? "");
-      setLoading(false);
-      return;
-    }
-    if (h2hErrorCache.has(key)) {
-      setError(h2hErrorCache.get(key) ?? "");
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const res = await postTeamHeadToHead(teamAId as any, teamBId as any);
-        const item = (res as any)?.responseObject?.item ?? null;
-        h2hCache.set(key, item);
-        h2hErrorCache.delete(key);
-        if (!cancelled) setData(item);
-      } catch (e: any) {
-        const msg = String(e?.message ?? "Failed to load head-to-head");
-        h2hErrorCache.set(key, msg);
-        h2hCache.set(key, null);
-        if (!cancelled) {
-          setData(null);
-          setError(msg);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canFetch, teamAId, teamBId]);
-
-  const summary = data?.summary;
-  const matches = Array.isArray(data?.matches) ? data?.matches : [];
-
-  const normalizeName = (v: unknown) => {
-    const s = String(v ?? "").trim();
-    return s || "-";
-  };
-
-  const totals = useMemo(() => {
-    // Backend summary is incorrect (e.g. 0-0-3 vs actual 2-0-0) — derive correctly from matches teama_goals/teamb_goals
-    let aWins = 0, bWins = 0, draws = 0;
-    if (matches.length > 0 && matches.some((m: any) => m.teama_goals !== undefined || m.teamb_goals !== undefined)) {
-      for (const m of matches as any[]) {
-        const a = Number(m.teama_goals);
-        const b = Number(m.teamb_goals);
-        if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
-        if (a > b) aWins++;
-        else if (b > a) bWins++;
-        else draws++;
-      }
-    } else {
-      // fallback to backend summary for old shape
-      aWins = Number(summary?.teamA_wins ?? 0) || 0;
-      bWins = Number(summary?.teamB_wins ?? 0) || 0;
-      draws = Number(summary?.draws ?? 0) || 0;
-    }
-    const played = matches.length > 0 ? matches.length : (Number(summary?.matchesPlayed ?? 0) || Math.max(aWins + bWins + draws, 0));
-    const pct = (n: number) => (played > 0 ? (n / played) * 100 : 0);
-    return {
-      played,
-      aWins,
-      bWins,
-      draws,
-      aPct: pct(aWins),
-      bPct: pct(bWins),
-      dPct: pct(draws),
-    };
-  }, [summary, matches]);
-
-  const chartData = useMemo(() => {
-    const sliced = [...matches].slice(-8);
-    const aLabel = normalizeName(teamAName) || "Team A";
-    const bLabel = normalizeName(teamBName) || "Team B";
-    return sliced.map((m: any, idx: number) => {
-      let aScore: number, bScore: number;
-      if (m.teama_goals !== undefined || m.teamb_goals !== undefined) {
-        // New API: teamA/B fixed positions — do NOT swap by homeTeamId
-        aScore = Number(m.teama_goals);
-        bScore = Number(m.teamb_goals);
-      } else {
-        const isAHome = String(m.homeTeamId) === String(teamAId);
-        aScore = isAHome ? Number(m.homeScore) : Number(m.awayScore);
-        bScore = isAHome ? Number(m.awayScore) : Number(m.homeScore);
-      }
-      if (!Number.isFinite(aScore) || !Number.isFinite(bScore)) {
-        const parts = String(m.scoreline ?? "").split("-").map((s: string) => Number(s.trim()));
-        if (parts.length === 2 && parts.every(Number.isFinite)) {
-          // scoreline is "TeamA - TeamB" in new API, not home-away
-          aScore = parts[0]; bScore = parts[1];
-        } else {
-          aScore = 0; bScore = 0;
-        }
-      }
-      const label = m.date ? new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `M${idx + 1}`;
-      return { name: label, [aLabel]: aScore, [bLabel]: bScore };
-    });
-  }, [matches, teamAId, teamBId, teamAName, teamBName]);
-
-  const renderScoreBox = (score: string) => {
-    return (
-      <div className="px-2 py-1 rounded bg-snow-200 dark:bg-white/10 text-[12px] theme-text tabular-nums min-w-[44px] text-center">
-        {score}
-      </div>
-    );
-  };
-
-  const SkeletonBlock = ({ className }: { className: string }) => (
-    <div className={`animate-pulse rounded bg-snow-200/80 dark:bg-white/10 ${className}`} />
-  );
-
-  const LastMatchesSkeleton = () => (
-    <div className="px-4 py-4 space-y-3">
-      {Array.from({ length: 5 }).map((_, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <SkeletonBlock className="h-5 w-5" />
-            <SkeletonBlock className="h-3 w-28" />
-          </div>
-          <SkeletonBlock className="h-6 w-12" />
-          <div className="flex items-center gap-2 justify-end min-w-0">
-            <SkeletonBlock className="h-3 w-28" />
-            <SkeletonBlock className="h-5 w-5" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const TotalResultsSkeleton = () => (
-    <div className="p-4">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <SkeletonBlock className="h-6 w-6" />
-          <SkeletonBlock className="h-3 w-28" />
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <SkeletonBlock className="h-14 w-20" />
-          <SkeletonBlock className="h-14 w-20" />
-          <SkeletonBlock className="h-14 w-20" />
-        </div>
-
-        <div className="flex items-center gap-2 justify-end min-w-0">
-          <SkeletonBlock className="h-3 w-28" />
-          <SkeletonBlock className="h-6 w-6" />
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <SkeletonBlock className="h-2 w-full" />
-        <div className="mt-2 flex items-center justify-between">
-          <SkeletonBlock className="h-3 w-20" />
-          <SkeletonBlock className="h-3 w-20" />
-          <SkeletonBlock className="h-3 w-20" />
-        </div>
-      </div>
-    </div>
-  );
-
-  const getRecentResult = (fixture: any, teamId: string | number | undefined) => {
-    const id = String(teamId ?? "").trim();
-    const hs = Number(String(fixture?.localteam?.score ?? fixture?.localteam?.ft_score ?? "").trim());
-    const as = Number(String(fixture?.visitorteam?.score ?? fixture?.visitorteam?.ft_score ?? "").trim());
-    if (!Number.isFinite(hs) || !Number.isFinite(as)) return null;
-    const isHome = String(fixture?.localteam?.id) === id;
-    const teamScore = isHome ? hs : as;
-    const oppScore = isHome ? as : hs;
-    if (teamScore > oppScore) return "W" as const;
-    if (teamScore < oppScore) return "L" as const;
-    return "D" as const;
-  };
-  const resultStyle = (r: string | null) => {
-    if (r === "W") return "bg-green-600 text-white";
-    if (r === "L") return "bg-red-600 text-white";
-    if (r === "D") return "bg-yellow-500 text-white";
-    return "bg-snow-200 dark:bg-white/10 text-neutral-m6";
-  };
-  const formatRecentDate = (d: any) => {
-    try {
       const dt = new Date(String(d ?? ""));
       if (Number.isNaN(dt.getTime())) return String(d ?? "");
       return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     } catch { return String(d ?? ""); }
   };
-  const renderRecentList = (fixtures: any[] | undefined, teamId: string | number | undefined) => {
+  const renderRecentList = (fixtures: any[] | undefined, teamId: string | number | undefined, _teamName?: string, _teamImageUrl?: string) => {
     const list = Array.isArray(fixtures) ? fixtures.slice(0, 5) : [];
     if (list.length === 0) {
       return <p className="text-sm text-neutral-m6 py-4 text-center">No recent matches</p>;
@@ -608,14 +413,14 @@ export const HeadToHeadSection = ({ teamAId, teamBId, teamAName, teamBName, team
               {teamAImageUrl ? <Image src={teamAImageUrl} alt={teamAName} className="h-6 w-6 shrink-0 object-contain" /> : null}
               <p className="theme-text font-medium text-sm">{normalizeName(teamAName)} — Last 5</p>
             </div>
-            {renderRecentList(recentHomeFixtures, teamAId)}
+            {renderRecentList(recentHomeFixtures, teamAId, teamAName, teamAImageUrl)}
           </div>
           <div className="block-style overflow-hidden">
             <div className="px-4 py-3 border-b border-snow-200 dark:border-snow-100/10 flex items-center gap-2">
               {teamBImageUrl ? <Image src={teamBImageUrl} alt={teamBName} className="h-6 w-6 shrink-0 object-contain" /> : null}
               <p className="theme-text font-medium text-sm">{normalizeName(teamBName)} — Last 5</p>
             </div>
-            {renderRecentList(recentAwayFixtures, teamBId)}
+            {renderRecentList(recentAwayFixtures, teamBId, teamBName, teamBImageUrl)}
           </div>
         </div>
       )}
