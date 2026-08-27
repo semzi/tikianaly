@@ -3310,8 +3310,12 @@ export const gameInfo = () => {
               String((f as any)?.fixture_id) === String(fixtureIdForRest) ||
               String((f as any)?.match_id) === String(fixtureIdForRest)
           ) ?? null;
-        setLiveFixture(fixture);
-        setLiveEvents(fixture?.events ?? []);
+        if (fixture) {
+          setLiveFixture(fixture);
+          setLiveEvents(fixture?.events ?? []);
+        } else {
+          setLiveFixture((prev) => (prev && (prev as any)._raw ? prev : null));
+        }
 
       },
 
