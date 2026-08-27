@@ -31,12 +31,6 @@ type TeamStatsBreakdown = {
   away: TeamStatsTotals;
 };
 
-type TeamApiResponse = {
-  responseObject?: {
-    item?: any;
-  };
-};
-
 const toNumber = (v: unknown) => {
   const n = Number(String(v ?? "").trim());
   return Number.isFinite(n) ? n : 0;
@@ -161,9 +155,6 @@ export default function TeamComparison({
 
   const hasIds = Boolean(localTeamId) && Boolean(visitorTeamId);
   const hasData = Boolean(localTeam) && Boolean(visitorTeam);
-
-  const displayLocalId = localTeamId ?? "";
-  const displayVisitorId = visitorTeamId ?? "";
 
   const displayLocalName = hasData ? localName : "Local team";
   const displayVisitorName = hasData ? visitorName : "Visitor team";
