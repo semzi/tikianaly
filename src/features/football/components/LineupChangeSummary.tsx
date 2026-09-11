@@ -15,6 +15,7 @@ type Props = {
   currentAway?: TeamApi | null;
   homeTeamName?: string;
   awayTeamName?: string;
+  className?: string;
 };
 
 const normalizeFormation = (formation?: string) => {
@@ -152,7 +153,7 @@ export default function LineupChangeSummary(props: Props) {
   const visibleText = isExpanded ? summary : lines.slice(0, collapsedLines).join("\n");
 
   return (
-    <div className="w-full p-0 overflow-hidden rounded-xl">
+    <div className={`w-full p-0 overflow-hidden rounded-xl mb-4 sm:mb-6 ${props.className ?? ""}`}>
       <div className="relative p-4">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div className="absolute inset-0 bg-gradient-to-br from-[#FDE68A]/35 via-[#F5C542]/20 to-transparent" />

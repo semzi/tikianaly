@@ -4,7 +4,10 @@ import GetTeamLogo from "@/components/common/GetTeamLogo";
 import Image from "@/components/common/Image";
 import TeamFixturesSidebar from "@/features/football/components/TeamFixturesSidebar";
 import { getTeamById, getTeamFixtures } from "@/lib/api/endpoints";
+import { getPublicTeamById, getPublicLeagueFixtures, getPublicLeaguePlayers, type PublicTeamDetail } from "@/lib/api/management";
 import { closeLiveStream, subscribeDashboardLiveFixtures, type DashboardLiveFixture } from "@/lib/api/livestream";
+
+const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 import { navigate } from "@/lib/router/navigate";
 import {
   ArrowLeftIcon,
@@ -12,7 +15,7 @@ import {
   ShareIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { InformationCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
+import { InformationCircleIcon, PlusCircleIcon, CheckBadgeIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -303,11 +306,16 @@ const TeamProfileSkeleton = ({ tab }: { tab: string }) => {
 };
 
 const positionRank = (pos?: string): number => {
-  const p = String(pos ?? "").toUpperCase();
+  const p = String(pos ?? "").toUpperCase().trim();
   if (p === "G" || p === "GK") return 1;
-  if (p === "D" || p === "DEF") return 2;
-  if (p === "M" || p === "MID") return 3;
-  if (p === "F" || p === "FW" || p === "ST") return 4;
+  if (["D", "DEF", "RB", "LB", "CB", "RWB", "LWB"].includes(p)) return 2;
+  if (["M", "MID", "CDM", "CM", "CAM", "DM", "MF"].includes(p)) return 3;
+  if (["F", "FW", "ST", "CF", "RW", "LW", "W", "AM"].includes(p)) return 4;
+  // fallback by first letter
+  if (p.startsWith("G")) return 1;
+  if (p.startsWith("D") || p.startsWith("B")) return 2;
+  if (p.startsWith("M") || p.startsWith("C")) return 3;
+  if (p.startsWith("F") || p.startsWith("S") || p.startsWith("W") || p.startsWith("A")) return 4;
   return 99;
 };
 
@@ -336,8 +344,10 @@ const TeamProfile = () => {
   const [searchParams] = useSearchParams();
   const teamIdFromQuery = searchParams.get("id") ?? undefined;
   const teamId = teamIdParam ?? teamIdFromQuery;
+  const isMgmtTeam = !!teamId && isUuid(String(teamId));
 
   const [team, setTeam] = useState<TeamApiItem | null>(null);
+  const [mgmtTeamRaw, setMgmtTeamRaw] = useState<PublicTeamDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fixturesData, setFixturesData] = useState<any>(null);
@@ -383,46 +393,183 @@ const TeamProfile = () => {
   };
 
   useEffect(() => {
-    const run = async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = (await getTeamById(id)) as TeamApiResponse;
-        const item = res?.responseObject?.item;
-        const normalized = Array.isArray(item) ? item[0] : item;
-        const detailedStatsRaw = (normalized as any)?.detailed_stats;
-        const detailedStatsNormalized = Array.isArray(detailedStatsRaw)
-          ? detailedStatsRaw
-          : detailedStatsRaw && typeof detailedStatsRaw === "object"
-            ? (Array.isArray((detailedStatsRaw as any)?.data)
-              ? (detailedStatsRaw as any).data
-              : (Object.values(detailedStatsRaw as any).flat?.() ?? Object.values(detailedStatsRaw as any)))
-            : [];
-        setTeam(
-          normalized
-            ? ({
-                ...(normalized as any),
-                detailed_stats: Array.isArray(detailedStatsNormalized) ? detailedStatsNormalized : [],
-              } as TeamApiItem)
-            : null
-        );
-      } catch (e: any) {
-        setError(String(e?.message ?? "Failed to load team"));
-        setTeam(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (!teamId) {
       setTeam(null);
+      setMgmtTeamRaw(null);
       setError(null);
       setLoading(false);
       return;
     }
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      setTeam(null);
+      setMgmtTeamRaw(null);
 
-    run(teamId);
-  }, [teamId]);
+      const tryMgmt = async (): Promise<boolean> => {
+        try {
+          const res: any = await getPublicTeamById(String(teamId));
+          const data = res?.data as PublicTeamDetail;
+          if (cancelled) return false;
+          if (!data?.id) return false;
+          setMgmtTeamRaw(data);
+          const playersForSquad: any[] = Array.isArray((data as any)?.players) ? (data as any).players : [];
+          const toAgeTmp = (dob?: string) => {
+            if (!dob) return "-";
+            const d = new Date(String(dob));
+            if (Number.isNaN(d.getTime())) return "-";
+            const now = new Date();
+            let a = now.getFullYear() - d.getFullYear();
+            const m = now.getMonth() - d.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+            return String(a >= 0 ? a : "-");
+          };
+          const mappedSquadTmp: TeamSquadRow[] = playersForSquad.map((p: any) => ({
+            id: String(p.id ?? ""),
+            name: String(`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || "-"),
+            position: String(p.position ?? "-"),
+            age: toAgeTmp(p.dob),
+            injured: String(p.isInjured ? "true" : "false"),
+            number: String(p.jerseyNumber ?? ""),
+            playerImageUrl: p.imageUrl ?? undefined,
+          } as unknown as TeamSquadRow));
+          setTeam({
+            team_id: data.id as any,
+            name: data.name,
+            country: data.city ?? data.league?.name ?? "-",
+            founded: data.foundedYear ?? undefined,
+            image: data.imageUrl ?? undefined,
+            image_url: data.imageUrl ?? undefined,
+            venue: {
+              venue_name: data.stadium ?? undefined,
+              venue_city: data.city ?? undefined,
+              venue_address: data.city ?? undefined,
+              venue_image_url: undefined,
+            } as any,
+            squad: mappedSquadTmp as any,
+            _mgmtRaw: data,
+          } as any);
+          setError(null);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const tryLegacy = async (): Promise<boolean> => {
+        try {
+          const res = (await getTeamById(String(teamId))) as TeamApiResponse;
+          const item = res?.responseObject?.item;
+          const normalized = Array.isArray(item) ? item[0] : item;
+          if (cancelled) return false;
+          if (!normalized) return false;
+          const detailedStatsRaw = (normalized as any)?.detailed_stats;
+          const detailedStatsNormalized = Array.isArray(detailedStatsRaw)
+            ? detailedStatsRaw
+            : detailedStatsRaw && typeof detailedStatsRaw === "object"
+              ? (Array.isArray((detailedStatsRaw as any)?.data)
+                ? (detailedStatsRaw as any).data
+                : (Object.values(detailedStatsRaw as any).flat?.() ?? Object.values(detailedStatsRaw as any)))
+              : [];
+          if (cancelled) return false;
+          setMgmtTeamRaw(null);
+          setTeam({
+            ...(normalized as any),
+            detailed_stats: Array.isArray(detailedStatsNormalized) ? detailedStatsNormalized : [],
+          } as TeamApiItem);
+          setError(null);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // Check if it's management team and use that API; otherwise legacy. But fulfill "any request that goes it should render that" by falling back to the other.
+      let ok = false;
+      if (isMgmtTeam) {
+        ok = await tryMgmt();
+        if (!ok && !cancelled) ok = await tryLegacy();
+      } else {
+        ok = await tryLegacy();
+        if (!ok && !cancelled) ok = await tryMgmt();
+      }
+      if (!ok && !cancelled) {
+        setTeam(null);
+        setMgmtTeamRaw(null);
+        setError("Failed to load team");
+      }
+      if (!cancelled) setLoading(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId, isMgmtTeam]);
+
+  // Management squad: use players[] from team response (per spec). Include PENDING players. If team.players is empty, fallback to league players filtered (management-only) so squad still shows.
+  useEffect(() => {
+    if (!isMgmtTeam || !mgmtTeamRaw || !teamId) return;
+    const players: any = (mgmtTeamRaw as any)?.players;
+    const toAge = (dob?: string) => {
+      if (!dob) return "-";
+      const d = new Date(String(dob));
+      if (Number.isNaN(d.getTime())) return "-";
+      const now = new Date();
+      let a = now.getFullYear() - d.getFullYear();
+      const m = now.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+      return String(a >= 0 ? a : "-");
+    };
+    const applySquad = (list: any[]) => {
+      const mappedSquad: TeamSquadRow[] = (list as any[]).map((p: any) => ({
+        id: String(p.id ?? p.player_id ?? ""),
+        name: String(`${p.firstName ?? p.firstname ?? ""} ${p.lastName ?? p.lastname ?? ""}`.trim() || p.name || "-"),
+        position: String(p.position ?? "-"),
+        age: toAge(p.dob ?? p.birthdate),
+        injured: String(p.isInjured ? "true" : "false"),
+        number: String(p.jerseyNumber ?? p.number ?? ""),
+        playerImageUrl: p.imageUrl ?? p.image_url ?? p.image ?? undefined,
+      } as unknown as TeamSquadRow));
+      setTeam((prev) => {
+        if (!prev) return prev;
+        if (Array.isArray(prev.squad) && prev.squad.length === mappedSquad.length && prev.squad.length !== 0) return prev;
+        // allow empty -> populated transition
+        return { ...prev, squad: mappedSquad as any } as TeamApiItem;
+      });
+    };
+
+    if (Array.isArray(players) && players.length) {
+      // team response has players (including PENDING) – use it directly
+      applySquad(players);
+      return;
+    }
+
+    // Fallback for teams where team.players is empty (e.g. Mushin league) – fetch league players, include PENDING, management-only
+    const leagueId = (mgmtTeamRaw as any)?.leagueId ?? (mgmtTeamRaw as any)?.league?.id;
+    if (!leagueId) {
+      // still set empty to clear stale squad
+      setTeam((prev) => (prev && (!prev.squad || prev.squad.length === 0) ? prev : prev ? ({ ...prev, squad: [] as any } as TeamApiItem) : prev));
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const plRes: any = await getPublicLeaguePlayers(String(leagueId), { per_page: 100, page: 1 });
+        if (cancelled) return;
+        const plData: any = plRes?.data;
+        const allPlayers: any[] = Array.isArray(plData?.data) ? plData.data : Array.isArray(plData) ? plData : [];
+        // include PENDING players – do not filter by status
+        const filtered = allPlayers.filter((p: any) => String(p.teamId) === String(teamId));
+        applySquad(filtered);
+      } catch {
+        // keep existing squad
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isMgmtTeam, mgmtTeamRaw, teamId]);
 
   const teamName = String(team?.name ?? "").trim();
   const displayTeamName = teamName
@@ -490,14 +637,15 @@ const TeamProfile = () => {
     const total = squad.length;
     const avgAge = total ? squad.reduce((a, p) => a + toNumber(p.age), 0) / total : 0;
     const injured = squad.filter((p) => String(p.injured ?? "").toLowerCase() === "true").length;
+    // Use positionRank so management positions (GK, RB, CB, CDM, RW, etc.) map correctly
     return {
       total,
       avgAge,
       injured,
-      gk: squad.filter((p) => String(p.position) === "G").length,
-      def: squad.filter((p) => String(p.position) === "D").length,
-      mid: squad.filter((p) => String(p.position) === "M").length,
-      fwd: squad.filter((p) => String(p.position) === "F").length,
+      gk: squad.filter((p) => positionRank(String(p.position)) === 1).length,
+      def: squad.filter((p) => positionRank(String(p.position)) === 2).length,
+      mid: squad.filter((p) => positionRank(String(p.position)) === 3).length,
+      fwd: squad.filter((p) => positionRank(String(p.position)) === 4).length,
     };
   }, [squad]);
 
@@ -645,6 +793,47 @@ const TeamProfile = () => {
   const hasTeamId = Boolean(teamId);
 
   useEffect(() => {
+    // Management fixtures: only management API – league fixtures filtered by team. Legacy otherwise. Render whichever succeeds (mgmtTeamRaw present => mgmt).
+    if (mgmtTeamRaw) {
+      const raw = mgmtTeamRaw as any;
+      const leagueId = raw?.leagueId ?? raw?.league?.id ?? (team as any)?._mgmtRaw?.leagueId;
+      const tId = String(teamId ?? team?.team_id ?? "").trim();
+      if (!leagueId || !tId) return;
+      const run = async () => {
+        setFixturesLoading(true);
+        setFixturesError(null);
+        try {
+          const res: any = await getPublicLeagueFixtures(String(leagueId));
+          const data = res?.data as any;
+          const list: any[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+          // filter for this team – uses available fields homeTeamId / awayTeamId
+          const filtered = list.filter((f: any) => String(f.homeTeamId) === tId || String(f.awayTeamId) === tId);
+          // Map to legacy shape expected by team profile: split into played/upcoming based on status
+          const mapped = filtered.map((f: any) => ({
+            fixture_id: f.id,
+            id: f.id,
+            date: f.matchDate,
+            status: f.status === "COMPLETED" ? "FT" : f.status === "SCHEDULED" ? "NS" : f.status,
+            league_name: f.league?.name ?? "",
+            localteam: { id: f.homeTeamId, name: f.homeTeam?.name ?? "Home", score: f.score?.home, image_url: f.homeTeam?.imageUrl },
+            visitorteam: { id: f.awayTeamId, name: f.awayTeam?.name ?? "Away", score: f.score?.away, image_url: f.awayTeam?.imageUrl },
+            homeTeam: f.homeTeam ? { ...f.homeTeam, image_url: f.homeTeam?.imageUrl } : undefined,
+            awayTeam: f.awayTeam ? { ...f.awayTeam, image_url: f.awayTeam?.imageUrl } : undefined,
+            events: f.events,
+          }));
+          const played = mapped.filter((m: any) => String(m.status).toUpperCase() === "FT");
+          const upcoming = mapped.filter((m: any) => String(m.status).toUpperCase() !== "FT");
+          setFixturesData({ responseObject: { played, upcoming } } as any);
+        } catch (err: any) {
+          setFixturesError(err?.message || "Failed to load matches");
+        } finally {
+          setFixturesLoading(false);
+        }
+      };
+      run();
+      return;
+    }
+
     const id = team?.team_id;
     if (!id) return;
 
@@ -662,7 +851,7 @@ const TeamProfile = () => {
     };
 
     run();
-  }, [team?.team_id]);
+  }, [team?.team_id, mgmtTeamRaw, teamId]);
 
   useEffect(() => {
     closeLiveStream(liveEventSourceRef.current);
@@ -844,7 +1033,7 @@ const TeamProfile = () => {
 
       {/* Header */}
       <div className="bg-brand-secondary relative z-0">
-        <div className="overflow-hidden h-auto md:h-80 bg-cover bg-center w-full relative z-0 bg-[#0B0F14]">
+        <div className="overflow-visible h-auto md:h-80 bg-cover bg-center w-full relative z-0 bg-[#0B0F14]">
           <img
             src={venueImageUrl || "/pitch/stadium.png"}
             alt="Stadium"
@@ -865,7 +1054,7 @@ const TeamProfile = () => {
 
 
 
-          <div className="w-full h-full min-h-[260px] md:min-h-[300px] page-padding-x pt-6 md:pt-10 pb-16 md:pb-20 relative z-[1]">
+          <div className="w-full h-full min-h-[260px] md:min-h-[300px] page-padding-x pt-6 md:pt-10 pb-16 md:pb-20 relative z-40 overflow-visible">
             <div className="justify-between flex py-3 md:py-5">
               <div onClick={() => navigate(-1)} className="relative cursor-pointer px-3 z-10 grid grid-cols-3 items-center">
                 <div className="flex gap-4">
@@ -899,8 +1088,24 @@ const TeamProfile = () => {
                     ) : (
                       <img src="/loading-state/shield.svg" alt="" className="w-20 h-20" />
                     )}
-                    <div className="flex flex-col min-w-0">
-                      <p className="font-extrabold sz-2 gradient-text leading-tight truncate">{teamName}</p>
+                    <div className="flex flex-col min-w-0 overflow-visible">
+                      <p className="font-medium sz-2 leading-tight overflow-visible inline-flex items-center gap-2 whitespace-normal break-words tracking-tight">
+                        <span className="gradient-text tracking-tight font-medium">{teamName}</span>
+                        {(isMgmtTeam || !!mgmtTeamRaw) ? (
+                          <span
+                            className="group relative inline-flex align-middle -translate-y-[1px] overflow-visible shrink-0"
+                            tabIndex={0}
+                            role="img"
+                            aria-label="Verified – Stats covered by Tikianaly"
+                          >
+                            <CheckBadgeIcon className="h-4 w-4 md:h-7 md:w-7 text-white" aria-hidden="true" />
+                            <span className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white shadow-xl ring-1 ring-black/5 group-hover:block group-focus-within:block">
+                              Stats covered by Tikianaly
+                              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-900" />
+                            </span>
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="text-sm text-snow-200 truncate">{team?.country ?? "-"}</p>
                     </div>
                   </div>
@@ -941,8 +1146,24 @@ const TeamProfile = () => {
                   <img src="/loading-state/shield.svg" alt="" className="w-14 h-14 flex-shrink-0" />
                 )}
 
-                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <p className="font-extrabold text-2xl leading-tight text-white truncate">{teamName}</p>
+                <div className="flex flex-col gap-0.5 flex-1 min-w-0 overflow-visible">
+                  <p className="font-medium text-2xl leading-tight text-white overflow-visible inline-flex items-center gap-1.5 flex-wrap whitespace-normal break-words tracking-tight">
+                    <span className="tracking-tight font-medium">{teamName}</span>
+                    {(isMgmtTeam || !!mgmtTeamRaw) ? (
+                      <span
+                        className="group relative inline-flex align-middle -translate-y-[1px] overflow-visible shrink-0"
+                        tabIndex={0}
+                        role="img"
+                        aria-label="Verified – Stats covered by Tikianaly"
+                      >
+                        <CheckBadgeIcon className="h-4 w-4 text-white" aria-hidden="true" />
+                        <span className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white shadow-xl ring-1 ring-black/5 group-hover:block group-focus-within:block">
+                          Stats covered by Tikianaly
+                          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-900" />
+                        </span>
+                      </span>
+                    ) : null}
+                  </p>
                   <p className="text-[11px] text-snow-200 truncate">{team?.country ?? "-"}</p>
                 </div>
 
@@ -1017,18 +1238,19 @@ const TeamProfile = () => {
         )}
 
         {/* MATCHES */}
-        {activeTab === "matches" && (
+          {activeTab === "matches" && (
           <div className="sz-8 flex flex-col gap-y-7 md:flex-row my-8 md:gap-7">
             <div className="w-full md:w-1/3">
               {(() => {
-                const finalTeamId = team?.team_id ?? "9260";
+                const finalTeamId = team?.team_id ?? teamId;
+                if (!finalTeamId) return <div className="block-style p-3 theme-text text-sm">No team selected</div>;
                 return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
               })()}
             </div>
 
             <div className="block-style w-full md:w-2/3">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="font-bold text-lg theme-text">Matches</p>
+                <p className="font-medium text-lg theme-text">Matches</p>
                 <DropdownSelector
                   value={matchesMode}
                   onChange={setMatchesMode}
@@ -1059,8 +1281,6 @@ const TeamProfile = () => {
                     const awayName = m?.visitorteam?.name ?? "Away";
                     const homeScore = isUpcoming ? "-" : (m?.localteam?.score ?? "-");
                     const awayScore = isUpcoming ? "-" : (m?.visitorteam?.score ?? "-");
-                    const homeTeamIdForLogo = m?.localteam?.id;
-                    const awayTeamIdForLogo = m?.visitorteam?.id;
                     const leagueName = m?.league_name ?? "";
                     const dateLabel = (() => {
                       const d = String(m?.date ?? "");
@@ -1077,7 +1297,7 @@ const TeamProfile = () => {
                     return (
                       <Link
                         key={String(fixtureId ?? idx)}
-                        to={`/football/gameinfo/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
+                        to={`${(isMgmtTeam || !!mgmtTeamRaw || isUuid(String(fixtureId ?? ""))) ? "/football/management/gameinfo" : "/football/gameinfo"}/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
                         className="block px-2 py-3 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors"
                       >
                         <div className="min-w-0">
@@ -1088,9 +1308,12 @@ const TeamProfile = () => {
                           <div className="flex flex-col gap-1 mt-1">
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-1 min-w-0">
-                                {homeTeamIdForLogo ? (
-                                  <GetTeamLogo teamId={homeTeamIdForLogo} alt={homeName} className="w-5 h-5" />
-                                ) : null}
+                                <Image
+                                  src={m?.localteam?.image_url ?? (m as any)?.homeTeam?.image_url ?? (m as any)?.homeTeam?.imageUrl ?? null}
+                                  alt={homeName}
+                                  className="w-5 h-5 object-contain shrink-0"
+                                  fallback="/loading-state/shield.svg"
+                                />
                                 <span className="text-sm font-medium dark:text-white text-neutral-n4 truncate">{homeName}</span>
                                 {homeRed > 0 ? (
                                   <span
@@ -1108,9 +1331,12 @@ const TeamProfile = () => {
 
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-1 min-w-0">
-                                {awayTeamIdForLogo ? (
-                                  <GetTeamLogo teamId={awayTeamIdForLogo} alt={awayName} className="w-5 h-5" />
-                                ) : null}
+                                <Image
+                                  src={m?.visitorteam?.image_url ?? (m as any)?.awayTeam?.image_url ?? (m as any)?.awayTeam?.imageUrl ?? null}
+                                  alt={awayName}
+                                  className="w-5 h-5 object-contain shrink-0"
+                                  fallback="/loading-state/shield.svg"
+                                />
                                 <span className="text-sm font-medium dark:text-white text-neutral-n4 truncate">{awayName}</span>
                                 {awayRed > 0 ? (
                                   <span
@@ -1151,7 +1377,8 @@ const TeamProfile = () => {
             {/* Team Fixtures Sidebar - Left Side */}
             <div className="w-full md:w-1/3">
               {(() => {
-                const finalTeamId = team?.team_id ?? "9260"; // Use fallback teamId for testing
+                const finalTeamId = team?.team_id ?? teamId;
+                if (!finalTeamId) return <div className="block-style p-3 theme-text text-sm">No team selected</div>;
                 return <TeamFixturesSidebar teamId={finalTeamId} teamName={teamName} />;
               })()}
             </div>
@@ -1162,13 +1389,60 @@ const TeamProfile = () => {
                 <div className="block-style">
                   <div className="flex items-center text-neutral-n4 dark:text-snow-100 gap-2 mb-2">
                     <InformationCircleIcon className="h-5" />
-                    <p className="sz-5 font-bold">Club Overview</p>
+                    <p className="sz-5 font-medium">Club Overview</p>
+                    {isMgmtTeam ? (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-black text-white px-2 py-0.5 text-[10px] font-semibold">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white" /> Tikianaly
+                      </span>
+                    ) : null}
                   </div>
                   <p className="theme-text">
                     {teamName}
                     {team?.founded ? ` was founded in ${team.founded}.` : "."} {team?.country ? `Country: ${team.country}.` : ""}
                   </p>
+                  {isMgmtTeam && mgmtTeamRaw ? (
+                    <div className="mt-3">
+                      <p className="text-snow-100 text-xs mb-2 font-medium opacity-80 line-clamp-2">{mgmtTeamRaw.description ?? "-"}</p>
+                    </div>
+                  ) : null}
                 </div>
+
+                {isMgmtTeam && mgmtTeamRaw ? (
+                  <div className="block-style">
+                    <p className="font-semibold text-sm theme-text mb-3">Management Details</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                        <p className="text-[10px] text-neutral-n5">City</p>
+                        <p className="font-semibold theme-text text-sm truncate">{mgmtTeamRaw.city ?? "-"}</p>
+                      </div>
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                        <p className="text-[10px] text-neutral-n5">Stadium</p>
+                        <p className="font-semibold theme-text text-sm truncate">{mgmtTeamRaw.stadium ?? "-"}</p>
+                      </div>
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                        <p className="text-[10px] text-neutral-n5">League</p>
+                        <p className="font-semibold theme-text text-sm truncate">{mgmtTeamRaw.league?.name ?? "-"} <span className="text-xs font-normal opacity-70">{mgmtTeamRaw.league?.season ?? ""}</span></p>
+                      </div>
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                        <p className="text-[10px] text-neutral-n5">Status</p>
+                        <p className="font-semibold theme-text text-sm">{mgmtTeamRaw.status ?? "-"}</p>
+                      </div>
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                        <p className="text-[10px] text-neutral-n5">Founded</p>
+                        <p className="font-semibold theme-text text-sm">{mgmtTeamRaw.foundedYear ?? "-"}</p>
+                      </div>
+                      <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3 flex flex-col justify-center">
+                        <p className="text-[10px] text-neutral-n5 mb-1">Colors</p>
+                        <div className="flex items-center gap-2">
+                          <span className="h-5 w-5 rounded border border-black/10" style={{ background: mgmtTeamRaw.primaryColor ?? "#e5e7eb" }} title={mgmtTeamRaw.primaryColor ?? ""} />
+                          <span className="text-xs theme-text">{mgmtTeamRaw.primaryColor ?? "-"}</span>
+                          <span className="h-5 w-5 rounded border border-black/10 ml-1" style={{ background: mgmtTeamRaw.secondaryColor ?? "#e5e7eb" }} title={mgmtTeamRaw.secondaryColor ?? ""} />
+                          <span className="text-xs theme-text">{mgmtTeamRaw.secondaryColor ?? "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 rounded p-3">
@@ -1191,7 +1465,7 @@ const TeamProfile = () => {
 
                 <div className="block-style">
                   <div className="flex items-center justify-between gap-3 mb-3">
-                    <p className="font-bold text-lg theme-text">Transfer fees (In vs Out)</p>
+                    <p className="font-medium text-lg theme-text">Transfer fees (In vs Out)</p>
                     <p className="text-xs text-neutral-n5 dark:text-snow-200">total</p>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -1255,7 +1529,7 @@ const TeamProfile = () => {
             <div className="flex flex-col gap-5 w-full">
               <div className="space-y-6">
                 <div className="block-style">
-                  <p className="font-bold text-lg theme-text mb-3">Squad</p>
+                  <p className="font-medium text-lg theme-text mb-3">Squad</p>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
                       <p className="text-[10px] text-neutral-n5 dark:text-snow-200">GK</p>
@@ -1346,7 +1620,7 @@ const TeamProfile = () => {
             <div className="flex flex-col gap-5 w-full">
               <div className="space-y-8">
                 <div className="block-style">
-                  <p className="font-bold text-lg theme-text mb-3">Transfers In</p>
+                  <p className="font-medium text-lg theme-text mb-3">Transfers In</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {!Array.isArray(transfersIn) || transfersIn.length === 0 ? (
                       <div className="theme-text">No transfers</div>
@@ -1393,7 +1667,7 @@ const TeamProfile = () => {
                 </div>
 
                 <div className="block-style">
-                  <p className="font-bold text-lg theme-text mb-3">Transfers Out</p>
+                  <p className="font-medium text-lg theme-text mb-3">Transfers Out</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {!Array.isArray(transfersOut) || transfersOut.length === 0 ? (
                       <div className="theme-text">No transfers</div>
@@ -1448,7 +1722,7 @@ const TeamProfile = () => {
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
             <div className="flex flex-col gap-5 w-full">
               <div className="block-style">
-                <p className="font-bold text-lg mb-3 theme-text">Trophies</p>
+                <p className="font-medium text-lg mb-3 theme-text">Trophies</p>
                 {!Array.isArray(team?.trophies) || (team?.trophies ?? []).length === 0 ? (
                   <div className="theme-text">No trophy data</div>
                 ) : (
@@ -1486,7 +1760,7 @@ const TeamProfile = () => {
           <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
             <div className="flex flex-col gap-5 w-full">
               <div className="block-style">
-                <p className="font-bold text-lg theme-text mb-3">Venue</p>
+                <p className="font-medium text-lg theme-text mb-3">Venue</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <p className="theme-text font-semibold">{venue?.venue_name ?? "-"}</p>
@@ -1529,7 +1803,7 @@ const TeamProfile = () => {
             <div className="flex flex-col gap-5 w-full">
               <div className="space-y-6">
                 <div className="block-style">
-                  <p className="font-bold text-lg theme-text mb-3">Season stats</p>
+                  <p className="font-medium text-lg theme-text mb-3">Season stats</p>
 
                   <div className="flex items-center gap-2 mb-4 theme-text">
                     <span className="font-semibold">Season</span>
@@ -1626,7 +1900,7 @@ const TeamProfile = () => {
                 </div>
 
                 <div className="block-style">
-                  <p className="font-bold text-lg theme-text mb-3">Competition rows</p>
+                  <p className="font-medium text-lg theme-text mb-3">Competition rows</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead>

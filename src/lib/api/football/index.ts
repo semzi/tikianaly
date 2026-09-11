@@ -583,3 +583,5 @@ export const getFootballFixturesByDate = async (
   const response = await apiClient.get(endpoint, { params });
   return response.data;
 };
+// Re-export new public endpoints backed by managementApi
+export * from "./public";

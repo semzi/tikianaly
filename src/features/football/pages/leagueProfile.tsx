@@ -9,6 +9,13 @@ import {
   getLeagueFixtures,
   type FootballLeagueLeadersResponse,
 } from "@/lib/api/endpoints";
+import {
+  getPublicLeagueById,
+  getPublicLeagueStatistics,
+  getPublicLeagueFixtures,
+  type PublicLeagueDetail,
+  type PublicStatisticsResponse,
+} from "@/lib/api/management";
 import { DropdownSelector } from "@/components/ui/DropdownSelector";
 import { navigate } from "@/lib/router/navigate";
 import {
@@ -17,12 +24,15 @@ import {
   ShareIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import StandingsTable from "@/features/football/components/standings/StandingsTable";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
 import { useQuery } from "@tanstack/react-query";
+
+const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 type LeagueApiItem = {
   id?: number;
@@ -73,19 +83,19 @@ const Leaderboard = ({
 }) => {
   return (
     <div className="my-8">
-      <div className="rounded-2xl border border-snow-200 dark:border-snow-100/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#161B22] border border-snow-200 dark:border-[#1F2937] rounded overflow-hidden">
         <div className="px-5 py-4 bg-gradient-to-r from-brand-primary/10 via-transparent to-orange-500/10 dark:from-brand-primary/20 dark:to-orange-500/20">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <p className="theme-text font-bold text-base md:text-lg truncate">{title}</p>
+              <p className="theme-text font-semibold text-sm md:text-[15px] truncate">{title}</p>
             </div>
-            <div className="shrink-0 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white/70 dark:bg-white/5 px-3 py-2">
-              <p className="theme-text text-xs font-semibold">{metricLabel}</p>
+            <div className="shrink-0 rounded border border-snow-200 dark:border-[#1F2937] bg-white dark:bg-[#1F2937] px-3 py-1.5">
+              <p className="theme-text text-xs font-medium">{metricLabel}</p>
             </div>
           </div>
         </div>
 
-        <div className="divide-y divide-snow-200 dark:divide-snow-100/10">
+        <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
           {items.map((p, idx) => {
             const rank = idx + 1;
             const isTop3 = rank <= 3;
@@ -96,25 +106,27 @@ const Leaderboard = ({
                   isTop3 ? "bg-gradient-to-r from-orange-500/5 via-transparent to-transparent dark:from-orange-500/10" : ""
                 }`}
               >
-                <div className="w-9 shrink-0">
+                <div className="w-8 shrink-0">
                   <div
-                    className={`h-9 w-9 rounded-xl flex items-center justify-center font-extrabold text-sm ${
-                      isTop3
-                        ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
-                        : "bg-snow-100 dark:bg-white/10 theme-text"
+                    className={`h-8 w-8 rounded flex items-center justify-center font-bold text-xs ${
+                      isTop3 ? "bg-orange-500 text-white" : "bg-snow-100 dark:bg-white/10 theme-text"
                     }`}
                   >
                     {rank}
                   </div>
                 </div>
 
-                <div className="h-10 w-10 rounded-2xl overflow-hidden bg-snow-100 dark:bg-white/10 flex items-center justify-center shrink-0">
+                <div
+                  className={`h-8 w-8 md:h-9 md:w-9 flex items-center justify-center shrink-0 ${
+                    p.playerImageUrl ? "rounded-full bg-snow-100 dark:bg-white/10 overflow-hidden" : "rounded-none bg-transparent overflow-visible"
+                  }`}
+                >
                   <Image
                     src={p.playerImageUrl}
                     alt={p.name}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 object-cover"
+                    width={36}
+                    height={36}
+                    className={`w-8 h-8 md:w-9 md:h-9 ${p.playerImageUrl ? "rounded-full object-cover" : "rounded-none object-contain bg-transparent"}`}
                     fallback="/loading-state/player.svg"
                   />
                 </div>
@@ -123,7 +135,7 @@ const Leaderboard = ({
                   <button
                     type="button"
                     onClick={() => navigate(`/player/profile/${encodeURIComponent(String(p.playerId))}`)}
-                    className="theme-text font-semibold text-base truncate text-left hover:underline"
+                    className="theme-text font-medium text-sm truncate text-left hover:underline"
                     aria-label={`Open ${p.name} profile`}
                   >
                     {p.name}
@@ -131,9 +143,14 @@ const Leaderboard = ({
                   <div className="text-neutral-m6 text-xs mt-1 min-w-0 truncate">
                     <span className="flex items-center gap-2 min-w-0">
                       {p.teamImageUrl ? (
-                        <Image src={p.teamImageUrl} alt={p.teamName ?? ""} className="w-4 h-4 rounded-full object-contain" fallback="/loading-state/shield.svg" />
+                        <Image
+                          src={p.teamImageUrl}
+                          alt={p.teamName ?? ""}
+                          className="w-4 h-4 rounded-none object-contain bg-transparent"
+                          fallback="/loading-state/shield.svg"
+                        />
                       ) : (
-                        <img src="/loading-state/shield.svg" alt="" className="w-4 h-4" />
+                        <img src="/loading-state/shield.svg" alt="" className="w-4 h-4 rounded-none bg-transparent object-contain" />
                       )}
                       <span className="truncate">{p.teamName ?? "-"}</span>
                     </span>
@@ -141,8 +158,8 @@ const Leaderboard = ({
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <p className="theme-text font-bold text-base leading-none">{p.value}</p>
-                  <p className="text-neutral-m6 text-[11px] mt-1">{metricLabel}</p>
+                  <p className="theme-text font-semibold text-sm leading-none">{p.value}</p>
+                  <p className="text-neutral-m6 text-[11px] mt-0.5 font-normal">{metricLabel}</p>
                 </div>
               </div>
             );
@@ -155,6 +172,12 @@ const Leaderboard = ({
 
 const LeagueProfile = () => {
   const toast = useToast();
+  const { leagueId: leagueIdParam } = useParams<{ leagueId?: string }>();
+  const [searchParams] = useSearchParams();
+  const leagueIdFromQuery = searchParams.get("id") ?? undefined;
+  const leagueId = leagueIdParam ?? leagueIdFromQuery;
+  const isMgmtLeague = useMemo(() => !!leagueId && isUuid(String(leagueId)), [leagueId]);
+
   const tabs = useMemo(
     () => [
       { id: "standings", label: "Standings" },
@@ -165,19 +188,18 @@ const LeagueProfile = () => {
     ],
     []
   );
+  const visibleTabs = useMemo(() => {
+    if (isMgmtLeague) return tabs.filter((t) => t.id !== "top-duels");
+    return tabs;
+  }, [tabs, isMgmtLeague]);
 
   const getTabFromHash = () => {
     if (typeof window === "undefined") return "standings";
     const hash = window.location.hash.replace("#", "");
-    return tabs.find((t) => t.id === hash) ? hash : "standings";
+    return visibleTabs.find((t) => t.id === hash) ? hash : "standings";
   };
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
-
-  const { leagueId: leagueIdParam } = useParams<{ leagueId?: string }>();
-  const [searchParams] = useSearchParams();
-  const leagueIdFromQuery = searchParams.get("id") ?? undefined;
-  const leagueId = leagueIdParam ?? leagueIdFromQuery;
 
   const [season, setSeason] = useState<string>("");
 
@@ -186,17 +208,71 @@ const LeagueProfile = () => {
   } = useQuery({
     queryKey: ["standingSeasons", leagueId],
     queryFn: async () => await getStandingSeasonsByLeagueId(String(leagueId ?? "")),
-    enabled: !!leagueId,
+    enabled: !!leagueId && !isMgmtLeague,
     staleTime: 60_000,
   });
 
+  const {
+    data: leagueResponse,
+    isLoading: isLeagueLoadingLegacy,
+    error: leagueErrorLegacy,
+  } = useQuery<LeagueApiResponse>({
+    queryKey: ["league", leagueId, "legacy"],
+    queryFn: async () =>
+      (await getLeagueById(String(leagueId ?? ""))) as LeagueApiResponse,
+    enabled: !!leagueId && !isMgmtLeague,
+  });
+
+  const {
+    data: mgmtLeagueResponse,
+    isLoading: isMgmtLeagueLoading,
+    error: mgmtLeagueError,
+  } = useQuery<{ success: boolean; data: PublicLeagueDetail }>({
+    queryKey: ["mgmtLeague", leagueId],
+    queryFn: async () => (await getPublicLeagueById(String(leagueId ?? ""))) as any,
+    enabled: !!leagueId && isMgmtLeague,
+    staleTime: 60_000,
+  });
+
+  const isLeagueLoading = isMgmtLeague ? isMgmtLeagueLoading : isLeagueLoadingLegacy;
+  const leagueError = isMgmtLeague ? mgmtLeagueError : leagueErrorLegacy;
+  // unified league object: for mgmt we map PublicLeagueDetail to LeagueApiItem shape for rendering
+  const league: LeagueApiItem | null = useMemo(() => {
+    if (isMgmtLeague) {
+      const d = (mgmtLeagueResponse as any)?.data as PublicLeagueDetail | undefined;
+      if (!d) return null;
+      return {
+        id: d.id as any,
+        league_id: d.id as any,
+        name: d.name,
+        category: d.competitionType ?? "",
+        country: d.season ?? "",
+        image: (d as any).imageUrl ?? null,
+        // expose season so header can use it
+        _mgmtRaw: d,
+      } as any;
+    }
+    const item = (leagueResponse as any)?.responseObject?.item;
+    const resolved = Array.isArray(item) ? item[0] : item;
+    return resolved ?? null;
+  }, [leagueResponse, mgmtLeagueResponse, isMgmtLeague]);
+
+  const leagueErrorMessage =
+    leagueError instanceof Error ? leagueError.message : leagueError ? "Failed to load league" : null;
+
   const availableSeasons = useMemo(() => {
-    const items = seasonsData?.responseObject?.item;
+    if (isMgmtLeague) {
+      const d = (mgmtLeagueResponse as any)?.data as PublicLeagueDetail | undefined;
+      const s = String(d?.season ?? "").trim();
+      if (s) return [{ value: s, label: s }];
+      return [];
+    }
+    const items = (seasonsData as any)?.responseObject?.item;
     if (Array.isArray(items)) {
       return items.map((s: string) => ({ value: s, label: s }));
     }
     return [];
-  }, [seasonsData]);
+  }, [seasonsData, mgmtLeagueResponse, isMgmtLeague]);
 
   useEffect(() => {
     if (!season && availableSeasons.length > 0) {
@@ -204,36 +280,34 @@ const LeagueProfile = () => {
     }
   }, [availableSeasons, season]);
 
-  const {
-    data: leagueResponse,
-    isLoading: isLeagueLoading,
-    error: leagueError,
-  } = useQuery<LeagueApiResponse>({
-    queryKey: ["league", leagueId],
-    queryFn: async () =>
-      (await getLeagueById(String(leagueId ?? ""))) as LeagueApiResponse,
-    enabled: !!leagueId,
-  });
-
-  const league: LeagueApiItem | null = useMemo(() => {
-    const item = leagueResponse?.responseObject?.item;
-    const resolved = Array.isArray(item) ? item[0] : item;
-    return resolved ?? null;
-  }, [leagueResponse]);
-
-  const leagueErrorMessage =
-    leagueError instanceof Error ? leagueError.message : leagueError ? "Failed to load league" : null;
+  // keep mgmt season in sync when league loads (e.g. direct link)
+  useEffect(() => {
+    if (isMgmtLeague && !season && (mgmtLeagueResponse as any)?.data?.season) {
+      setSeason(String((mgmtLeagueResponse as any).data.season));
+    }
+  }, [isMgmtLeague, mgmtLeagueResponse, season]);
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      const foundTab = tabs.find((t) => t.id === hash);
+      const foundTab = visibleTabs.find((t) => t.id === hash);
       setActiveTab(foundTab ? hash : "standings");
     };
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [tabs]);
+  }, [visibleTabs]);
+
+  // If active tab is top-duels but league is management (duels hidden), reset to standings
+  useEffect(() => {
+    if (isMgmtLeague && activeTab === "top-duels") {
+      setActiveTab("standings");
+      const newUrl = `${window.location.pathname}${window.location.search}#standings`;
+      try {
+        window.history.replaceState(null, "", newUrl);
+      } catch {}
+    }
+  }, [isMgmtLeague, activeTab]);
 
   const handleTabClick = (tabId: string, e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -302,6 +376,59 @@ const LeagueProfile = () => {
     };
   };
 
+  // map management statistics -> leaderboard shape (supports both snake_case and camelCase, nested team/player)
+  const mapMgmtStats = (res: PublicStatisticsResponse): LeagueLeadersState => {
+    const resolveImage = (v: any) => {
+      if (typeof v === "string" && v.trim()) return v.trim();
+      return undefined;
+    };
+    const toBoard = (items: any[], valueKey: string): LeaderboardPlayer[] => {
+      if (!Array.isArray(items)) return [];
+      return items.map((item: any) => {
+        const name =
+          String(item?.first_name ?? item?.player_name ?? "").trim() ||
+          String(`${item?.firstName ?? item?.firstname ?? ""} ${item?.lastName ?? item?.lastname ?? ""}`).trim() ||
+          String(item?.common_name ?? item?.name ?? "").trim() ||
+          "-";
+        const goals = Number(item?.goals ?? item?.assists ?? item?.value ?? 0);
+        // player image: try all known keys + nested player object
+        const pImg =
+          resolveImage(item?.image_url) ??
+          resolveImage(item?.imageUrl) ??
+          resolveImage(item?.image) ??
+          resolveImage(item?.player_image_url) ??
+          resolveImage(item?.playerImageUrl) ??
+          resolveImage(item?.player?.imageUrl) ??
+          resolveImage(item?.player?.image_url) ??
+          undefined;
+        // team image: try all known keys + nested team object
+        const tImg =
+          resolveImage(item?.team_image_url) ??
+          resolveImage(item?.teamImageUrl) ??
+          resolveImage(item?.team_imageUrl) ??
+          resolveImage(item?.team?.imageUrl) ??
+          resolveImage(item?.team?.image_url) ??
+          resolveImage(item?.team?.image) ??
+          resolveImage(item?.team_image) ??
+          undefined;
+        return {
+          playerId: item?.player_id ?? item?.playerId ?? item?.id ?? item?.pid ?? 0,
+          name,
+          value: Number((item as any)?.[valueKey] ?? (item as any)?.value ?? goals),
+          playerImageUrl: pImg,
+          teamImageUrl: tImg,
+          teamName: String(item?.team_name ?? item?.teamName ?? item?.team?.name ?? "").trim(),
+        } as LeaderboardPlayer;
+      });
+    };
+    return {
+      season: (res as any)?.league?.season ?? season,
+      goals: toBoard((res as any)?.top_scorers ?? (res as any)?.topScorers ?? [], "goals"),
+      assists: toBoard((res as any)?.top_assists ?? (res as any)?.topAssists ?? [], "assists"),
+      duels: toBoard((res as any)?.top_cards ?? (res as any)?.topCards ?? [], "goals"),
+    };
+  };
+
   useEffect(() => {
     const id = resolvedLeagueId;
     if (id == null || String(id).trim() === "") {
@@ -309,6 +436,28 @@ const LeagueProfile = () => {
       setLeadersError(null);
       setLeadersLoading(false);
       return;
+    }
+    if (isMgmtLeague) {
+      let cancelled = false;
+      const run = async () => {
+        setLeadersLoading(true);
+        setLeadersError(null);
+        try {
+          const res: any = await getPublicLeagueStatistics(String(id));
+          if (cancelled) return;
+          setLeaders(mapMgmtStats(res?.data ?? res));
+        } catch (e: any) {
+          if (cancelled) return;
+          setLeaders(null);
+          setLeadersError(String(e?.message ?? "Failed to load league leaders"));
+        } finally {
+          if (!cancelled) setLeadersLoading(false);
+        }
+      };
+      run();
+      return () => {
+        cancelled = true;
+      };
     }
 
     let cancelled = false;
@@ -332,7 +481,7 @@ const LeagueProfile = () => {
     return () => {
       cancelled = true;
     };
-  }, [resolvedLeagueId, season]);
+  }, [resolvedLeagueId, season, isMgmtLeague]);
 
   const [matchesMode, setMatchesMode] = useState<"played" | "upcoming" | "all">("all");
 
@@ -347,6 +496,48 @@ const LeagueProfile = () => {
       setFixturesError(null);
       setFixturesLoading(false);
       return;
+    }
+
+    if (isMgmtLeague) {
+      let cancelled = false;
+      const run = async () => {
+        setFixturesLoading(true);
+        setFixturesError(null);
+        try {
+          const res: any = await getPublicLeagueFixtures(String(id));
+          if (cancelled) return;
+          // normalize management fixtures -> legacy responseObject.items shape for existing UI
+          const raw = res?.data;
+          const fixtures = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+          const mapped = fixtures.map((f: any) => {
+            const hImg = f.homeTeam?.imageUrl ?? f.homeTeam?.image_url ?? f.homeTeam?.image ?? null;
+            const aImg = f.awayTeam?.imageUrl ?? f.awayTeam?.image_url ?? f.awayTeam?.image ?? null;
+            return {
+              fixture_id: f.id,
+              id: f.id,
+              date: f.matchDate,
+              status: f.status === "COMPLETED" ? "FT" : f.status === "SCHEDULED" ? "NS" : f.status,
+              league_name: f.league?.name ?? "",
+              localteam: { name: f.homeTeam?.name ?? "Home", score: f.score?.home, image_url: hImg, imageUrl: hImg, image: hImg },
+              visitorteam: { name: f.awayTeam?.name ?? "Away", score: f.score?.away, image_url: aImg, imageUrl: aImg, image: aImg },
+              homeTeam: f.homeTeam ? { ...f.homeTeam, image_url: hImg, imageUrl: hImg, image: hImg } : f.homeTeam,
+              awayTeam: f.awayTeam ? { ...f.awayTeam, image_url: aImg, imageUrl: aImg, image: aImg } : f.awayTeam,
+              events: f.events,
+            };
+          });
+          setFixturesData({ responseObject: { items: mapped } });
+        } catch (e: any) {
+          if (cancelled) return;
+          setFixturesData(null);
+          setFixturesError(String(e?.message ?? "Failed to load matches"));
+        } finally {
+          if (!cancelled) setFixturesLoading(false);
+        }
+      };
+      run();
+      return () => {
+        cancelled = true;
+      };
     }
 
     let cancelled = false;
@@ -370,7 +561,7 @@ const LeagueProfile = () => {
     return () => {
       cancelled = true;
     };
-  }, [resolvedLeagueId, season]);
+  }, [resolvedLeagueId, season, isMgmtLeague]);
 
   const allItems = useMemo(() => {
     const items = (fixturesData as any)?.responseObject?.items;
@@ -567,8 +758,8 @@ const LeagueProfile = () => {
         </div>
 
         {/* Content Layer */}
-        <div className="col-start-1 row-start-1 w-full h-auto md:h-80 relative z-20 pointer-events-none">
-          <div className={`flex flex-col w-full h-full min-h-[280px] md:min-h-0 page-padding-x pb-16 md:pb-12 ${isSpecialLeague ? "" : "backdrop-blur-3xl"}`}>
+        <div className="col-start-1 row-start-1 w-full h-auto md:h-80 relative z-40 pointer-events-none overflow-visible">
+          <div className={`flex flex-col w-full h-full min-h-[280px] md:min-h-0 page-padding-x pb-16 md:pb-12 overflow-visible ${isSpecialLeague ? "" : "backdrop-blur-3xl"}`}>
             <div className="justify-between flex py-3 md:py-5 pointer-events-auto">
               <div
                 onClick={() => navigate(-1)}
@@ -595,14 +786,23 @@ const LeagueProfile = () => {
               </div>
             </div>
 
-            <div className="my-auto flex items-center gap-4 md:gap-5 z-[100] pointer-events-auto">
+            <div className="my-auto flex items-center gap-4 md:gap-5 z-50 pointer-events-auto overflow-visible isolate">
               {resolvedLeagueId ? (
                 <div className="bg-white p-4 rounded-3xl shadow-xl shrink-0">
-                  <GetLeagueLogo
-                    leagueId={resolvedLeagueId}
-                    alt={leagueName}
-                    className="w-20 h-20 md:w-28 md:h-28 object-contain"
-                  />
+                  {isMgmtLeague ? (
+                    <GetLeagueLogo
+                      leagueId={undefined}
+                      image={(mgmtLeagueResponse as any)?.data?.imageUrl ?? (league as any)?.image ?? undefined}
+                      alt={leagueName}
+                      className="w-20 h-20 md:w-28 md:h-28 object-contain"
+                    />
+                  ) : (
+                    <GetLeagueLogo
+                      leagueId={resolvedLeagueId}
+                      alt={leagueName}
+                      className="w-20 h-20 md:w-28 md:h-28 object-contain"
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="bg-white p-2 rounded-3xl shadow-xl shrink-0">
@@ -614,11 +814,36 @@ const LeagueProfile = () => {
                 </div>
               )}
 
-              <div className="min-w-0 flex flex-col justify-center gap-1.5">
-                <p className="font-semibold text-[22px] md:text-3xl text-white whitespace-normal break-words leading-tight">{leagueName}</p>
-                <p className="text-snow-100 text-[13px] md:text-sm whitespace-normal break-words font-medium opacity-90">
-                  {leagueCategory}{leagueCountry !== "-" ? ` / ${leagueCountry}` : ""}
+              <div className="min-w-0 flex flex-col justify-center gap-1.5 overflow-visible">
+                <p className="font-semibold text-[22px] md:text-3xl text-white whitespace-normal break-words leading-tight overflow-visible">
+                  {leagueName}
+                  {isMgmtLeague ? (
+                    <span
+                      className="group relative inline-flex align-middle ml-1.5 -translate-y-[1px] overflow-visible"
+                      tabIndex={0}
+                      role="img"
+                      aria-label="Verified – Stats covered by Tikianaly"
+                    >
+                      <CheckBadgeIcon
+                        className="h-4 w-4 md:h-7 md:w-7 text-black"
+                        aria-hidden="true"
+                      />
+                      <span className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white shadow-xl ring-1 ring-black/5 group-hover:block group-focus-within:block">
+                        Stats covered by Tikianaly
+                        <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-900" />
+                      </span>
+                    </span>
+                  ) : null}
                 </p>
+                {isMgmtLeague ? (
+                  <p className="text-snow-100 text-[13px] md:text-sm whitespace-normal break-words font-medium opacity-90 max-w-[420px]">
+                    {(mgmtLeagueResponse as any)?.data?.description || leagueCategory}
+                  </p>
+                ) : (
+                  <p className="text-snow-100 text-[13px] md:text-sm whitespace-normal break-words font-medium opacity-90">
+                    {`${leagueCategory}${leagueCountry !== "-" ? ` / ${leagueCountry}` : ""}`}
+                  </p>
+                )}
                 <div className="mt-1 w-[160px] md:w-[180px] [&>button]:!bg-transparent [&>button]:!border-white/30 [&>button]:!text-white dark:[&>button]:!bg-transparent dark:[&>button]:!border-white/30 dark:[&>button]:!text-white [&>button]:rounded-[24px] [&>button]:backdrop-blur-sm [&>button]:py-1.5 [&>button]:!h-auto [&>button]:text-sm">
                   <DropdownSelector
                     value={season}
@@ -637,7 +862,7 @@ const LeagueProfile = () => {
 
       <div className="flex z-30 h-12 w-full -mt-12 overflow-y-hidden overflow-x-auto bg-brand-p3 dark:bg-gray-800 backdrop-blur-2xl cursor-pointer sticky top-0 hide-scrollbar justify-start md:justify-center rounded-t-xl relative">
         <div className="flex md:justify-center md:gap-5 md:items-center gap-3 px-4 md:px-0 min-w-max md:min-w-0 md:mx-auto">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={(e) => handleTabClick(tab.id, e)}
@@ -719,7 +944,7 @@ const LeagueProfile = () => {
                       <Link
                         key={String(fixtureId ?? idx)}
                         data-upcoming={isUpcoming ? "true" : undefined}
-                        to={`/football/gameinfo/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
+                        to={`${isUuid(String(fixtureId ?? "")) ? "/football/management/gameinfo" : "/football/gameinfo"}/${fixtureId}?fixtureId=${encodeURIComponent(String(fixtureId ?? ""))}`}
                         className="block px-2 py-1.5 hover:bg-snow-100 dark:hover:bg-neutral-n2 transition-colors"
                       >
                         <div className="min-w-0">
@@ -730,7 +955,7 @@ const LeagueProfile = () => {
                           <div className="flex flex-col gap-0.5 mt-0.5">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <Image src={m?.homeTeam?.image_url ?? null} alt={homeName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
+                                <Image src={m?.homeTeam?.image_url ?? m?.homeTeam?.imageUrl ?? m?.homeTeam?.image ?? m?.localteam?.image_url ?? m?.localteam?.imageUrl ?? null} alt={homeName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
                                 <span className="text-xs font-medium dark:text-white text-neutral-n4 truncate">{homeName}</span>
                                 {homeRed > 0 ? (
                                   <span
@@ -748,7 +973,7 @@ const LeagueProfile = () => {
 
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <Image src={m?.awayTeam?.image_url ?? null} alt={awayName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
+                                <Image src={m?.awayTeam?.image_url ?? m?.awayTeam?.imageUrl ?? m?.awayTeam?.image ?? m?.visitorteam?.image_url ?? m?.visitorteam?.imageUrl ?? null} alt={awayName} className="w-4 h-4 object-contain shrink-0" fallback="/loading-state/shield.svg" />
                                 <span className="text-xs font-medium dark:text-white text-neutral-n4 truncate">{awayName}</span>
                                 {awayRed > 0 ? (
                                   <span
@@ -818,7 +1043,7 @@ const LeagueProfile = () => {
           )
         ) : null}
 
-        {activeTab === "top-duels" ? (
+        {!isMgmtLeague && activeTab === "top-duels" ? (
           leadersLoading ? (
             <div className="my-8 rounded-2xl border border-snow-200 dark:border-snow-100/10 bg-white/80 dark:bg-white/5 p-5 theme-text">
               Loading leaders…

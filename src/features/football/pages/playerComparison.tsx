@@ -1,13 +1,13 @@
 import PageHeader from "@/components/layout/PageHeader";
 import { FooterComp } from "@/components/layout/Footer";
-import { getPlayerById, getPlayerByName } from "@/lib/api/endpoints";
+import { getPlayerById, getPlayerByName, searchPublic } from "@/lib/api/endpoints";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PlayerRadarChart from "@/visualization/PlayerRadarChart";
 import GetLeagueLogo from "@/components/common/GetLeagueLogo";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
-import { Link, useSearchParams } from "react-router-dom";
-import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeftIcon, ArrowsRightLeftIcon, ChevronDownIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 type PlayerSeasonRow = {
   league?: string;
@@ -73,6 +73,7 @@ type PlayerSearchItem = {
   name: string;
   country: string;
   image?: string;
+  position?: string;
 };
 
 type PlayerSlot = {
@@ -105,24 +106,6 @@ const toNumber = (v: unknown): number => {
 
 const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
 
-const formatAxiosishError = (err: any): string => {
-  const status = err?.response?.status;
-  const statusText = err?.response?.statusText;
-  const apiMessage = err?.response?.data?.message ?? err?.response?.data?.error?.message;
-  const message = err?.message;
-
-  if (status) {
-    const parts = [
-      `Search failed (${status}${statusText ? ` ${statusText}` : ""})`,
-      apiMessage ? String(apiMessage) : null,
-    ].filter(Boolean);
-    return parts.join(": ");
-  }
-
-  if (message) return `Search failed: ${String(message)}`;
-  return "Search failed. Please try again.";
-};
-
 const normalizeItem = (item: any): PlayerApiItem | null => {
   if (!item) return null;
   if (Array.isArray(item)) return (item[0] as PlayerApiItem) ?? null;
@@ -138,15 +121,33 @@ const playerDisplayName = (p?: PlayerApiItem | null) => {
   );
 };
 
-const playerImageUrl = (p?: PlayerApiItem | null) => {
-  return p?.image_url ?? "/loading-state/player.svg";
-};
-
 const resolvePlayerImage = (raw?: unknown): string | undefined => {
   if (typeof raw !== "string" || !raw) return undefined;
   if (raw.startsWith("data:image")) return raw;
   if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) return raw;
   return `data:image/png;base64,${raw}`;
+};
+
+const playerImageUrl = (p?: PlayerApiItem | null) => {
+  return resolvePlayerImage(p?.image_url ?? p?.image) ?? "/loading-state/player.svg";
+};
+
+const mergePlayerResults = (
+  prev: PlayerSearchItem[],
+  incoming: PlayerSearchItem[]
+): PlayerSearchItem[] => {
+  if (incoming.length === 0) return prev;
+  const seen = new Set(prev.map((r) => `${String(r.id ?? "")}::${r.name.toLowerCase()}`));
+  const next = [...prev];
+  incoming.forEach((r) => {
+    const key = `${String(r.id ?? "")}::${r.name.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      next.push(r);
+    }
+  });
+  return next;
 };
 
 const formatCurrencyEUR = (value?: number): string => {
@@ -408,6 +409,7 @@ const radarMetricsFromSeason = (p: PlayerApiItem | null, season: string, leagueI
 };
 
 export default function PlayerComparison() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [slots, setSlots] = useState<PlayerSlot[]>([
     { loading: false, error: null, player: null },
@@ -433,9 +435,9 @@ export default function PlayerComparison() {
   const [searchValue, setSearchValue] = useState<string>("");
   const [searchResults, setSearchResults] = useState<PlayerSearchItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0);
   const searchRequestIdRef = useRef(0);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const shouldShowSearchPanel = searchValue.trim().length > 0;
 
@@ -490,75 +492,121 @@ export default function PlayerComparison() {
       if (!target) return;
       if (target.closest("[data-compare-filter-popover='true']")) return;
       setOpenFilter(null);
+      if (!target.closest("[data-slot-search='true']")) {
+        setSearchValue("");
+        setSearchResults([]);
+      }
     };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, []);
+
+  const handleQuickPickClick = (playerId: string) => {
+    if (!slots[activeSlotIndex]?.playerId) {
+      loadPlayer(activeSlotIndex, playerId);
+      const nextEmptyIdx = slots.findIndex((s, sidx) => sidx !== activeSlotIndex && !s.playerId);
+      if (nextEmptyIdx !== -1) {
+        setActiveSlotIndex(nextEmptyIdx);
+        setTimeout(() => inputRefs.current[nextEmptyIdx]?.focus(), 100);
+      }
+    } else {
+      const emptyIdx = slots.findIndex((s) => !s.playerId);
+      if (emptyIdx !== -1) {
+        setActiveSlotIndex(emptyIdx);
+        loadPlayer(emptyIdx, playerId);
+        const nextNext = slots.findIndex((s, sidx) => sidx !== emptyIdx && !s.playerId);
+        if (nextNext !== -1) {
+          setTimeout(() => inputRefs.current[nextNext]?.focus(), 100);
+        }
+      } else {
+        loadPlayer(activeSlotIndex, playerId);
+      }
+    }
+    setSearchValue("");
+    setSearchResults([]);
+  };
 
   useEffect(() => {
     const q = searchValue.trim();
     if (!q) {
       setSearchResults([]);
       setSearchLoading(false);
-      setSearchError(null);
       return;
     }
 
     if (q.length < 2) {
       setSearchResults([]);
       setSearchLoading(false);
-      setSearchError(null);
       return;
     }
 
     setSearchLoading(true);
-    setSearchError(null);
     const requestId = ++searchRequestIdRef.current;
 
     const timeoutId = window.setTimeout(() => {
-      const run = async (attempt: number) => {
-        try {
-          const data = await getPlayerByName(q);
-          if (requestId !== searchRequestIdRef.current) return;
-
-          const items = normalizeItemsToArray(data?.responseObject?.item);
-          const normalized: PlayerSearchItem[] = items.slice(0, 10).map((p: any) => {
-            const rawImage = p?.image;
-            const image =
-              typeof rawImage === "string" && rawImage.length
-                ? rawImage.startsWith("data:image")
-                  ? rawImage
-                  : `data:image/png;base64,${rawImage}`
-                : undefined;
-            const name = [p?.firstname, p?.lastname].filter(Boolean).join(" ") || "Unknown";
-            return {
-              id: p?.id ?? p?.player_id ?? p?.pid,
-              name: String(name),
-              country: String(p?.nationality ?? ""),
-              image,
-            };
-          });
-
-          setSearchResults(normalized);
-          setSearchLoading(false);
-          setSearchError(null);
-        } catch (err: any) {
-          if (requestId !== searchRequestIdRef.current) return;
-          const status = err?.response?.status;
-          const retryable = status === 429 || (typeof status === "number" && status >= 500);
-          if (attempt === 0 && retryable) {
-            window.setTimeout(() => {
-              if (requestId !== searchRequestIdRef.current) return;
-              run(1);
-            }, 450);
-            return;
-          }
-          setSearchError(formatAxiosishError(err));
+      let remaining = 2;
+      const done = () => {
+        remaining -= 1;
+        if (remaining <= 0 && requestId === searchRequestIdRef.current) {
           setSearchLoading(false);
         }
       };
 
-      run(0);
+      setSearchResults([]);
+
+      // 1. Football API search
+      getPlayerByName(q)
+        .then((data) => {
+          if (requestId !== searchRequestIdRef.current) return;
+          const items = normalizeItemsToArray(data?.responseObject?.item);
+          const normalized: PlayerSearchItem[] = items.slice(0, 10).map((p: any) => {
+            const name =
+              [p?.firstname, p?.lastname].filter(Boolean).join(" ") ||
+              String(p?.common_name ?? "").trim() ||
+              "Unknown";
+            const image = resolvePlayerImage(p?.image_url ?? p?.image ?? p?.imageUrl);
+            return {
+              id: p?.id ?? p?.player_id ?? p?.pid,
+              name: String(name),
+              country: String(p?.nationality ?? p?.country ?? ""),
+              image,
+              position: String(p?.position ?? ""),
+            };
+          });
+
+          setSearchResults((prev) => mergePlayerResults(prev, normalized));
+        })
+        .catch(() => {
+          // treat search errors/not found as empty results
+        })
+        .finally(done);
+
+      // 2. Management search
+      searchPublic(q)
+        .then((res: any) => {
+          if (requestId !== searchRequestIdRef.current) return;
+          const players = Array.isArray(res?.data?.players) ? res.data.players : [];
+          const mPlayers: PlayerSearchItem[] = players.slice(0, 10).map((p: any) => {
+            const name =
+              [p?.firstName, p?.lastName].filter(Boolean).join(" ") ||
+              String(p?.name ?? "").trim() ||
+              "Unknown";
+            const image = resolvePlayerImage(p?.imageUrl ?? p?.image_url ?? p?.image);
+            return {
+              id: p?.id,
+              name: String(name),
+              country: String(p?.team?.name ?? p?.nationality ?? ""),
+              image,
+              position: String(p?.position ?? ""),
+            };
+          });
+
+          if (mPlayers.length) {
+            setSearchResults((prev) => mergePlayerResults(prev, mPlayers));
+          }
+        })
+        .catch(() => {})
+        .finally(done);
     }, 450);
 
     return () => window.clearTimeout(timeoutId);
@@ -818,18 +866,23 @@ export default function PlayerComparison() {
   return (
     <>
       <PageHeader />
-      <main className="m-page-padding-x py-8 bg-snow-100 dark:bg-[#0D1117] transition-colors">
+      <main className="m-page-padding-x py-6 md:py-8 bg-snow-100 dark:bg-[#0D1117] min-h-[calc(100vh-140px)] transition-colors">
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-5 flex items-center gap-2.5 text-sm font-medium text-neutral-n4 dark:text-snow-200 hover:text-brand-secondary dark:hover:text-brand-secondary transition-colors group cursor-pointer"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
+          <span>Back</span>
+        </button>
+
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold theme-text">Player Comparison</h1>
             <p className="text-sm text-neutral-n5">Pick 2 players (optionally 3) and compare their season output.</p>
           </div>
-          <Link
-            to="/"
-            className="text-sm font-semibold text-brand-secondary hover:underline"
-          >
-            Back
-          </Link>
         </div>
 
         <div className="my-6">
@@ -857,7 +910,7 @@ export default function PlayerComparison() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-3 w-full">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 w-full">
             {slots.map((slot, idx) => {
               const isActive = activeSlotIndex === idx;
               const hasPlayer = Boolean(slot.playerId);
@@ -868,74 +921,234 @@ export default function PlayerComparison() {
               return (
                 <div
                   key={idx}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setActiveSlotIndex(idx)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setActiveSlotIndex(idx);
+                  onClick={() => {
+                    setActiveSlotIndex(idx);
+                    if (!hasPlayer) {
+                      inputRefs.current[idx]?.focus();
+                    }
                   }}
-                  className={`relative rounded-2xl border overflow-visible transition-colors ${surface} ${
+                  className={`relative rounded-2xl border transition-all ${surface} ${
                     isActive
                       ? "border-brand-secondary ring-2 ring-brand-secondary/20"
                       : "border-snow-200 dark:border-snow-100/10"
-                  } cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/30`}
+                  } focus-within:border-brand-secondary focus-within:ring-2 focus-within:ring-brand-secondary/20`}
                 >
-                  <div className="p-4">
-                    <div className="absolute left-3 top-3 flex items-center gap-2">
-                      {hasPlayer ? (
-                        <button
-                          type="button"
-                          className="h-9 w-9 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSlotPlayer(idx);
+                  <div className="p-4 flex flex-col justify-between h-full">
+                    {/* Header bar: Remove button & Swap button */}
+                    <div className="flex items-center justify-between gap-2 mb-2 min-h-[28px]">
+                      <div>
+                        {hasPlayer ? (
+                          <button
+                            type="button"
+                            className="h-7 w-7 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSlotPlayer(idx);
+                              setActiveSlotIndex(idx);
+                              setTimeout(() => inputRefs.current[idx]?.focus(), 50);
+                            }}
+                            title="Remove player"
+                            aria-label="Remove player"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div>
+                        {slots.length > 1 ? (
+                          <button
+                            type="button"
+                            className="h-7 w-7 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const other = idx === 0 ? 1 : 0;
+                              swapSlots(idx, other);
+                            }}
+                            title="Swap positions"
+                            aria-label="Swap"
+                          >
+                            <ArrowsRightLeftIcon className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    {hasPlayer ? (
+                      <div className="flex flex-col items-center text-center py-2">
+                        <img
+                          src={playerImageUrl(slot.player)}
+                          className="w-14 h-14 rounded-full object-cover ring-2 ring-white/60 dark:ring-black/30 shadow-md"
+                          alt={playerDisplayName(slot.player) || "Player"}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/loading-state/player.svg";
                           }}
-                          aria-label="Remove"
-                        >
-                          <XMarkIcon className="h-5 w-5" />
-                        </button>
-                      ) : null}
-                    </div>
+                        />
+                        <p className="mt-2 text-base font-semibold theme-text truncate max-w-full">
+                          {playerDisplayName(slot.player) || "Player"}
+                        </p>
+                        <p className="text-xs text-neutral-n5 truncate max-w-full">
+                          {slot.player?.team
+                            ? String(slot.player.team)
+                            : slot.player?.position
+                              ? String(slot.player.position)
+                              : "-"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center text-center py-1">
+                        <div className="w-12 h-12 rounded-full bg-snow-200/70 dark:bg-white/5 flex items-center justify-center ring-2 ring-snow-200/50 dark:ring-white/5">
+                          <img
+                            src="/loading-state/player.svg"
+                            className="w-6 h-6 opacity-40 dark:opacity-30 object-contain"
+                            alt="Select player"
+                          />
+                        </div>
+                        <p className="mt-1.5 text-sm font-semibold theme-text">
+                          Select player
+                        </p>
+                        <p className="text-xs text-neutral-n5 mb-2.5">
+                          Search for a player to compare
+                        </p>
 
-                    <div className="absolute right-3 top-3 flex items-center gap-2">
-                      {slots.length > 1 ? (
-                        <button
-                          type="button"
-                          className="h-9 w-9 rounded-full bg-snow-200/60 dark:bg-white/10 theme-text flex items-center justify-center hover:bg-snow-200 dark:hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const other = idx === 0 ? 1 : 0;
-                            swapSlots(idx, other);
-                          }}
-                          aria-label="Swap"
-                        >
-                          <ArrowsRightLeftIcon className="h-5 w-5" />
-                        </button>
-                      ) : null}
-                    </div>
+                        {/* Search field inside slot */}
+                        <div className="relative w-full" data-slot-search="true">
+                          <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-n5 pointer-events-none" />
+                            <input
+                              ref={(el) => {
+                                inputRefs.current[idx] = el;
+                              }}
+                              type="text"
+                              value={activeSlotIndex === idx ? searchValue : ""}
+                              onChange={(e) => {
+                                setActiveSlotIndex(idx);
+                                const val = e.target.value;
+                                setSearchValue(val);
+                                if (val.trim().length >= 2) {
+                                  setSearchLoading(true);
+                                } else {
+                                  setSearchLoading(false);
+                                }
+                              }}
+                              onFocus={() => {
+                                setActiveSlotIndex(idx);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="Search player..."
+                              className="w-full pl-9 pr-8 py-2 rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#0D1117] text-sm theme-text outline-none transition-all placeholder:text-neutral-n5 focus:border-brand-secondary focus:ring-1 focus:ring-brand-secondary"
+                            />
+                            {activeSlotIndex === idx && searchValue ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSearchValue("");
+                                  setSearchResults([]);
+                                }}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-n5 hover:text-neutral-n3"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
 
-                    <div className="flex flex-col items-center text-center pt-3">
-                      <img
-                        src={playerImageUrl(slot.player)}
-                        className="w-12 h-12 rounded-full object-cover ring-2 ring-white/60 dark:ring-black/30"
-                        alt={playerDisplayName(slot.player) || "Player"}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/loading-state/player.svg";
-                        }}
-                      />
-                      <p className="mt-2 font-semibold theme-text truncate max-w-full">
-                        {playerDisplayName(slot.player) || "Select player"}
-                      </p>
-                      <p className="text-xs text-neutral-n5 truncate max-w-full">
-                        {slot.player?.position ? String(slot.player.position) : hasPlayer ? "-" : "Tap to select slot, then search below"}
-                      </p>
-                    </div>
+                          {/* Search Dropdown within slot */}
+                          {activeSlotIndex === idx && shouldShowSearchPanel ? (
+                            <div
+                              className="absolute left-0 right-0 z-[60] mt-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-2xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-snow-100 dark:divide-white/5">
+                                {searchValue.trim().length < 2 ? (
+                                  <div className="p-3 text-xs text-neutral-n5 text-center">Type at least 2 characters…</div>
+                                ) : searchLoading && searchResults.length === 0 ? (
+                                  <div className="p-4 text-center flex flex-col items-center justify-center">
+                                    <div className="h-5 w-5 border-2 border-brand-secondary border-t-transparent rounded-full animate-spin mb-2" />
+                                    <p className="text-xs text-neutral-n5">Searching players…</p>
+                                  </div>
+                                ) : searchResults.length ? (
+                                  searchResults.map((r) => (
+                                    <button
+                                      key={String(r.id ?? r.name)}
+                                      type="button"
+                                      className="w-full px-3 py-2 flex items-center gap-3 text-left transition-colors hover:bg-snow-100 dark:hover:bg-white/5"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const id = String(r.id ?? "");
+                                        if (!id) return;
+                                        loadPlayer(idx, id);
+                                        setSearchValue("");
+                                        setSearchResults([]);
+                                        const nextEmptyIdx = slots.findIndex((s, sidx) => sidx !== idx && !s.playerId);
+                                        if (nextEmptyIdx !== -1) {
+                                          setActiveSlotIndex(nextEmptyIdx);
+                                          setTimeout(() => inputRefs.current[nextEmptyIdx]?.focus(), 100);
+                                        }
+                                      }}
+                                    >
+                                      <img
+                                        src={r.image || "/loading-state/player.svg"}
+                                        alt={r.name}
+                                        className={`h-9 w-9 shrink-0 ${
+                                          r.image
+                                            ? "object-cover rounded-full bg-snow-200 dark:bg-white/10 ring-1 ring-snow-200 dark:ring-white/10"
+                                            : "object-contain rounded-none bg-transparent"
+                                        }`}
+                                        onError={(e) => {
+                                          const img = e.currentTarget;
+                                          img.onerror = null;
+                                          img.src = "/loading-state/player.svg";
+                                          img.classList.remove(
+                                            "rounded-full",
+                                            "bg-snow-200",
+                                            "dark:bg-white/10",
+                                            "ring-1",
+                                            "ring-snow-200",
+                                            "dark:ring-white/10",
+                                            "object-cover"
+                                          );
+                                          img.classList.add("rounded-none", "bg-transparent", "object-contain");
+                                        }}
+                                      />
+                                      <div className="min-w-0 flex-1 flex flex-col">
+                                        <p className="theme-text font-semibold text-xs truncate">{r.name}</p>
+                                        {r.position ? (
+                                          <span className="truncate text-[11px] text-neutral-n4 dark:text-white/70">
+                                            {r.position}
+                                          </span>
+                                        ) : null}
+                                        <p className="text-[11px] text-neutral-n5 dark:text-white/60 truncate">{r.country}</p>
+                                      </div>
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="py-5 px-4 text-center flex flex-col items-center justify-center">
+                                    <div className="w-10 h-10 rounded-full bg-snow-200/70 dark:bg-white/5 flex items-center justify-center mb-2">
+                                      <MagnifyingGlassIcon className="w-5 h-5 text-neutral-n5" />
+                                    </div>
+                                    <p className="text-xs font-semibold theme-text">
+                                      No players found
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-neutral-n5 max-w-[200px]">
+                                      No player matches &ldquo;{searchValue}&rdquo;.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
 
+                    {/* Filter controls: League & Season */}
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <div className="relative" data-compare-filter-popover="true">
                         <button
                           type="button"
-                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenFilter((cur) =>
@@ -988,7 +1201,7 @@ export default function PlayerComparison() {
                       <div className="relative" data-compare-filter-popover="true">
                         <button
                           type="button"
-                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full h-10 rounded-xl border border-snow-200/70 dark:border-snow-100/10 bg-white/60 dark:bg-black/20 backdrop-blur px-3 flex items-center justify-between gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenFilter((cur) =>
@@ -1043,21 +1256,22 @@ export default function PlayerComparison() {
                       </div>
                     </div>
 
-                    {slot.loading ? <p className="mt-3 text-xs text-neutral-n5">Loading…</p> : null}
-                    {slot.error ? <p className="mt-3 text-xs text-ui-negative">{slot.error}</p> : null}
+                    {slot.loading ? <p className="mt-3 text-xs text-neutral-n5 text-center">Loading…</p> : null}
+                    {slot.error ? <p className="mt-3 text-xs text-ui-negative text-center">{slot.error}</p> : null}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-5">
+          {/* Quick Picks */}
+          <div className="mt-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm font-semibold theme-text">Quick picks</p>
-              <p className="text-xs text-neutral-n5">Tap a player to fill the selected slot</p>
+              <p className="text-xs text-neutral-n5">Click a player to quick fill</p>
             </div>
 
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               {quickPlayers.map((p) => {
                 const disabled = selectedIds.includes(p.id);
                 return (
@@ -1065,109 +1279,41 @@ export default function PlayerComparison() {
                     key={p.id}
                     type="button"
                     disabled={disabled}
-                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors ${
+                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
                       disabled
                         ? "opacity-50 cursor-not-allowed border-snow-200 dark:border-snow-100/10"
                         : "border-snow-200 dark:border-snow-100/10 hover:bg-snow-100 dark:hover:bg-white/5"
                     }`}
                     onClick={() => {
-                      loadPlayer(activeSlotIndex, p.id);
-                      setSearchValue("");
-                      setSearchResults([]);
+                      handleQuickPickClick(p.id);
                     }}
                   >
                     <img
                       src={p.image || "/loading-state/player.svg"}
-                      className="w-7 h-7 rounded-full object-cover"
+                      className={`w-6 h-6 shrink-0 ${
+                        p.image
+                          ? "object-cover rounded-full bg-snow-200 dark:bg-white/10"
+                          : "object-contain rounded-none bg-transparent"
+                      }`}
                       alt={p.name}
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/loading-state/player.svg";
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src = "/loading-state/player.svg";
+                        img.classList.remove("rounded-full", "bg-snow-200", "dark:bg-white/10", "object-cover");
+                        img.classList.add("rounded-none", "bg-transparent", "object-contain");
                       }}
                     />
-                    <span className="theme-text font-semibold">{p.name}</span>
+                    <span className="theme-text font-medium text-xs">{p.name}</span>
                   </button>
                 );
               })}
             </div>
-
-            <label className="text-sm font-semibold theme-text">Search player (fills selected slot)</label>
-            <div className="mt-2 relative">
-              <input
-                value={searchValue}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setSearchValue(next);
-                  if (next.trim().length >= 2) {
-                    setSearchLoading(true);
-                    setSearchError(null);
-                  } else {
-                    setSearchLoading(false);
-                    setSearchError(null);
-                  }
-                }}
-                placeholder="Type player name…"
-                className="w-full rounded-lg border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] px-4 py-2 outline-none theme-text"
-              />
-
-              {shouldShowSearchPanel ? (
-                <div className="absolute left-0 right-0 z-50 mt-2">
-                  <div className="rounded-xl border border-snow-200 dark:border-snow-100/10 bg-white dark:bg-[#161B22] shadow-lg overflow-hidden">
-                    {searchValue.trim().length < 2 ? (
-                      <div className="p-4">
-                        <p className="text-sm text-neutral-n5">Type at least 2 characters…</p>
-                      </div>
-                    ) : searchError ? (
-                      <div className="p-4">
-                        <p className="text-sm text-ui-negative">{searchError}</p>
-                      </div>
-                    ) : searchLoading && searchResults.length === 0 ? (
-                      <div className="p-4">
-                        <p className="text-sm text-neutral-n5">Searching…</p>
-                      </div>
-                    ) : searchResults.length ? (
-                      <div className="max-h-80 overflow-y-auto">
-                        {searchResults.map((r) => (
-                          <button
-                            key={String(r.id ?? r.name)}
-                            type="button"
-                            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-snow-100 dark:hover:bg-white/5"
-                            onClick={() => {
-                              const id = String(r.id ?? "");
-                              if (!id) return;
-                              loadPlayer(activeSlotIndex, id);
-                              setSearchValue("");
-                              setSearchResults([]);
-                            }}
-                          >
-                            <img
-                              src={r.image || "/loading-state/player.svg"}
-                              className="w-10 h-10 rounded-full object-cover"
-                              alt={r.name}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/loading-state/player.svg";
-                              }}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="theme-text font-semibold truncate">{r.name}</p>
-                              <p className="text-xs text-neutral-n5 truncate">{r.country}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4">
-                        <p className="text-sm text-neutral-n5">No results</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <p className="mt-2 text-xs text-neutral-n5">
-              Tip: pick 2 players first. You can add a 3rd using “Add player”.
-            </p>
           </div>
+
+          <p className="mt-2 text-xs text-neutral-n5">
+            Tip: pick 2 players first. You can add a 3rd using “Add player”.
+          </p>
         </div>
 
         <div className="my-6">

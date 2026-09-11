@@ -2,14 +2,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStandingsByLeagueId } from "@/lib/api/endpoints";
+import { getPublicLeagueStandings } from "@/lib/api/management";
 import { navigate } from "@/lib/router/navigate";
+
+const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 import { SegmentedSelector } from "@/components/ui/SegmentedSelector";
 import Image from "@/components/common/Image";
 
 export type StandingsRow = {
   position: number;
   team: string;
-  teamId?: number;
+  teamId?: number | string;
   imageUrl?: string;
   recentForm?: string;
   description?: string;
@@ -94,17 +97,30 @@ type Props = {
 };
 
 export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }: Props) => {
+  const isMgmt = !!leagueId && isUuid(String(leagueId));
   const {
     data: apiData,
     error: apiError,
-    isLoading,
+    isLoading: isLegacyLoading,
   } = useQuery<StandingsByLeagueResponse>({
     queryKey: ["leagueStandings", leagueId, season],
     queryFn: async () =>
       (await getStandingsByLeagueId(String(leagueId ?? ""), season)) as StandingsByLeagueResponse,
-    enabled: !!leagueId,
+    enabled: !!leagueId && !isMgmt,
     staleTime: 60_000,
   });
+  const {
+    data: mgmtData,
+    error: mgmtError,
+    isLoading: isMgmtLoading,
+  } = useQuery<any>({
+    queryKey: ["mgmtStandings", leagueId],
+    queryFn: async () => await getPublicLeagueStandings(String(leagueId ?? "")),
+    enabled: !!leagueId && isMgmt,
+    staleTime: 60_000,
+  });
+  const isLoading = isMgmt ? isMgmtLoading : isLegacyLoading;
+  const combinedError: any = isMgmt ? mgmtError : apiError;
   const [viewMode, setViewMode] = useState<StandingsViewMode>(() => {
     try {
       const stored = localStorage.getItem("standings_view_mode_v1");
@@ -123,8 +139,8 @@ export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }:
     }
   }, [viewMode]);
 
-  const openTeamProfile = (teamId?: number) => {
-    if (!teamId) return;
+  const openTeamProfile = (teamId?: number | string) => {
+    if (teamId === undefined || teamId === null || String(teamId).trim() === "") return;
     navigate(`/team/profile/${encodeURIComponent(String(teamId))}`);
   };
 
@@ -241,9 +257,40 @@ export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }:
   );
 
   const apiErrorMessage =
-    apiError instanceof Error ? apiError.message : apiError ? "Failed to load standings" : "";
+    combinedError instanceof Error ? combinedError.message : combinedError ? (combinedError as any)?.message ?? "Failed to load standings" : "";
 
   const data = useMemo<StandingsRow[]>(() => {
+    // Management standings: { success, data: { league, standings: [{team_id, team_name, team_image_url, played, wins, ...}] } }
+    if (isMgmt) {
+      const raw = (mgmtData as any)?.data as { standings?: any[] } | undefined;
+      const mgmtStandings = raw?.standings;
+      if (Array.isArray(mgmtStandings) && mgmtStandings.length) {
+        const toNum = (v: unknown) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : 0;
+        };
+        return mgmtStandings
+          .map((t: any, idx: number) => ({
+            position: idx + 1,
+            team: String(t.team_name ?? t.teamName ?? ""),
+            teamId: t.team_id as any, // keep UUID string; will still highlight if matched, but navigate handles string
+            imageUrl: typeof t.team_image_url === "string" ? t.team_image_url : typeof t.imageUrl === "string" ? t.imageUrl : undefined,
+            recentForm: typeof t.form === "string" ? t.form : typeof t.recent_form === "string" ? t.recent_form : undefined,
+            description: undefined,
+            played: toNum(t.played),
+            wins: toNum(t.wins),
+            draws: toNum(t.draws),
+            losses: toNum(t.losses),
+            goalsFor: toNum(t.goals_for ?? t.goalsFor),
+            goalsAgainst: toNum(t.goals_against ?? t.goalsAgainst),
+            goalDiff: toNum(t.goal_difference ?? t.goalDifference ?? (Number(t.goals_for ?? t.goalsFor ?? 0) - Number(t.goals_against ?? t.goalsAgainst ?? 0))),
+            points: toNum(t.points),
+          }))
+          .filter((r) => r.team.trim());
+      }
+      return [];
+    }
+
     const apiStandings = apiData?.responseObject?.item?.[0]?.standings;
     if (Array.isArray(apiStandings) && apiStandings.length) {
       const toNum = (v: unknown) => {
@@ -281,15 +328,17 @@ export const StandingsTable = ({ leagueId, season, localteamId, visitorteamId }:
         .sort((a, b) => a.position - b.position);
     }
     return [];
-  }, [apiData]);
+  }, [apiData, mgmtData, isMgmt]);
 
-  const getHighlightBgClass = (teamId?: number) => {
-    if (!teamId) return "";
+  const getHighlightBgClass = (teamId?: number | string) => {
+    if (teamId === undefined || teamId === null || String(teamId).trim() === "") return "";
+    // UUID/string match
+    if (String(teamId) === String(localteamId ?? "")) return "bg-brand-secondary/10";
+    if (String(teamId) === String(visitorteamId ?? "")) return "bg-brand-primary/10";
     const homeIdNum = Number(localteamId);
     const awayIdNum = Number(visitorteamId);
-
-    if (Number.isFinite(homeIdNum) && teamId === homeIdNum) return "bg-brand-secondary/10";
-    if (Number.isFinite(awayIdNum) && teamId === awayIdNum) return "bg-brand-primary/10";
+    if (Number.isFinite(homeIdNum) && Number(teamId) === homeIdNum) return "bg-brand-secondary/10";
+    if (Number.isFinite(awayIdNum) && Number(teamId) === awayIdNum) return "bg-brand-primary/10";
     return "";
   };
 

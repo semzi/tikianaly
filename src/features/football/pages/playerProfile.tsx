@@ -18,7 +18,11 @@ import { useEffect, useState, type MouseEvent } from "react";
 import { useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getPlayerById } from "@/lib/api/endpoints";
+import { getPublicPlayerById, type PublicPlayerDetail } from "@/lib/api/management";
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import Image from "@/components/common/Image";
+
+const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 import { Helmet } from "react-helmet";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -219,8 +223,10 @@ const playerProfile = () => {
   const [searchParams] = useSearchParams();
   const playerIdFromQuery = searchParams.get("id") ?? undefined;
   const playerId = playerIdParam ?? playerIdFromQuery;
+  const isMgmtPlayer = !!playerId && isUuid(String(playerId));
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
+  const [mgmtPlayerRaw, setMgmtPlayerRaw] = useState<PublicPlayerDetail | null>(null);
 
   type PlayerSeasonRow = {
     league?: string;
@@ -334,30 +340,125 @@ const playerProfile = () => {
   };
 
   useEffect(() => {
-    const run = async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = (await getPlayerById(id)) as PlayerApiResponse;
-        const item = res?.responseObject?.item ?? null;
-        setPlayer(item);
-      } catch (e: any) {
-        setError(String(e?.message ?? "Failed to load player"));
-        setPlayer(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (!playerId) {
       setPlayer(null);
+      setMgmtPlayerRaw(null);
       setError(null);
       setLoading(false);
       return;
     }
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      setPlayer(null);
+      setMgmtPlayerRaw(null);
 
-    run(playerId);
-  }, [playerId]);
+      const tryMgmt = async (): Promise<boolean> => {
+        try {
+          // from endpoint file: GET /api/v1/public/players/:playerId (managementApi)
+          const res: any = await getPublicPlayerById(String(playerId));
+          const data = res?.data as PublicPlayerDetail;
+          if (cancelled) return false;
+          if (!data?.id) return false;
+          setMgmtPlayerRaw(data);
+          const age = (() => {
+            if (!data.dob) return undefined;
+            const dob = new Date(String(data.dob));
+            if (Number.isNaN(dob.getTime())) return undefined;
+            const now = new Date();
+            let a = now.getFullYear() - dob.getFullYear();
+            const m = now.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) a--;
+            return a >= 0 ? a : undefined;
+          })();
+          const s = data.stats;
+          const season = data.team?.league?.season ?? "-";
+          if (!cancelled) {
+            setPlayer({
+              player_id: data.id as any,
+              firstname: data.firstName,
+              lastname: data.lastName,
+              common_name: `${data.firstName} ${data.lastName}`.trim(),
+              nationality: data.nationality ?? undefined,
+              birthdate: data.dob ? String(data.dob).slice(0, 10) : undefined,
+              age: age,
+              height: data.heightCm ?? undefined,
+              weight: data.weightKg != null ? Number(data.weightKg) : undefined,
+              team: data.team?.name ?? undefined,
+              team_id: data.teamId as any,
+              position: data.position ?? undefined,
+              image: data.imageUrl ?? undefined,
+              image_url: data.imageUrl ?? undefined,
+              preferredFoot: "-",
+              marketValueEUR: undefined,
+              sidelined: data.isInjured ? [{ reason: "Injured" }] : [],
+              statistics: s
+                ? {
+                    clubs: [
+                      {
+                        season: season,
+                        league: data.team?.league?.name ?? "-",
+                        league_id: data.team?.leagueId ?? undefined,
+                        lineups: String(s.appearances ?? 0),
+                        minutes: String(s.minutes_played ?? 0),
+                        goals: String(s.goals ?? 0),
+                        assists: String(s.assists ?? 0),
+                        yellowcards: String(s.yellow_cards ?? 0),
+                        redcards: String(s.red_cards ?? 0),
+                        passes: String(s.fouls ?? 0),
+                        rating: "-",
+                      },
+                    ],
+                  }
+                : undefined,
+              _mgmtRaw: data,
+            } as any);
+            setError(null);
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const tryLegacy = async (): Promise<boolean> => {
+        try {
+          // other api client: GET /api/v1/football/players/id/:playerId (apiClient)
+          const res = (await getPlayerById(String(playerId))) as PlayerApiResponse;
+          const item = res?.responseObject?.item ?? null;
+          if (cancelled) return false;
+          if (!item) return false;
+          setMgmtPlayerRaw(null);
+          setPlayer(item);
+          setError(null);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // Hit the 2 endpoints like team profile does – try management first when isMgmtPlayer, else legacy first; fallback to the other and render whichever succeeds
+      let ok = false;
+      if (isMgmtPlayer) {
+        ok = await tryMgmt();
+        if (!ok && !cancelled) ok = await tryLegacy();
+      } else {
+        ok = await tryLegacy();
+        if (!ok && !cancelled) ok = await tryMgmt();
+      }
+      if (!ok && !cancelled) {
+        setPlayer(null);
+        setMgmtPlayerRaw(null);
+        setError("Failed to load player");
+      }
+      if (!cancelled) setLoading(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId, isMgmtPlayer]);
 
   const toNumber = (v: unknown): number => {
     if (v === null || v === undefined) return 0;
@@ -884,7 +985,9 @@ const playerProfile = () => {
                     }}
                   ></div>
                   <div className="self-end flex items-center gap-2">
-                    {player?.team_id ? (
+                    {isMgmtPlayer && mgmtPlayerRaw?.team?.imageUrl ? (
+                      <Image src={mgmtPlayerRaw.team.imageUrl} alt={player?.team ?? "Team"} className="w-12 h-12 rounded-full object-contain" fallback="/loading-state/shield.svg" />
+                    ) : player?.team_id ? (
                       <GetTeamLogo teamId={player.team_id} alt={player?.team ?? "Team"} className="w-12 h-12 rounded-full object-contain" />
                     ) : (
                       <img src="/loading-state/shield.svg" alt="" className="w-12 h-12" />
@@ -904,9 +1007,24 @@ const playerProfile = () => {
                     </span>
                   </div>
                 </div>
-                <p className="font-extrabold sz-2 flex gap-3 items-center text-white">
-                  {playerDisplayName}
-                  <CheckBadgeIcon className="w-7 text-ui-pending " />
+                <p className="font-medium sz-2 flex gap-3 items-center text-white overflow-visible tracking-tight">
+                  <span className="tracking-tight">{playerDisplayName}</span>
+                  {isMgmtPlayer ? (
+                    <span
+                      className="group relative inline-flex align-middle overflow-visible shrink-0"
+                      tabIndex={0}
+                      role="img"
+                      aria-label="Verified – Stats covered by Tikianaly"
+                    >
+                      <CheckBadgeIcon className="h-5 w-5 md:h-7 md:w-7 text-white" aria-hidden="true" />
+                      <span className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white shadow-xl ring-1 ring-black/5 group-hover:block group-focus-within:block">
+                        Stats covered by Tikianaly
+                        <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-900" />
+                      </span>
+                    </span>
+                  ) : (
+                    <CheckBadgeIcon className="w-7 text-ui-pending " aria-hidden="true" />
+                  )}
                 </p>
               </div>
 
@@ -978,19 +1096,31 @@ const playerProfile = () => {
                 ></div>
                 {/* Name in Middle */}
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <p className="font-extrabold text-2xl leading-tight text-white">
+                  <p className="font-medium text-2xl leading-tight text-white tracking-tight">
                     {player?.firstname ?? playerDisplayName.split(" ")[0] ?? "Player"}
                   </p>
-                  <p className="font-extrabold text-2xl leading-tight text-white flex items-center gap-1">
-                    {player?.lastname ?? playerDisplayName.split(" ").slice(1).join(" ") ?? ""}
-                    <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" />
+                  <p className="font-medium text-2xl leading-tight text-white flex items-center gap-1 overflow-visible tracking-tight">
+                    <span className="tracking-tight">{player?.lastname ?? playerDisplayName.split(" ").slice(1).join(" ") ?? ""}</span>
+                    {isMgmtPlayer ? (
+                      <span className="group relative inline-flex align-middle overflow-visible shrink-0" tabIndex={0} role="img" aria-label="Verified – Stats covered by Tikianaly">
+                        <CheckBadgeIcon className="h-4 w-4 text-white flex-shrink-0" aria-hidden="true" />
+                        <span className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white shadow-xl ring-1 ring-black/5 group-hover:block group-focus-within:block">
+                          Stats covered by Tikianaly
+                          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-900" />
+                        </span>
+                      </span>
+                    ) : (
+                      <CheckBadgeIcon className="w-4 text-ui-pending flex-shrink-0" aria-hidden="true" />
+                    )}
                   </p>
                 </div>
               </div>
 
               {/* Club below - Left Aligned */}
               <div className="flex mt-2 items-center gap-2 pl-0">
-                {player?.team_id ? (
+                {isMgmtPlayer && mgmtPlayerRaw?.team?.imageUrl ? (
+                  <Image src={mgmtPlayerRaw.team.imageUrl} alt={player?.team ?? "Team"} className="w-8 h-8 flex-shrink-0 rounded-full object-contain" fallback="/loading-state/shield.svg" />
+                ) : player?.team_id ? (
                   <GetTeamLogo teamId={player.team_id} alt={player?.team ?? "Team"} className="w-8 h-8 flex-shrink-0" />
                 ) : (
                   <img src="/loading-state/shield.svg" alt="" className="w-8 h-8 flex-shrink-0" />
@@ -1186,6 +1316,84 @@ const playerProfile = () => {
           </div>
         )}
 
+        {isMgmtPlayer && mgmtPlayerRaw ? (
+          <div className="page-padding-x">
+            <div className="block-style">
+              <div className="flex items-center gap-2 mb-3">
+                <p className="font-semibold theme-text text-sm">Management Player Data</p>
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-black text-white px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" /> Tikianaly
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Jersey</p>
+                  <p className="font-semibold theme-text text-sm">#{mgmtPlayerRaw.jerseyNumber ?? "-"}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Position</p>
+                  <p className="font-semibold theme-text text-sm">{mgmtPlayerRaw.position ?? "-"}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Status</p>
+                  <p className="font-semibold theme-text text-sm">{mgmtPlayerRaw.status ?? "-"} {mgmtPlayerRaw.isInjured ? "• Injured" : ""}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Team</p>
+                  <p className="font-semibold theme-text text-sm truncate">{mgmtPlayerRaw.team?.name ?? "-"}</p>
+                  <p className="text-[10px] text-neutral-n5 truncate">{mgmtPlayerRaw.team?.league?.name ?? ""} {mgmtPlayerRaw.team?.league?.season ? `(${mgmtPlayerRaw.team.league.season})` : ""}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Height / Weight</p>
+                  <p className="font-semibold theme-text text-sm">{mgmtPlayerRaw.heightCm ? `${mgmtPlayerRaw.heightCm}cm` : "-"} / {mgmtPlayerRaw.weightKg ? `${mgmtPlayerRaw.weightKg}kg` : "-"}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">DOB / Nationality</p>
+                  <p className="font-semibold theme-text text-xs">{mgmtPlayerRaw.dob ? String(mgmtPlayerRaw.dob).slice(0, 10) : "-"} • {mgmtPlayerRaw.nationality ?? "-"}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3 col-span-2">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">League</p>
+                  <p className="font-semibold theme-text text-sm truncate">{mgmtPlayerRaw.team?.league?.name ?? "-"} <span className="text-xs font-normal opacity-60">{mgmtPlayerRaw.team?.league?.season ?? ""}</span></p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3 col-span-2 md:col-span-1">
+                  <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Appearances</p>
+                  <p className="font-semibold theme-text text-sm">{mgmtPlayerRaw.stats?.appearances ?? 0}</p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-brand-primary/10 dark:bg-brand-primary/20 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Minutes</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.minutes_played ?? 0}</p>
+                </div>
+                <div className="bg-ui-success/10 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Goals</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.goals ?? 0}</p>
+                </div>
+                <div className="bg-orange-500/10 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Assists</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.assists ?? 0}</p>
+                </div>
+                <div className="bg-snow-100 dark:bg-[#1F2937] rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Fouls</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.fouls ?? 0}</p>
+                </div>
+                <div className="bg-yellow-500/10 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Yellow</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.yellow_cards ?? 0}</p>
+                </div>
+                <div className="bg-red-500/10 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Red</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.red_cards ?? 0}</p>
+                </div>
+                <div className="bg-emerald-500/10 rounded p-3">
+                  <p className="text-[10px] text-neutral-n5">Clean sheets</p>
+                  <p className="font-bold theme-text">{mgmtPlayerRaw.stats?.clean_sheets ?? 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* Banter Section - Common for all tabs */}
         <div className="sz-8 flex-col-reverse flex gap-y-7 md:flex-row my-8 md:gap-7">
           {/* Content Section - Different for each tab */}
@@ -1201,7 +1409,7 @@ const playerProfile = () => {
               <div className="block-style block space-y-2">
                 <div className="flex items-center text-neutral-n4 dark:text-snow-100 gap-2">
                   <InformationCircleIcon className="h-5" />
-                  <p className="sz-5 font-bold">Sport Biography</p>
+                  <p className="sz-5 font-medium tracking-tight">Sport Biography</p>
                 </div>
                 <p className="theme-text">
                   {playerDisplayName} {player?.age ? `is ${player.age} years old` : ""}{player?.birthdate ? ` (born ${player.birthdate})` : ""}{player?.height ? `, ${player.height} cm tall` : ""}
@@ -1242,7 +1450,7 @@ const playerProfile = () => {
             </div>
 
             <div className="block-style">
-              <p className="font-bold text-lg mb-3 theme-text">Career totals</p>
+              <p className="font-medium text-lg mb-3 theme-text tracking-tight">Career totals</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
                   <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Apps</p>
@@ -1263,85 +1471,89 @@ const playerProfile = () => {
               </div>
             </div>
 
-            <div className="block-style">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="font-bold text-lg theme-text">Season split</p>
-                <p className="text-xs text-neutral-n5 dark:text-snow-200">{selectedSeason || ""}</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {([
-                  { key: "clubs", label: "League (clubs)" },
-                  { key: "cups", label: "Domestic cups" },
-                  { key: "cups_intl", label: "International cups" },
-                  { key: "intl", label: "National team" },
-                ] as const).map(({ key, label }) => {
-                  const t = categoryTotals[key];
-                  const avg = t.ratingCount ? t.ratingSum / t.ratingCount : 0;
-                  return (
-                    <div key={key} className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold theme-text truncate">{label}</p>
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Apps {t.apps} • Min {t.minutes}</p>
+            {!isMgmtPlayer && (
+              <>
+                <div className="block-style">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="font-medium text-lg theme-text tracking-tight">Season split</p>
+                    <p className="text-xs text-neutral-n5 dark:text-snow-200">{selectedSeason || ""}</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {([
+                      { key: "clubs", label: "League (clubs)" },
+                      { key: "cups", label: "Domestic cups" },
+                      { key: "cups_intl", label: "International cups" },
+                      { key: "intl", label: "National team" },
+                    ] as const).map(({ key, label }) => {
+                      const t = categoryTotals[key];
+                      const avg = t.ratingCount ? t.ratingSum / t.ratingCount : 0;
+                      return (
+                        <div key={key} className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold theme-text truncate">{label}</p>
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Apps {t.apps} • Min {t.minutes}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Avg</p>
+                              <p className="font-bold theme-text">{avg ? avg.toFixed(2) : "-"}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 grid grid-cols-4 gap-2">
+                            <div>
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">G</p>
+                              <p className="font-semibold theme-text">{t.goals || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">A</p>
+                              <p className="font-semibold theme-text">{t.assists || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Pass</p>
+                              <p className="font-semibold theme-text">{t.passes || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-neutral-n5 dark:text-snow-200">G+A</p>
+                              <p className="font-semibold theme-text">{t.goals + t.assists || "-"}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Avg</p>
-                          <p className="font-bold theme-text">{avg ? avg.toFixed(2) : "-"}</p>
-                        </div>
-                      </div>
-                      <div className="mt-2 grid grid-cols-4 gap-2">
-                        <div>
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">G</p>
-                          <p className="font-semibold theme-text">{t.goals || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">A</p>
-                          <p className="font-semibold theme-text">{t.assists || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Pass</p>
-                          <p className="font-semibold theme-text">{t.passes || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-neutral-n5 dark:text-snow-200">G+A</p>
-                          <p className="font-semibold theme-text">{t.goals + t.assists || "-"}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Minutes / match</p>
-                <p className="font-bold theme-text">{seasonTotals.minsPerMatch ? seasonTotals.minsPerMatch.toFixed(0) : "-"}</p>
-              </div>
-              <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Cards / 90</p>
-                <p className="font-bold theme-text">{seasonTotals.cardsPer90 ? seasonTotals.cardsPer90.toFixed(2) : "-"}</p>
-              </div>
-              <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Competitions</p>
-                <p className="font-bold theme-text">{seasonTotals.leagues.length ? seasonTotals.leagues.length : "-"}</p>
-              </div>
-              <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
-                <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Passes total</p>
-                <p className="font-bold theme-text">{seasonTotals.passes || "-"}</p>
-              </div>
-            </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                    <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Minutes / match</p>
+                    <p className="font-bold theme-text">{seasonTotals.minsPerMatch ? seasonTotals.minsPerMatch.toFixed(0) : "-"}</p>
+                  </div>
+                  <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                    <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Cards / 90</p>
+                    <p className="font-bold theme-text">{seasonTotals.cardsPer90 ? seasonTotals.cardsPer90.toFixed(2) : "-"}</p>
+                  </div>
+                  <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                    <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Competitions</p>
+                    <p className="font-bold theme-text">{seasonTotals.leagues.length ? seasonTotals.leagues.length : "-"}</p>
+                  </div>
+                  <div className="bg-snow-100 dark:bg-[#161B22] border border-snow-200/60 dark:border-snow-100/10 rounded p-3">
+                    <p className="text-[10px] text-neutral-n5 dark:text-snow-200">Passes total</p>
+                    <p className="font-bold theme-text">{seasonTotals.passes || "-"}</p>
+                  </div>
+                </div>
+              </>
+            )}
 
             <MonthlyRatingChart />
             <div className="block-style">
-              <p className="font-bold text-lg mb-3 theme-text">{player?.lastname ?? playerDisplayName} Attributes</p>
+              <p className="font-medium text-lg mb-3 theme-text">{player?.lastname ?? playerDisplayName} Attributes</p>
               <PlayerRadarChart data={radarData} />
               
             </div>
 
             <div className="block-style">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="font-bold text-lg theme-text">Season breakdown</p>
+                <p className="font-medium text-lg theme-text">Season breakdown</p>
                 <p className="text-xs text-neutral-n5 dark:text-snow-200">
                   {selectedSeason ? selectedSeason : ""}
                 </p>
@@ -1395,7 +1607,7 @@ const playerProfile = () => {
 
               <div className="block-style">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <p className="font-bold text-lg theme-text">Transfer fees history</p>
+                  <p className="font-medium text-lg theme-text">Transfer fees history</p>
                 </div>
                 <div className="w-full h-64">
                   {transferChartData.length === 0 ? (
@@ -1435,7 +1647,7 @@ const playerProfile = () => {
               </div>
 
               <div className="block-style">
-                <p className="font-bold text-lg mb-3 theme-text">Transfer History</p>
+                <p className="font-medium text-lg mb-3 theme-text">Transfer History</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(player?.transfers ?? []).length === 0 ? (
                     <div className="theme-text">No transfer data</div>
@@ -1492,7 +1704,7 @@ const playerProfile = () => {
               {/* <HeatMap /> */}
 
             <div className="block-style">
-              <p className="font-bold text-lg mb-3 theme-text">Trophies</p>
+              <p className="font-medium text-lg mb-3 theme-text">Trophies</p>
               {(player?.trophies ?? []).length === 0 ? (
                 <div className="theme-text">No trophy data</div>
               ) : (
@@ -1525,7 +1737,7 @@ const playerProfile = () => {
             </div>
             
             {/* <div className="block-style flex bg-ui-success/10 rounded px-3 py-4 flex-col gap-2">
-              <p className="font-bold text-lg text-ui-success">Strength</p>
+              <p className="font-medium text-lg text-ui-success">Strength</p>
               <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                 <li>Anchor Play</li>
                 <li>Finishing</li>
@@ -1539,7 +1751,7 @@ const playerProfile = () => {
                 </ul>
             </div>
             <div className="block-style flex bg-ui-negative/10 rounded px-3 py-4 flex-col gap-2">
-              <p className="font-bold text-lg text-ui-negative">Weakness</p>
+              <p className="font-medium text-lg text-ui-negative">Weakness</p>
               <ul className="grid grid-cols-2 font-medium theme-text list-inside">
                 <li>Defensive Work</li>
                 <li>Aerial Duels</li>

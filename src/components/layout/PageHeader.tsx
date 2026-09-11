@@ -24,6 +24,7 @@ import {
   searchBasketballPlayers,
   getBasketballLeagueById,
 } from "@/lib/api/basketball/index";
+import { searchPublic } from "@/lib/api/management";
 export const PageHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -374,7 +375,7 @@ export const PageHeader = () => {
       setDemoResults([]);
 
       if (searchScope === "all") {
-        let remaining = 4;
+        let remaining = 5;
 
         const done = () => {
           remaining -= 1;
@@ -498,10 +499,69 @@ export const PageHeader = () => {
           })
           .finally(done);
 
+        // Management API – unified search (leagues/teams/players) - also check response shape and render accordingly
+        searchPublic(q)
+          .then((res) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const data = (res as any)?.data as { leagues?: any[]; teams?: any[]; players?: any[] };
+            const mgmtLeagues = Array.isArray(data?.leagues) ? data.leagues.slice(0, 5) : [];
+            const mgmtTeams = Array.isArray(data?.teams) ? data.teams.slice(0, 5) : [];
+            const mgmtPlayers = Array.isArray(data?.players) ? data.players.slice(0, 5) : [];
+
+            const mLeagues = mgmtLeagues.map((l: any) => ({
+              id: l?.id,
+              name: String(l?.name ?? "Unknown"),
+              // render league info: use season as country/subtitle so league info can be displayed and is suitable for league page
+              country: String(l?.season ?? l?.status ?? ""),
+              image: l?.imageUrl ?? l?.image_url ?? undefined,
+              sport: "football" as const,
+              kind: "league" as const,
+            }));
+            const mTeams = mgmtTeams.map((t: any) => ({
+              id: t?.id,
+              name: String(t?.name ?? "Unknown"),
+              country: String(t?.league?.name ?? t?.city ?? ""),
+              image: t?.imageUrl ?? t?.image_url ?? undefined,
+              sport: "football" as const,
+              kind: "team" as const,
+            }));
+            const mPlayers = mgmtPlayers.map((p: any) => {
+              const name = [p?.firstName, p?.lastName].filter(Boolean).join(" ") || "Unknown";
+              return {
+                id: p?.id,
+                name: String(name),
+                country: String(p?.team?.name ?? p?.nationality ?? ""),
+                image: p?.imageUrl ?? p?.image_url ?? undefined,
+                position: String(p?.position ?? ""),
+                sport: "football" as const,
+                kind: "player" as const,
+              };
+            });
+
+            const combined = [...mLeagues, ...mTeams, ...mPlayers];
+            if (combined.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, combined);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
+          })
+          .catch(() => {
+            // ignore management search errors (already validated q>=2)
+          })
+          .finally(done);
+
         return;
       }
 
       if (searchScope === "players") {
+        let remaining = 3;
+        const done = () => {
+          remaining -= 1;
+          if (remaining <= 0 && requestId === searchRequestIdRef.current) setSearchLoading(false);
+        };
+        setDemoResults([]);
         (async () => {
           try {
             const data = await getPlayerByName(q);
@@ -527,13 +587,15 @@ export const PageHeader = () => {
                   })
                 : [];
 
-            setDemoResults((prev) => mergeSearchResults(prev, normalized));
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
-            setSearchLoading(false);
+            setDemoResults((prev) => {
+              const next = mergeSearchResults(prev, normalized);
+              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+              return next;
+            });
           } catch {
-            if (requestId !== searchRequestIdRef.current) return;
-            setDemoResults([]);
-            setSearchLoading(false);
+            // ignore
+          } finally {
+            done();
           }
         })();
 
@@ -560,18 +622,55 @@ export const PageHeader = () => {
               };
             });
 
-            setDemoResults((prev) => mergeSearchResults(prev, bballPlayers));
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: bballPlayers });
-            setSearchLoading(false);
+            setDemoResults((prev) => {
+              const next = mergeSearchResults(prev, bballPlayers);
+              searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+              return next;
+            });
           })
           .catch(() => {
             // ignore
-          });
+          })
+          .finally(done);
+
+        // Management players
+        searchPublic(q)
+          .then((res) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const players = Array.isArray((res as any)?.data?.players) ? (res as any).data.players : [];
+            const mPlayers = players.slice(0, 10).map((p: any) => {
+              const name = [p?.firstName, p?.lastName].filter(Boolean).join(" ") || "Unknown";
+              return {
+                id: p?.id,
+                name: String(name),
+                country: String(p?.team?.name ?? p?.nationality ?? ""),
+                image: p?.imageUrl ?? p?.image_url ?? undefined,
+                position: String(p?.position ?? ""),
+                sport: "football" as const,
+                kind: "player" as const,
+              };
+            });
+            if (mPlayers.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, mPlayers);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
+          })
+          .catch(() => {})
+          .finally(done);
 
         return;
       }
 
       if (searchScope === "teams") {
+        let remaining = 2;
+        const done = () => {
+          remaining -= 1;
+          if (remaining <= 0 && requestId === searchRequestIdRef.current) setSearchLoading(false);
+        };
+        setDemoResults([]);
         (async () => {
           try {
             const data = await getTeamByName(q);
@@ -593,20 +692,53 @@ export const PageHeader = () => {
                   })
                 : [];
 
-            setDemoResults(normalized);
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
-            setSearchLoading(false);
+            if (normalized.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, normalized);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
           } catch {
-            if (requestId !== searchRequestIdRef.current) return;
-            setDemoResults([]);
-            setSearchLoading(false);
+            // ignore
+          } finally {
+            done();
           }
         })();
+
+        searchPublic(q)
+          .then((res) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const teams = Array.isArray((res as any)?.data?.teams) ? (res as any).data.teams : [];
+            const mTeams = teams.slice(0, 10).map((t: any) => ({
+              id: t?.id,
+              name: String(t?.name ?? "Unknown"),
+              country: String(t?.league?.name ?? t?.city ?? ""),
+              image: t?.imageUrl ?? t?.image_url ?? undefined,
+              sport: "football" as const,
+              kind: "team" as const,
+            }));
+            if (mTeams.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, mTeams);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
+          })
+          .catch(() => {})
+          .finally(done);
 
         return;
       }
 
       if (searchScope === "leagues") {
+        let remaining = 2;
+        const done = () => {
+          remaining -= 1;
+          if (remaining <= 0 && requestId === searchRequestIdRef.current) setSearchLoading(false);
+        };
+        setDemoResults([]);
         (async () => {
           try {
             const data = await getLeagueByName(q);
@@ -628,15 +760,42 @@ export const PageHeader = () => {
                   })
                 : [];
 
-            setDemoResults(normalized);
-            searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: normalized });
-            setSearchLoading(false);
+            if (normalized.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, normalized);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
           } catch {
-            if (requestId !== searchRequestIdRef.current) return;
-            setDemoResults([]);
-            setSearchLoading(false);
+            // ignore
+          } finally {
+            done();
           }
         })();
+
+        searchPublic(q)
+          .then((res) => {
+            if (requestId !== searchRequestIdRef.current) return;
+            const leagues = Array.isArray((res as any)?.data?.leagues) ? (res as any).data.leagues : [];
+            const mLeagues = leagues.slice(0, 10).map((l: any) => ({
+              id: l?.id,
+              name: String(l?.name ?? "Unknown"),
+              country: String(l?.season ?? l?.status ?? ""),
+              image: l?.imageUrl ?? l?.image_url ?? undefined,
+              sport: "football" as const,
+              kind: "league" as const,
+            }));
+            if (mLeagues.length) {
+              setDemoResults((prev) => {
+                const next = mergeSearchResults(prev, mLeagues);
+                searchCacheRef.current.set(cacheKey, { ts: Date.now(), items: next });
+                return next;
+              });
+            }
+          })
+          .catch(() => {})
+          .finally(done);
 
         return;
       }
@@ -1003,13 +1162,15 @@ export const PageHeader = () => {
                         r.image ||
                         (r.kind === "league"
                           ? "/loading-state/shield.svg"
-                          : "/loading-state/player.svg")
+                          : r.kind === "team"
+                            ? "/loading-state/shield.svg"
+                            : "/loading-state/player.svg")
                       }
                       alt={r.name}
-                      className={`h-10 w-10 object-cover ${
-                        r.kind === "player" ? "rounded-full" : "rounded-none"
-                      } ${
-                        r.kind === "player"
+                      className={`h-10 w-10 ${
+                        r.image ? "object-cover" : "object-contain"
+                      } ${r.kind === "player" && r.image ? "rounded-full" : "rounded-none"} ${
+                        r.kind === "player" && r.image
                           ? isDark
                             ? "bg-white/10"
                             : "bg-snow-200"
@@ -1019,9 +1180,12 @@ export const PageHeader = () => {
                         const img = e.currentTarget;
                         img.onerror = null;
                         img.src =
-                          r.kind === "league"
+                          r.kind === "league" || r.kind === "team"
                             ? "/loading-state/shield.svg"
                             : "/loading-state/player.svg";
+                        // ensure fallback has no radius / bg and not cropped
+                        img.classList.remove("rounded-full", "bg-white/10", "bg-snow-200", "object-cover");
+                        img.classList.add("rounded-none", "bg-transparent", "object-contain");
                       }}
                     />
                   )}

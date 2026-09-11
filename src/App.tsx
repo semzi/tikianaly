@@ -41,6 +41,7 @@ const Forgot = lazy(() => import("./features/auth/pages/forgot_password"));
 const Favourite = lazy(() => import("./features/dashboard/pages/favourites"));
 const AccountPage = lazy(() => import("./features/account/pages/account"));
 const GameInfo = lazy(() => import("./features/football/pages/gameInfo"));
+const GameInfoManagement = lazy(() => import("./features/football/pages/gameInfoManagement"));
 const PlayerProfile = lazy(
   () => import("./features/football/pages/playerProfile"),
 );
@@ -609,6 +610,20 @@ function AnimatedRoutes() {
                   transition={motionTransition}
                 >
                   <GameInfo />
+                </m.div>
+              }
+            />
+            <Route
+              path="/football/management/gameinfo/:fixtureId"
+              element={
+                <m.div
+                  variants={motionVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={motionTransition}
+                >
+                  <GameInfoManagement />
                 </m.div>
               }
             />

@@ -69,6 +69,14 @@ const authApiClient = axios.create({
 });
 export { authApiClient };
 
+const managementApi = axios.create({
+  baseURL: 'https://cmgmtapi.tikianaly.com/',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+export { managementApi };
+
 // Auth token helpers
 export const getAuthToken = (): string | null => {
   if (typeof window === "undefined") return null;
@@ -169,6 +177,7 @@ const requestErrorInterceptor = (error: any) => {
 // Request interceptor: Add auth token to requests
 apiClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor);
 authApiClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor);
+managementApi.interceptors.request.use(requestInterceptor, requestErrorInterceptor);
 
 const responseInterceptor = (response: any) => {
   if (typeof window !== "undefined") {
@@ -247,5 +256,6 @@ const responseErrorInterceptor = (error: AxiosError) => {
 // Response interceptor: Handle 401 errors (only redirect if token exists)
 apiClient.interceptors.response.use(responseInterceptor, responseErrorInterceptor);
 authApiClient.interceptors.response.use(responseInterceptor, responseErrorInterceptor);
+managementApi.interceptors.response.use(responseInterceptor, responseErrorInterceptor);
 
 export default apiClient;

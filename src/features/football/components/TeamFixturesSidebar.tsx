@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTeamFixtures } from "@/lib/api/endpoints";
+import { getPublicTeamById, getPublicLeagueFixtures } from "@/lib/api/management";
+
+const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 import GetTeamLogo from "@/components/common/GetTeamLogo";
+import Image from "@/components/common/Image";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import {
   HomeIcon,
@@ -52,14 +56,44 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
 
   const queryClient = useQueryClient();
 
+  const isMgmtTeam = !!teamId && isUuid(String(teamId));
   const {
     data: fixtures,
     isLoading,
     error,
   } = useQuery<TeamFixturesResponse>({
-    queryKey: ["teamFixtures", teamId],
-    queryFn: async () => await getTeamFixtures(teamId),
+    queryKey: ["teamFixtures", teamId, isMgmtTeam ? "mgmt" : "legacy"],
+    queryFn: async () => {
+      if (isMgmtTeam) {
+        // Management only: get team's league then fixtures filtered for this team – use imageUrl from fixtures response
+        const tRes: any = await getPublicTeamById(String(teamId));
+        const tData: any = tRes?.data;
+        const leagueId: string | undefined = tData?.leagueId ?? tData?.league?.id;
+        if (!leagueId) return { success: true, message: "", responseObject: { played: [], upcoming: [] }, statusCode: 200 } as TeamFixturesResponse;
+        const fRes: any = await getPublicLeagueFixtures(String(leagueId));
+        const list: any[] = Array.isArray(fRes?.data?.data) ? fRes.data.data : [];
+        const filtered = list.filter((f: any) => String(f.homeTeamId) === String(teamId) || String(f.awayTeamId) === String(teamId));
+        const mapped = filtered.map((f: any) => ({
+          fixture_id: f.id,
+          id: f.id,
+          date: f.matchDate,
+          time: f.kickoffTime ?? "",
+          status: f.status === "COMPLETED" ? "FT" : f.status === "SCHEDULED" ? "NS" : f.status,
+          venue: f.venue ?? "",
+          venue_city: "",
+          localteam: { id: f.homeTeamId, name: f.homeTeam?.name ?? "Home", score: String(f.score?.home ?? ""), image_url: f.homeTeam?.imageUrl ?? null, imageUrl: f.homeTeam?.imageUrl ?? null },
+          visitorteam: { id: f.awayTeamId, name: f.awayTeam?.name ?? "Away", score: String(f.score?.away ?? ""), image_url: f.awayTeam?.imageUrl ?? null, imageUrl: f.awayTeam?.imageUrl ?? null },
+          league_name: f.league?.name ?? "",
+        } as Fixture));
+        const played = mapped.filter((m) => String(m.status).toUpperCase() === "FT");
+        const upcoming = mapped.filter((m) => String(m.status).toUpperCase() !== "FT");
+        return { success: true, message: "", responseObject: { played, upcoming }, statusCode: 200 } as TeamFixturesResponse;
+      }
+      return (await getTeamFixtures(teamId)) as TeamFixturesResponse;
+    },
     enabled: !!teamId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const errorMessage =
@@ -143,14 +177,40 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
       }
 
       try {
+        const fetchMgmtOrLegacy = async (fid: string | number) => {
+          if (isUuid(String(fid))) {
+            const tRes: any = await getPublicTeamById(String(fid));
+            const leagueId: string | undefined = tRes?.data?.leagueId ?? tRes?.data?.league?.id;
+            if (!leagueId) return { success: true, message: "", responseObject: { played: [], upcoming: [] }, statusCode: 200 } as TeamFixturesResponse;
+            const fRes: any = await getPublicLeagueFixtures(String(leagueId));
+            const list: any[] = Array.isArray(fRes?.data?.data) ? fRes.data.data : [];
+            const filtered = list.filter((f: any) => String(f.homeTeamId) === String(fid) || String(f.awayTeamId) === String(fid));
+            const mapped = filtered.map((f: any) => ({
+              fixture_id: f.id,
+              id: f.id,
+              date: f.matchDate,
+              time: f.kickoffTime ?? "",
+              status: f.status === "COMPLETED" ? "FT" : f.status === "SCHEDULED" ? "NS" : f.status,
+              venue: f.venue ?? "",
+              venue_city: "",
+              localteam: { id: f.homeTeamId, name: f.homeTeam?.name ?? "Home", score: String(f.score?.home ?? "") },
+              visitorteam: { id: f.awayTeamId, name: f.awayTeam?.name ?? "Away", score: String(f.score?.away ?? "") },
+              league_name: f.league?.name ?? "",
+            } as Fixture));
+            return { success: true, message: "", responseObject: { played: mapped.filter((m) => String(m.status).toUpperCase() === "FT"), upcoming: mapped.filter((m) => String(m.status).toUpperCase() !== "FT") }, statusCode: 200 } as TeamFixturesResponse;
+          }
+          return (await getTeamFixtures(fid)) as TeamFixturesResponse;
+        };
         const [homeFx, awayFx] = await Promise.all([
           queryClient.fetchQuery<TeamFixturesResponse>({
-            queryKey: ["teamFixtures", homeId],
-            queryFn: () => getTeamFixtures(homeId),
+            queryKey: ["teamFixtures", homeId, isUuid(String(homeId)) ? "mgmt" : "legacy"],
+            queryFn: () => fetchMgmtOrLegacy(homeId),
+            staleTime: 5 * 60 * 1000,
           }),
           queryClient.fetchQuery<TeamFixturesResponse>({
-            queryKey: ["teamFixtures", awayId],
-            queryFn: () => getTeamFixtures(awayId),
+            queryKey: ["teamFixtures", awayId, isUuid(String(awayId)) ? "mgmt" : "legacy"],
+            queryFn: () => fetchMgmtOrLegacy(awayId),
+            staleTime: 5 * 60 * 1000,
           }),
         ]);
 
@@ -255,7 +315,7 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <p className="font-bold text-lg theme-text">Next Match</p>
+        <p className="font-medium text-lg theme-text">Next Match</p>
         {nextMatch?.date ? (
           <p className="text-xs text-neutral-n5 dark:text-snow-200">{formatDate(nextMatch.date)}</p>
         ) : null}
@@ -263,7 +323,7 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
       {nextMatch ? (
         <div>
           <Link
-            to={`/football/gameinfo/${nextMatch.fixture_id}?fixtureId=${encodeURIComponent(String(nextMatch.fixture_id))}`}
+            to={`${(isMgmtTeam || isUuid(String(nextMatch.fixture_id ?? ""))) ? "/football/management/gameinfo" : "/football/gameinfo"}/${nextMatch.fixture_id}?fixtureId=${encodeURIComponent(String(nextMatch.fixture_id))}`}
             className="block rounded-t-xl border border-snow-200/60 dark:border-snow-100/10 bg-white dark:bg-[#161B22] p-4 hover:bg-snow-100/60 dark:hover:bg-white/5 transition-colors"
           >
           <div className="flex items-center justify-between mb-3">
@@ -273,7 +333,11 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
 
           <div className="grid grid-cols-3 items-start gap-3">
             <div className="flex flex-col items-center gap-2 min-w-0">
-              <GetTeamLogo teamId={nextMatch.localteam.id} alt={nextMatch.localteam.name} className="w-10 h-10 object-contain" />
+              {(nextMatch as any)?.localteam?.image_url || (nextMatch as any)?.localteam?.imageUrl ? (
+                <Image src={(nextMatch as any).localteam.image_url ?? (nextMatch as any).localteam.imageUrl} alt={nextMatch.localteam.name} className="w-10 h-10 object-contain" fallback="/loading-state/shield.svg" />
+              ) : (
+                <GetTeamLogo teamId={nextMatch.localteam.id} alt={nextMatch.localteam.name} className="w-10 h-10 object-contain" />
+              )}
               <p className="text-sm font-semibold theme-text text-center truncate w-full">{nextMatch.localteam.name}</p>
               <div className="flex gap-0.5 flex-nowrap justify-center">
                 {[...homeForm].reverse().map((r, idx) => (
@@ -293,7 +357,11 @@ const TeamFixturesSidebar = ({ teamId }: TeamFixturesSidebarProps) => {
             </div>
 
             <div className="flex flex-col items-center gap-2 min-w-0">
-              <GetTeamLogo teamId={nextMatch.visitorteam.id} alt={nextMatch.visitorteam.name} className="w-10 h-10 object-contain" />
+              {(nextMatch as any)?.visitorteam?.image_url || (nextMatch as any)?.visitorteam?.imageUrl ? (
+                <Image src={(nextMatch as any).visitorteam.image_url ?? (nextMatch as any).visitorteam.imageUrl} alt={nextMatch.visitorteam.name} className="w-10 h-10 object-contain" fallback="/loading-state/shield.svg" />
+              ) : (
+                <GetTeamLogo teamId={nextMatch.visitorteam.id} alt={nextMatch.visitorteam.name} className="w-10 h-10 object-contain" />
+              )}
               <p className="text-sm font-semibold theme-text text-center truncate w-full">{nextMatch.visitorteam.name}</p>
               <div className="flex gap-0.5 flex-nowrap justify-center">
                 {[...awayForm].reverse().map((r, idx) => (
