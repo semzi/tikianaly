@@ -185,7 +185,7 @@ function Login({ onForgotPassword }: LoginProps) {
         disabled={isSubmitDisabled}
       />
 
-      <p className="sz-7 text-center mt-5 text-neutral-n5">or sign in with</p>
+      {/* <p className="sz-7 text-center mt-5 text-neutral-n5">or sign in with</p>
       <div className="flex gap-2 items-stretch">
         <FormButton
           className="btn-outline"
@@ -208,7 +208,7 @@ function Login({ onForgotPassword }: LoginProps) {
           iconAlt="Facebook Icon"
           type="button"
         />
-      </div>
+      </div> */}
     </form>
   );
 }

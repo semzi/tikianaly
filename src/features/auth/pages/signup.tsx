@@ -647,7 +647,7 @@ function Signup() {
         type="submit"
       />
 
-      <p className="sz-7 text-center mt-5 text-neutral-n5">or sign up with</p>
+      {/* <p className="sz-7 text-center mt-5 text-neutral-n5">or sign up with</p>
       <div className="flex gap-2 items-stretch mt-2">
         <FormButton
           className="btn-outline"
@@ -670,7 +670,7 @@ function Signup() {
           iconAlt="Facebook Icon"
           type="button"
         />
-      </div>
+      </div> */}
     </form>
   );
 }

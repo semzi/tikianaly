@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { format, isToday } from "date-fns";
 import {
   ChevronDownIcon,
@@ -16,9 +16,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getCricketLive, getUpcomingCricketFixtures } from "@/lib/api/cricket";
 import { mapCricketMatch, type CricketMappedMatch } from "../utils/mappers";
 
-type CricketTab = "live" | "fixtures";
+type CricketFixturesMode = "live" | "date";
 
 const FAVORITES_STORAGE_KEY = "cricket_favorite_matches_v1";
+const CRICKET_FIXTURES_MODE_KEY = "cricket_fixtures_mode";
 
 const readFavorites = (): Record<string, boolean> => {
   try {
@@ -31,8 +32,21 @@ const readFavorites = (): Record<string, boolean> => {
 
 const CricketPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<CricketTab>("fixtures");
-  
+
+  const [fixturesMode, setFixturesMode] = useState<CricketFixturesMode>(() => {
+    try {
+      const tabParam = searchParams.get("tab");
+      if (tabParam === "live") return "live";
+      const dateParam = searchParams.get("date");
+      if (dateParam) return "date";
+      const stored = localStorage.getItem(CRICKET_FIXTURES_MODE_KEY);
+      if (stored === "live" || stored === "date") return stored;
+    } catch {
+      // ignore storage errors
+    }
+    return "date";
+  });
+
   const [selectedDate, _setSelectedDate] = useState<Date | null>(() => {
     try {
       const dateParam = searchParams.get("date");
@@ -46,33 +60,95 @@ const CricketPage = () => {
     }
   });
 
-  const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
-    _setSelectedDate(prev => {
-      const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
-      
-      setSearchParams(prevParams => {
-        if (newDate && !isToday(newDate)) {
-          prevParams.set("date", format(newDate, 'yyyy-MM-dd'));
+  const selectedDateRef = useRef(selectedDate);
+  selectedDateRef.current = selectedDate;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CRICKET_FIXTURES_MODE_KEY, fixturesMode);
+    } catch {
+      // ignore storage errors
+    }
+  }, [fixturesMode]);
+
+  const handleModeChange = useCallback((mode: CricketFixturesMode) => {
+    setFixturesMode(mode);
+    try {
+      localStorage.setItem(CRICKET_FIXTURES_MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+    setSearchParams(prevParams => {
+      const next = new URLSearchParams(prevParams);
+      if (mode === "live") {
+        next.set("tab", "live");
+        next.delete("date");
+      } else {
+        next.delete("tab");
+        if (selectedDateRef.current && !isToday(selectedDateRef.current)) {
+          next.set("date", format(selectedDateRef.current, "yyyy-MM-dd"));
         } else {
-          prevParams.delete("date");
+          next.delete("date");
         }
-        return prevParams;
-      }, { replace: false });
-      
-      return newDate;
-    });
+      }
+      return next;
+    }, { replace: false });
+  }, [setSearchParams]);
+
+  const setSelectedDate = useCallback((dateOrUpdater: Date | null | ((prev: Date | null) => Date | null)) => {
+    const prev = selectedDateRef.current;
+    const newDate = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
+    
+    _setSelectedDate(newDate);
+    setFixturesMode("date");
+    try {
+      localStorage.setItem(CRICKET_FIXTURES_MODE_KEY, "date");
+    } catch {
+      // ignore
+    }
+
+    setSearchParams(prevParams => {
+      const next = new URLSearchParams(prevParams);
+      next.delete("tab");
+      if (newDate && !isToday(newDate)) {
+        next.set("date", format(newDate, "yyyy-MM-dd"));
+      } else {
+        next.delete("date");
+      }
+      return next;
+    }, { replace: false });
   }, [setSearchParams]);
 
   // Sync state with URL when navigating back/forward
   useEffect(() => {
+    const tabParam = searchParams.get("tab");
     const dateParam = searchParams.get("date");
+
+    if (tabParam === "live") {
+      setFixturesMode("live");
+      _setSelectedDate(new Date());
+      return;
+    }
+
     if (dateParam) {
       const d = new Date(dateParam);
       if (!Number.isNaN(d.getTime())) {
         _setSelectedDate(d);
-        setActiveTab("fixtures");
+        setFixturesMode("date");
         return;
       }
+    }
+
+    // When at root /cricket without query params, restore mode from localStorage
+    try {
+      const stored = localStorage.getItem(CRICKET_FIXTURES_MODE_KEY);
+      if (stored === "live") {
+        setFixturesMode("live");
+      } else {
+        setFixturesMode("date");
+      }
+    } catch {
+      setFixturesMode("date");
     }
     _setSelectedDate(new Date());
   }, [searchParams]);
@@ -81,38 +157,33 @@ const CricketPage = () => {
   const [favoritesOpen, setFavoritesOpen] = useState(true);
   const [collapsedLeagues, setCollapsedLeagues] = useState<Record<string, boolean>>({});
 
-  const fixturesMode = activeTab === "live" ? "live" : "date";
   const shouldShowReturnToToday = useMemo(() => {
-    if (activeTab !== "fixtures") return false;
+    if (fixturesMode !== "date") return false;
     try {
       return !isToday(selectedDate ?? new Date());
     } catch {
       return false;
     }
-  }, [activeTab, selectedDate]);
+  }, [fixturesMode, selectedDate]);
+
   const dateString = selectedDate ? format(selectedDate, "dd.MM.yyyy") : undefined;
+
   const liveQuery = useQuery({
     queryKey: ["cricketLive"],
     queryFn: () => getCricketLive(),
-    enabled: activeTab === "live",
+    enabled: fixturesMode === "live",
     refetchInterval: 30000, // refresh every 30s for live data
   });
 
   const fixturesQuery = useQuery({
     queryKey: ["cricketFixtures", dateString],
     queryFn: () => getUpcomingCricketFixtures(1, 100, dateString),
-    enabled: activeTab === "fixtures",
+    enabled: fixturesMode === "date",
   });
-
-  useEffect(() => {
-    if (!isToday(selectedDate ?? new Date())) {
-      setActiveTab("fixtures");
-    }
-  }, [selectedDate]);
 
   const matches = useMemo(() => {
     let rawItems: any[] = [];
-    const responseObj = activeTab === "live" 
+    const responseObj = fixturesMode === "live" 
       ? liveQuery.data?.responseObject 
       : fixturesQuery.data?.responseObject;
       
@@ -127,7 +198,7 @@ const CricketPage = () => {
     }
     
     return rawItems.map(mapCricketMatch);
-  }, [activeTab, liveQuery.data, fixturesQuery.data]);
+  }, [fixturesMode, liveQuery.data, fixturesQuery.data]);
 
   const groupedMatches = useMemo(() => {
     const grouped = new Map<string, typeof matches>();
@@ -231,117 +302,117 @@ const CricketPage = () => {
   };
 
   return (
-      <SportLayout 
-        leftBar={<CricketLeftBar />}
-        pageBottom={
-          <ReturnToToday
-            show={shouldShowReturnToToday}
-            onReturnToToday={() => {
-              setSelectedDate(new Date());
-              setActiveTab("fixtures");
-              try {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              } catch {
-                // ignore
-              }
-            }}
-          />
-        }
-      >
-            <FixturesDateToggle
-              fixturesMode={fixturesMode}
-              onModeChange={(mode) => setActiveTab(mode === "live" ? "live" : "fixtures")}
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              liveLabel="Live"
-            />
-            <div>
-              {favoriteMatches.length ? (
-                  <div className="mb-5 overflow-hidden rounded-2xl border border-snow-200 dark:border-[#1F2937]">
+    <SportLayout 
+      leftBar={<CricketLeftBar />}
+      pageBottom={
+        <ReturnToToday
+          show={shouldShowReturnToToday}
+          onReturnToToday={() => {
+            setSelectedDate(new Date());
+            setFixturesMode("date");
+            try {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch {
+              // ignore
+            }
+          }}
+        />
+      }
+    >
+      <FixturesDateToggle
+        fixturesMode={fixturesMode}
+        onModeChange={handleModeChange}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        liveLabel="Live"
+      />
+      <div>
+        {favoriteMatches.length ? (
+          <div className="mb-5 overflow-hidden rounded-2xl border border-snow-200 dark:border-[#1F2937]">
+            <button
+              type="button"
+              className="flex w-full items-center gap-3 border-b border-snow-200 px-5 py-3 text-left dark:border-[#1F2937]"
+              onClick={() => setFavoritesOpen((value) => !value)}
+            >
+              <p className="font-semibold text-[#23272A] dark:text-white">
+                Starred Matches ({favoriteMatches.length})
+              </p>
+              <ChevronDownIcon
+                className={`ml-auto h-5 w-5 text-brand-secondary transition-transform ${
+                  favoritesOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {favoritesOpen ? (
+              <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
+                {favoriteMatches.map((match) => matchCard(match, true))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {(fixturesMode === "live" ? liveQuery.isLoading : fixturesQuery.isLoading) ? (
+          <div className="flex justify-center p-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-secondary"></div>
+          </div>
+        ) : groupedMatches.length ? (
+          <div className="space-y-3">
+            {groupedMatches.map(({ league, items }) => {
+              const collapsed = collapsedLeagues[league];
+              const fixtureCount = items.length;
+              return (
+                <div key={league} className="block-style !p-0">
+                  <div
+                    className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
+                    onClick={() =>
+                      setCollapsedLeagues((current) => ({
+                        ...current,
+                        [league]: !current[league],
+                      }))
+                    }
+                  >
+                    <div className="flex items-center gap-2">
+                      <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
+                        {league}
+                      </p>
+                      {fixtureCount >= 10 ? (
+                        <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
+                          <span className="text-xs font-medium">{fixtureCount}</span>
+                          <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                        </div>
+                      ) : (
+                        <ChevronDownIcon
+                          className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
+                        />
+                      )}
+                    </div>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-3 border-b border-snow-200 px-5 py-3 text-left dark:border-[#1F2937]"
-                      onClick={() => setFavoritesOpen((value) => !value)}
+                      className="ml-auto text-brand-secondary hover:opacity-80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      aria-label="Toggle league matches"
                     >
-                      <p className="font-semibold text-[#23272A] dark:text-white">
-                        Starred Matches ({favoriteMatches.length})
-                      </p>
-                      <ChevronDownIcon
-                        className={`ml-auto h-5 w-5 text-brand-secondary transition-transform ${
-                          favoritesOpen ? "rotate-180" : ""
-                        }`}
-                      />
+                      <ArrowRightIcon className="w-5 h-5" />
                     </button>
-                    {favoritesOpen ? (
-                      <div className="divide-y divide-snow-200 dark:divide-[#1F2937]">
-                        {favoriteMatches.map((match) => matchCard(match, true))}
-                      </div>
-                    ) : null}
                   </div>
-                ) : null}
-
-              {(activeTab === "live" ? liveQuery.isLoading : fixturesQuery.isLoading) ? (
-                  <div className="flex justify-center p-10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-secondary"></div>
-                  </div>
-                ) : groupedMatches.length ? (
-                  <div className="space-y-3">
-                    {groupedMatches.map(({ league, items }) => {
-                      const collapsed = collapsedLeagues[league];
-                      const fixtureCount = items.length;
-                      return (
-                        <div key={league} className="block-style !p-0">
-                          <div
-                            className="flex gap-3 border-b-1 px-5 py-3 border-snow-200 dark:border-[#1F2937] bg-gradient-to-r from-brand-primary/0 via-transparent to-orange-500/10 dark:from-brand-primary/0 dark:to-orange-500/20 cursor-pointer select-none"
-                            onClick={() =>
-                              setCollapsedLeagues((current) => ({
-                                ...current,
-                                [league]: !current[league],
-                              }))
-                            }
-                          >
-                            <div className="flex items-center gap-2">
-                              <p className="font-[500] text-[#23272A] dark:text-snow-200 text-[14px] md:text-base">
-                                {league}
-                              </p>
-                              {fixtureCount >= 10 ? (
-                                <div className="flex items-center gap-1 bg-brand-secondary text-white px-2 py-0.5 rounded-full ml-1">
-                                  <span className="text-xs font-medium">{fixtureCount}</span>
-                                  <ChevronDownIcon className={`h-3 w-3 transition-transform ${collapsed ? "" : "rotate-180"}`} />
-                                </div>
-                              ) : (
-                                <ChevronDownIcon
-                                  className={`h-4 w-4 text-neutral-n5 dark:text-snow-200/70 transition-transform ml-1 ${collapsed ? "" : "rotate-180"}`}
-                                />
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              className="ml-auto text-brand-secondary hover:opacity-80"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              aria-label="Toggle league matches"
-                            >
-                              <ArrowRightIcon className="w-5 h-5" />
-                            </button>
-                          </div>
-                          {!collapsed ? (
-                            <div className="p-2">
-                              {items.map((match) => matchCard(match))}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-snow-200 p-10 text-center text-sm text-neutral-500 dark:border-white/10 dark:text-snow-200">
-                    No cricket matches found.
-                  </div>
-                )}
-            </div>
-      </SportLayout>
+                  {!collapsed ? (
+                    <div className="p-2">
+                      {items.map((match) => matchCard(match))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-snow-200 p-10 text-center text-sm text-neutral-500 dark:border-white/10 dark:text-snow-200">
+            No cricket matches found.
+          </div>
+        )}
+      </div>
+    </SportLayout>
   );
 };
 

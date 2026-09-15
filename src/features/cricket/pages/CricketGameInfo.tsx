@@ -133,7 +133,17 @@ const CricketGameInfo = () => {
         {/* Content Layer */}
         <div className="col-start-1 row-start-1 w-full relative z-[2] px-4 pt-6 pb-16 md:pt-8 md:pb-20">
           <div className="relative grid grid-cols-3 items-center">
-            <button type="button" onClick={() => navigate("/cricket")} className="flex gap-4 items-center w-fit cursor-pointer text-left">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate("/cricket");
+                }
+              }}
+              className="flex gap-4 items-center w-fit cursor-pointer text-left"
+            >
               <ArrowLeftIcon className="text-white h-5" />
               <p className="text-white hidden md:block">Back</p>
             </button>
